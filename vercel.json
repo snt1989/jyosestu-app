@@ -1,0 +1,7 @@
+{
+  "buildCommand": "sh build.sh",
+  "outputDirectory": ".",
+  "headers": [
+    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] }
+  ]
+}

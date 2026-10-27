@@ -1,0 +1,2430 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
+<title>除雪管理アプリ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: 現場で片手で使う前提のスマホアプリ。参考アプリに合わせ、深緑を基調に白いカード・丸いボタン・下部タブ(PCでは左のサイドバー)。
+   緊急度は色付きの帯と文字ラベルの両方で示し、押す場所は48px以上の高さにそろえる。常に明るい配色で表示する。 */
+:root{
+  --bg:#F8F9F8; --surface:#ffffff; --surface2:#F3F5F4; --ink:#20241F; --muted:#5C6459; --line:#E3E7E5;
+  --accent:#1E8449; --accent-hover:#187038; --accent-ink:#ffffff; --accent-soft:#E2F1E7; --brand:#175C40; --brand-active:#2C8358;
+  --crit:#C1443C; --crit-bg:#F8E1DE; --warn:#9A6A0B; --warn-bg:#F6EACB; --ok:#1E6B45; --ok-bg:#E2F1E7;
+  --idle:#5C6459; --idle-bg:#EAEEEC; --info:#2F6FA8; --info-bg:#DEEAF3; --track:#E3E9E6;
+  --shadow:0 1px 2px rgba(20,30,22,.05),0 6px 16px -10px rgba(20,30,22,.18);
+  --font-body:"Noto Sans JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  --font-head:"Zen Kaku Gothic New","Noto Sans JP",sans-serif;
+  --font-num:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;padding:0 0 92px}
+button,input,textarea,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-family:var(--font-head);font-weight:700;text-wrap:balance}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted);font-size:.9rem}
+.err{color:var(--crit);font-size:.9rem}
+.page{max-width:760px;margin-inline:auto;padding:16px}
+.page.wide{max-width:1120px}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+
+/* app bar */
+.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px}
+.appbar h1{font-size:1.1rem;line-height:1.2;color:var(--brand)}
+.appbar .sub{font-size:.8rem;color:var(--muted)}
+.ab-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;min-height:44px;padding:6px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem}
+.ab-btn:hover{background:var(--surface2)}
+.ab-btn[disabled]{opacity:.5;cursor:default}
+#btnRefresh::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.ico{width:24px;height:24px;flex:none}
+
+/* tab bar + fab */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);display:flex;gap:2px;padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 16px -8px rgba(0,0,0,.18)}
+.tabbar button{flex:1;border:0;background:transparent;cursor:pointer;min-height:56px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:.75rem;font-weight:700;border-radius:10px}
+.tabbar button .ico{width:22px;height:22px}
+.tabbar button[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+.fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:24;border:0;background:var(--accent);color:var(--accent-ink);border-radius:999px;min-height:52px;padding:0 22px;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;box-shadow:0 6px 16px -4px rgba(20,60,35,.45)}
+.fab:hover{background:var(--accent-hover)}
+.fab .ico{width:22px;height:22px}
+
+/* buttons / forms */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 18px;cursor:pointer;min-height:48px;font-weight:700}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.danger{color:var(--crit);border-color:var(--crit)}
+.btn.sm{min-height:40px;padding:4px 12px;font-size:.9rem}
+.btn[disabled]{opacity:.5;cursor:default}
+.link{border:0;background:none;color:var(--info);cursor:pointer;padding:8px 0;text-decoration:underline;font-size:.9rem;min-height:40px}
+.linka{color:var(--info);font-size:.9rem;padding:8px 4px;display:inline-block}
+.f label,.fields label{display:block;font-size:.9rem;color:var(--muted);min-width:0}
+.f input:not([type=checkbox]),.f select,.f textarea,.fields input:not([type=checkbox]),.fields select,.bar input,.bar select{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;margin-top:4px;min-height:48px}
+.f textarea{min-height:96px;resize:vertical}
+.f .grp{display:flex;flex-direction:column;gap:14px}
+.f .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f .help,.fields .help{display:block;font-size:.82rem;color:var(--muted);margin-top:4px}
+.row2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tgs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.tg{position:relative}
+.tg input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.tg span{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:.95rem}
+.tg input:checked+span{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:700}
+.tg input:focus-visible+span{outline:3px solid var(--info);outline-offset:2px}
+input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
+.f .chk,.chk{display:flex;align-items:center;gap:10px;min-height:48px;color:var(--ink);font-size:1rem}
+
+/* badges */
+.pill{flex:none;font-size:.85rem;font-weight:700;padding:2px 10px;border-radius:999px;white-space:nowrap}
+.pill.big{font-size:1rem;padding:4px 14px}
+.pill.l3{background:var(--crit);color:var(--surface)} .pill.l2{background:var(--warn);color:var(--surface)}
+.pill.l1{background:var(--ok-bg);color:var(--ok)} .pill.l0{background:var(--idle-bg);color:var(--idle)}
+.tag{display:inline-block;background:var(--idle-bg);color:var(--idle);border-radius:6px;padding:1px 8px;font-size:.82rem}
+.tag.ice{background:var(--warn-bg);color:var(--warn);font-weight:700}
+.alerts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.alerts span{background:var(--crit-bg);color:var(--crit);border-radius:6px;padding:2px 8px;font-size:.85rem;font-weight:700}
+.alerts span.tag{background:var(--idle-bg);color:var(--idle);font-weight:400}
+.alerts span.tag.ice{background:var(--warn-bg);color:var(--warn);font-weight:700}
+
+/* home */
+.hello{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.hello .d{font-size:1.4rem;font-weight:700}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column}
+.tile{box-shadow:var(--shadow)}
+.tile .n{font-family:var(--font-num);font-size:2.1rem;font-weight:600;line-height:1.15}
+.tile .l{font-size:.95rem;color:var(--muted)}
+.tile.c3 .n{color:var(--crit)} .tile.c2 .n{color:var(--warn)} .tile.c1 .n{color:var(--ok)}
+.sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:24px 0 10px}
+.sec h2{font-size:1.1rem}
+.sec .gc{font-size:.95rem;color:var(--muted);font-weight:400;margin-left:6px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.grp-h{display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-weight:700;font-size:1rem}
+.grp-h:first-child{margin-top:4px}
+.grp-h::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--idle)}
+.grp-h.l3::before{background:var(--crit)}.grp-h.l2::before{background:var(--warn)}.grp-h.l1::before{background:var(--accent)}
+.grp-h .gc{color:var(--muted);font-weight:400;font-size:.92rem}
+.chips{position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px);z-index:5;background:var(--bg);padding:6px 0;margin-top:0}
+@media (min-width:900px){#siteList.cols{display:block}#siteList .stack{display:grid;grid-template-columns:1fr 1fr;gap:12px}#v-sites.page{max-width:1000px}}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:28px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:1.05rem;margin-bottom:4px}
+.banner{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.92rem}
+
+/* site card */
+.sc{box-shadow:var(--shadow);background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sc.l3{border-color:var(--crit);box-shadow:inset 6px 0 0 var(--crit)}
+.sc.l2{box-shadow:inset 6px 0 0 var(--warn)}
+.sc-main{padding:12px 14px 8px 18px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.sc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.sc-name{font-size:1.1rem;font-weight:700;line-height:1.35;overflow-wrap:anywhere;min-width:0}
+.sc-sub{color:var(--muted);font-size:.9rem}
+.sc-st{padding:0 14px 12px 18px}
+.sc-st .mt{font-size:.82rem;color:var(--muted);margin-top:4px}
+
+.sc .seg button{min-height:44px}
+.sc .alerts{margin-top:2px}
+.wb{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:6px 14px;align-items:center;margin-top:4px}
+.wb-w{display:flex;align-items:center;gap:8px;min-width:0}
+.wb-w svg{width:34px;height:34px;flex:none;color:var(--info)}
+.wb-w .t{font-size:1.5rem;font-weight:600;line-height:1.1}
+.wb-w .t small{font-size:.85rem;font-weight:400;margin-left:2px}
+.wb-w .w{font-size:.9rem}
+.sn{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:.92rem}
+.track{height:10px;background:var(--track);border-radius:6px;overflow:hidden;margin-top:4px}
+.fill{height:100%;background:var(--info)}
+.fill.hot{background:var(--crit)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:8px 4px;cursor:pointer;min-height:48px;border-left:1px solid var(--line);font-size:.95rem}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--idle-bg);color:var(--ink);font-weight:700}
+.seg button[aria-pressed="true"].prep{background:var(--warn-bg);color:var(--warn);font-weight:700}
+.seg button[aria-pressed="true"].out{background:var(--accent);color:var(--accent-ink)}
+.seg button[aria-pressed="true"].done{background:var(--info-bg);color:var(--info)}
+.seg button[disabled]{cursor:default;opacity:.6}
+
+/* toolbars / chips */
+.bar{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.bar .r{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bar .r21{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.chips button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;min-height:44px;padding:0 16px;cursor:pointer;white-space:nowrap}
+.chips button .num{margin-left:6px;color:var(--muted)}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:700}
+.chips button[aria-pressed="true"] .num{color:inherit}
+
+/* cards: report / note / info */
+.card2{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.lab2{font-size:.88rem;color:var(--muted);margin-bottom:6px}
+.rc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.rc .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.rc .nm{font-weight:700;overflow-wrap:anywhere}
+.rc .tm{font-family:var(--font-num);font-size:.9rem;color:var(--muted);white-space:nowrap}
+.rc .ln{font-size:.9rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.dgrp{margin:20px 0 8px;font-weight:700;font-size:1rem}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:6px}
+.note .hd{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;color:var(--muted);flex-wrap:wrap}
+.note .tx{white-space:pre-wrap;overflow-wrap:anywhere}
+.dl{display:grid;grid-template-columns:7em minmax(0,1fr);gap:8px 12px;margin:0}
+.dl dt{color:var(--muted);font-size:.9rem}
+.dl dd{margin:0;overflow-wrap:anywhere}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kv div{background:var(--surface2);border-radius:10px;padding:8px 10px;min-width:0}
+.kv small{display:block;color:var(--muted);font-size:.82rem}
+.kv b{font-family:var(--font-num);font-weight:600;font-size:.95rem}
+.fc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.fc>div{border:1px solid var(--line);border-radius:10px;padding:6px 4px;text-align:center;font-size:.82rem;min-width:0;background:var(--surface)}
+.fc svg{width:24px;height:24px;color:var(--info)}
+.fc .d{color:var(--muted)}
+.fc .tt{font-family:var(--font-num);font-size:.82rem}
+.fc .s{font-weight:700}
+.bignow{display:flex;align-items:center;gap:14px}
+.bignow svg{width:54px;height:54px;color:var(--info);flex:none}
+.bignow .t{font-family:var(--font-num);font-size:2.6rem;font-weight:600;line-height:1}
+.bignow .t small{font-size:1rem;font-weight:400}
+.bignow .w{font-size:1.05rem}
+
+/* photos */
+.ph{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ph>button,.phb{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;overflow:hidden;padding:0;background:var(--surface2);cursor:pointer;max-width:100%}
+.ph img,.phb img{width:100%;height:100%;object-fit:cover;display:block}
+.pk{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.62);color:#fff;border-radius:6px;padding:0 6px;font-size:.75rem}
+.px{position:absolute;right:4px;top:4px;width:36px;height:36px;border:0;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:1.2rem;cursor:pointer;line-height:1}
+.ph-load{display:flex;align-items:center;justify-content:center;color:var(--muted)}
+
+.adm-badge{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;line-height:1;padding:3px 8px;border-radius:999px;background:#FBEBC8;color:#7A4E00;white-space:nowrap;vertical-align:middle;margin-left:6px}
+.adm-badge .lk{width:11px;height:11px}
+.tile.money,.srow.money{border:1.5px dashed #D9A93E;background:#FFFBF0}
+.f label .adm-badge{margin-left:8px}
+/* sheets */
+.sheet{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;overscroll-behavior:contain}
+.sheet.s2{z-index:50}
+.sheet-bar{position:sticky;top:0;z-index:2;background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.sheet-bar h2{color:var(--brand);flex:1;font-size:1.05rem;line-height:1.3;min-width:0;overflow-wrap:anywhere}
+.sheet-foot{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px}
+.sheet-foot .btn{flex:1}
+.lb{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px}
+.lb img{max-width:100%;max-height:82vh;border-radius:8px}
+.lb .lbb{position:absolute;border:0;background:rgba(255,255,255,.18);color:#fff;width:52px;height:52px;border-radius:50%;font-size:1.4rem;cursor:pointer}
+.lb .x{top:calc(12px + env(safe-area-inset-top,0px));right:12px}
+.lb .pv{left:8px;top:50%}.lb .nx{right:8px;top:50%}
+.lb .cap{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));text-align:center;color:#fff;font-size:.9rem}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:80;background:var(--ink);color:var(--surface);border-radius:12px;padding:12px 16px;text-align:center;max-width:520px;margin-inline:auto}
+
+/* stats */
+.mnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0}
+.mnav .lbl{font-weight:700;font-size:1.1rem;text-align:center;flex:1}
+.mnav .btn{min-width:52px;padding:8px}
+.vt{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.vt button{border:0;background:var(--surface);min-height:46px;cursor:pointer}
+.vt button+button{border-left:1px solid var(--line)}
+.vt button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.srow .nm{font-weight:700;overflow-wrap:anywhere}
+.srow .amt{font-family:var(--font-num);font-weight:600;text-align:right}
+.srow .sb{color:var(--muted);font-size:.88rem}
+.srow .sb.r{text-align:right}
+
+/* admin */
+.admhead{display:flex;align-items:center;gap:10px;margin:0 0 4px}
+.admh1{font-size:1.25rem}
+.admhead .adm-badge{margin-left:0}
+.subtabs{display:flex;gap:2px;border-bottom:2px solid var(--line);margin:6px 0 14px;overflow-x:auto;scrollbar-width:none;position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px);background:var(--bg);z-index:6;padding-top:4px}
+.subtabs::-webkit-scrollbar{display:none}
+.subtabs button{border:0;background:none;cursor:pointer;padding:0 16px;min-height:48px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;flex:0 0 auto;border-radius:0}
+.subtabs button:hover{color:var(--ink)}
+.subtabs button[aria-pressed="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.admdesc{font-size:.88rem;color:var(--muted);margin:0 0 14px;line-height:1.7}
+.ah{font-size:1rem;border-left:4px solid var(--accent);padding-left:10px;margin:24px 0 10px}
+.ahead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.ahead .ah{margin-block:24px 10px}
+.form-row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;padding:16px 20px;border-bottom:1px solid var(--line);align-items:start}
+.form-row:last-child{border-bottom:0}
+.form-row>label{font-weight:700;font-size:.92rem;color:var(--ink);padding-top:12px}
+.form-row .help{display:block;font-size:.82rem;color:var(--muted);margin-top:6px}
+.form-row input,.form-row select{max-width:320px}
+@media(max-width:700px){.form-row{grid-template-columns:1fr;gap:4px;padding:14px 16px}.form-row>label{padding-top:0}.form-row input,.form-row select{max-width:none}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;margin-bottom:12px;max-width:760px}
+#adm-sites .panel{max-width:none}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px}
+.tw{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:1100px}
+.tw td{white-space:nowrap}
+.tw td input:not([type=checkbox]){white-space:normal}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);font-size:.92rem;vertical-align:middle}
+th{background:#EEF1F0;color:#80877D;font-size:.78rem;font-weight:700;white-space:nowrap;letter-spacing:.03em}
+tbody tr:last-child td{border-bottom:0}
+.tw td input:not([type=checkbox]){width:100%;min-width:100px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px;min-height:40px}
+#admTable[data-g="info"] .g-wx,#admTable[data-g="info"] .g-ops,#admTable[data-g="info"] .g-money,#admTable[data-g="wx"] .g-info,#admTable[data-g="wx"] .g-ops,#admTable[data-g="wx"] .g-money,#admTable[data-g="ops"] .g-info,#admTable[data-g="ops"] .g-wx,#admTable[data-g="ops"] .g-money,#admTable[data-g="money"] .g-info,#admTable[data-g="money"] .g-wx,#admTable[data-g="money"] .g-ops{display:none}
+#admTable{min-width:0}
+#admTable td:nth-child(2){white-space:normal;min-width:120px}
+#admTable th,#admTable td{padding:10px 10px}
+.subtabs.sm{position:static;margin:8px 0 14px}
+.subtabs.sm button{min-height:44px;font-size:.92rem}
+.fjump{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);background:var(--bg);z-index:5;margin:0 0 6px!important;overflow-x:auto}
+.fjump button{flex:0 0 auto;border:0;background:none;cursor:pointer;padding:0 14px;min-height:44px;color:var(--muted);font-weight:700;font-size:.92rem;white-space:nowrap}
+.fjump button:hover{color:var(--accent)}
+.f .panel .grp{display:flex;flex-direction:column;gap:14px}
+#form .ah{scroll-margin-top:110px}
+.vt.vt-sm{display:inline-grid;grid-template-columns:auto auto}
+.vt.vt-sm button{min-height:40px;padding:0 14px;font-size:.88rem}
+.sr{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nm pill" "tg tg" "wx st";gap:6px 10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px 10px 16px;cursor:pointer;box-shadow:var(--shadow)}
+.sr.l3{border-color:var(--crit);box-shadow:inset 6px 0 0 var(--crit)}
+.sr.l2{box-shadow:inset 6px 0 0 var(--warn)}
+.sr .nm{grid-area:nm;min-width:0}
+.sr .nm b{display:block;font-size:1.02rem;line-height:1.35;overflow-wrap:anywhere}
+.sr .nm span{font-size:.85rem;color:var(--muted)}
+.sr .pill{grid-area:pill;justify-self:end}
+.sr .stg{grid-area:tg;display:flex;flex-wrap:wrap;gap:6px}
+.sr .stg:empty{display:none}
+.sr .stg span{background:var(--crit-bg);color:var(--crit);border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:700}
+.sr .stg span.ice{background:var(--warn-bg);color:var(--warn)}
+.sr .wx{grid-area:wx;display:flex;align-items:center;gap:8px;min-width:0;font-size:.9rem}
+.sr .wx svg{width:28px;height:28px;flex:none;color:var(--info)}
+.sr .wx .t{font-family:var(--font-num);font-weight:600;font-size:1.1rem}
+.sr .wx .sw{color:var(--muted);min-width:0}
+.sr .sn{display:none;grid-area:sn;min-width:0}
+.sr select.stsel{grid-area:st;border:1px solid var(--line);border-radius:999px;background:var(--idle-bg);color:var(--ink);font-weight:700;min-height:44px;padding:0 12px;font-size:.92rem}
+.sr select.stsel.s-prep{background:var(--warn-bg);color:var(--warn)}
+.sr select.stsel.s-out{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.sr select.stsel.s-done{background:var(--info-bg);color:var(--info)}
+#siteList .stack.rows{display:flex;flex-direction:column;gap:8px}
+@media (min-width:900px){
+  .sr{grid-template-columns:96px minmax(0,1.4fr) minmax(0,1.2fr) minmax(0,1fr) 120px;grid-template-areas:"pill nm wx sn st" "tg tg tg tg tg";gap:6px 16px;padding:10px 16px 10px 20px}
+  .sr .pill{justify-self:start}
+  .sr .sn{display:block}
+  .sr .sw .sx{display:none}
+}
+.ar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"ck nm ed" "ck kv kv";gap:2px 8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 10px;box-shadow:var(--shadow)}
+.ar .ck{grid-area:ck;display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer}
+.ar .nm{grid-area:nm;min-width:0}
+.ar .nm b{display:block;font-size:.98rem;line-height:1.3;overflow-wrap:anywhere}
+.ar .nm span{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.ar .ed{grid-area:ed}
+.ar .kvs{grid-area:kv;display:flex;flex-wrap:wrap;gap:6px}
+.ar .k{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border-radius:8px;padding:2px 8px;min-width:0;font-size:.85rem}
+.ar .k small{display:none}
+.ar .k.okk,.ar .k.emp{display:none}
+.ar .k .pf{font-size:.78rem;color:var(--muted)}
+.ar .k .pill{font-size:.75rem}
+.ar .kvs{gap:4px}
+.ar .k.wide{max-width:100%}.ar .k .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ar .k.money{background:#FFFBF0;border:1px dashed #D9A93E}
+.ar .k .adm-badge{display:none}
+.stdot{font-weight:700}
+.stdot.s-prep{color:var(--warn)}.stdot.s-out{color:var(--accent)}.stdot.s-done{color:var(--info)}
+.mbstat{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.mbstat .ms{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:.85rem;color:var(--muted)}
+.mbstat .ms b{display:block;font-size:1.15rem;color:var(--ink)}
+.req{font-size:.7rem;color:var(--crit);margin-left:6px;font-weight:700}
+.mbtools input,.mbtools select{min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font:inherit;background:var(--surface);color:var(--ink);min-width:0}
+.admtabs .admtab{padding-inline:12px}
+.meline{color:var(--brand);font-weight:700}
+.gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.gate[hidden]{display:none}
+.gate-box{max-width:420px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 22px;box-shadow:var(--shadow)}
+.gate-ic{width:56px;height:56px;border-radius:50%;background:#E3F2E9;color:var(--brand);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.gate-box h2{font-size:1.2rem;margin-bottom:6px}.gate-box p{font-size:.92rem;line-height:1.7;color:var(--muted);margin-bottom:12px}
+.gate-who{color:var(--ink)!important;font-weight:700}
+.mbacct{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.mbacct-now{font-weight:700;margin-right:auto}
+.mbres{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.mbres button{text-align:left;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 12px;font:inherit}
+.abr{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.abr .ab-btn{white-space:nowrap}
+@media(max-width:520px){.abr .hm{display:none}.abr #btnRefresh{padding-inline:12px}}
+.bellbtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:0;background:none;color:var(--muted);cursor:pointer;border-radius:50%}
+.bellbtn:hover{background:var(--surface2)}
+.bellbtn svg{width:21px;height:21px}
+.bell-dot{position:absolute;top:5px;right:3px;background:#B9800F;color:#fff;font-size:10px;font-weight:800;border-radius:99px;padding:1px 5px;min-width:16px;text-align:center;line-height:1.4;border:2px solid var(--surface);box-sizing:content-box}
+.modal-layer{position:fixed;inset:0;z-index:90;background:rgba(20,30,22,.45);display:none;padding:0 12px;overflow-y:auto;overscroll-behavior:contain}
+.modal-layer.open{display:block}
+.modal-box{max-width:540px;margin:5vh auto 5vh;background:var(--surface);border-radius:16px;border:1px solid var(--line);box-shadow:0 20px 50px -12px rgba(0,0,0,.4);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal-head h3{font-size:1rem}
+.modal-head .iconbtn{width:40px;height:40px;border:0;background:none;border-radius:50%;cursor:pointer;color:var(--muted);font-size:1.3rem;line-height:1}
+.modal-body{padding:12px 18px 16px;overflow-y:auto;display:flex;flex-direction:column}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.modal-foot .first{margin-right:auto}
+.modal-foot .btn{min-height:44px;padding:6px 14px;font-size:.88rem}
+.nt-empty{padding:26px 6px;text-align:center;color:#80877D;font-size:.9rem}
+.nt-grp{font-size:.8rem;font-weight:700;color:var(--muted);margin:12px 0 0}
+.nt-row{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:11px 2px;cursor:pointer;color:inherit;font:inherit;min-height:48px}
+.nt-row .ic{width:22px;text-align:center;flex:none}
+.nt-row .tt{display:block;font-size:.92rem;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+.nt-row .sb{display:block;font-size:.8rem;color:#80877D;line-height:1.5;overflow-wrap:anywhere}
+.nt-row .sb.urg{color:var(--crit)}
+.nt-new{font-size:.68rem;color:#fff;background:var(--crit);border-radius:8px;padding:1px 7px;margin-left:4px;vertical-align:1px;font-weight:700}
+.nt-imp{font-size:.68rem;color:#fff;background:#B9800F;border-radius:8px;padding:1px 7px;margin-left:4px;vertical-align:1px;font-weight:700}
+.nt-item{padding:10px 0;border-top:1px solid var(--line)}
+.nt-item:first-child{border-top:0}
+.nt-item .h{font-size:.92rem;font-weight:700}
+.nt-item .m{font-size:.76rem;color:#80877D;margin-top:2px}
+.nt-item .d{font-size:.86rem;line-height:1.7;color:var(--muted);margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere}
+.nt-item .ops{margin-top:6px;display:flex;gap:12px}
+.nt-day{font-size:.8rem;font-weight:700;color:var(--muted);margin:12px 0 2px}
+.nt-his{display:flex;gap:10px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--line)}
+.nt-his .ic{flex:none;width:22px;text-align:center}
+.nt-his .tm{flex:none;font-size:.76rem;color:#80877D}
+.nt-his b{display:block;font-size:.9rem;overflow-wrap:anywhere}
+.nt-his .bd{display:block;font-size:.84rem;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
+.nt-field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;font-size:.85rem;font-weight:700}
+.nt-field input,.nt-field textarea,.nt-field select{font:inherit;font-weight:400;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--surface);color:var(--ink)}
+.anc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.anc.imp{border-color:#D9A93E;background:#FFFBF0}
+.anc b.t{font-size:1rem;line-height:1.4;overflow-wrap:anywhere}
+.anc .bd{font-size:.9rem;line-height:1.7;margin:6px 0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:pre-wrap;overflow-wrap:anywhere}
+.anc .mt{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;color:var(--muted)}
+.mbft{font-size:1rem;margin:14px 16px 4px}
+.mbtools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:14px 0 10px}
+.mr{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nm ed" "kv kv";gap:2px 8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:8px;box-shadow:var(--shadow)}
+.mr.off{opacity:.65}
+.mr .nm{grid-area:nm;min-width:0}.mr .nm b{font-size:.98rem}.mr .nm span{display:block;font-size:.85rem;color:var(--muted)}
+.mr .ed{grid-area:ed;display:flex;gap:6px}
+.mr .kvs{grid-area:kv;display:flex;flex-wrap:wrap;gap:4px}
+.mr .k{background:var(--surface2);border-radius:8px;padding:2px 8px;font-size:.85rem;display:inline-flex;gap:4px;align-items:center}
+.mr .k a{color:inherit;text-decoration:none;font-weight:600}
+@media(min-width:900px){.mr{grid-template-columns:minmax(0,1.3fr) minmax(0,1.6fr) auto;grid-template-areas:"nm kv ed";align-items:center}}
+.ar-h{display:flex;margin-bottom:6px}
+.ar-h>span{display:none}
+@media (min-width:900px){
+  .ar,.ar-h{grid-template-columns:44px minmax(0,1.5fr) 80px 80px 120px 70px minmax(0,1.5fr) minmax(0,1fr) 70px;gap:0 12px}
+  .ar{grid-template-areas:"ck nm k1 k2 k3 k4 k5 k6 ed";padding:8px 14px}
+  .ar .kvs{display:contents}
+  .ar .k:nth-child(1){grid-area:k1}.ar .k:nth-child(2){grid-area:k2}.ar .k:nth-child(3){grid-area:k3}.ar .k:nth-child(4){grid-area:k4}.ar .k:nth-child(5){grid-area:k5}.ar .k:nth-child(6){grid-area:k6}
+  .ar .k{background:none;border:0!important;padding:0;font-size:.92rem}
+  .ar .k.okk,.ar .k.emp{display:inline-flex}
+  .ar .k .pf{display:none}
+  .ar .k{font-size:.92rem}
+  .ar-h>span{display:block}
+  .ar-h{display:grid;align-items:center;padding:0 14px;margin-bottom:6px;font-size:.78rem;font-weight:700;color:var(--muted)}
+  .ar-h .chk{grid-column:1/3;font-size:.85rem;color:var(--muted)}
+  .ar-h .ar-hc{display:none}
+  .ar-h .adm-badge{margin-left:4px}
+}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#admTools{padding:10px}
+#admTools .fields{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:8px}
+#admTools .fields input,#admTools .fields select{margin-top:0}
+.pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+.pager .pg-info{flex:1;text-align:center;font-size:.9rem;color:var(--muted);min-width:140px}
+.pager select{width:auto;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;min-height:40px}
+.ctags{display:flex;flex-wrap:wrap;gap:8px}
+.ctag{display:inline-flex;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 14px}
+.ctag button{border:0;background:none;cursor:pointer;font-size:1.2rem;min-width:40px;min-height:40px;color:var(--muted)}
+.legend{margin-top:20px;color:var(--muted);font-size:.85rem;max-width:70ch}
+@media (min-width:900px){
+  body{padding:0 0 24px 212px}
+  .tabbar{top:0;right:auto;width:212px;flex-direction:column;justify-content:flex-start;gap:2px;padding:64px 10px 12px;background:var(--brand);border-top:0;box-shadow:none}
+  .tabbar::before{content:"除雪管理アプリ";position:absolute;top:0;left:0;right:0;padding:18px;font-family:var(--font-head);font-weight:700;font-size:1.05rem;color:#fff}
+  .tabbar button{flex:none;flex-direction:row;justify-content:flex-start;gap:11px;min-height:46px;padding:0 12px;font-size:.92rem;font-weight:500;color:#8FB9A2;border-radius:8px}
+  .tabbar button:hover{background:rgba(255,255,255,.07);color:#fff}
+  .tabbar button[aria-current="page"]{background:var(--brand-active);color:#fff;font-weight:700}
+  .fab{bottom:24px;right:max(24px,calc(50vw - 380px))}
+  .toast{bottom:24px}
+  .page{padding:22px 26px}
+}
+@media (prefers-reduced-motion: no-preference){.fill{transition:width .4s}}
+</style>
+</head><body>
+
+<header class="appbar">
+  <div>
+    <h1>除雪管理アプリ</h1>
+    <div class="sub"><span id="today"></span> ・ 天気更新 <span id="upd" class="num">--:--</span></div>
+    <div class="sub meline" id="meLine" hidden></div>
+  </div>
+  <div class="abr"><button class="bellbtn" id="btnBell" type="button" data-act="inbox" aria-label="お知らせ"></button>
+  <button class="ab-btn" id="btnRefresh" type="button"><span class="hm">天気を</span>更新</button></div>
+</header>
+
+<datalist id="dlAreas"></datalist>
+<datalist id="dlCrews"></datalist>
+
+<div class="gate" id="gate" hidden role="alertdialog" aria-labelledby="gateT">
+  <div class="gate-box">
+    <div class="gate-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+    <h2 id="gateT">ログインできません</h2>
+    <p id="gateWho" class="gate-who"></p>
+    <p>このアプリは、メンバー登録された人だけが使えます。管理者に、メンバーへの登録とログインアカウントの紐づけを依頼してください。</p>
+    <button class="btn primary" type="button" id="gateRetry">もう一度確認する</button>
+  </div>
+</div>
+<main>
+  <section id="v-home" class="page"></section>
+
+  <section id="v-sites" class="page" hidden>
+    <div class="bar"><div class="r r21">
+      <input type="search" id="query" placeholder="現場名・地区・担当班で探す" aria-label="現場を探す" autocomplete="off">
+      <select id="areaSel" aria-label="地区で絞り込み"><option value="">すべての地区</option></select>
+    </div></div>
+    <div class="row2" style="justify-content:space-between;margin-bottom:6px"><span class="muted" id="siteCount"></span><div class="vt vt-sm" id="layoutT" role="group" aria-label="表示の切り替え"><button type="button" data-layout="row" aria-pressed="true">一覧表示</button><button type="button" data-layout="card" aria-pressed="false">カード表示</button></div></div>
+    <div class="chips" id="siteChips" role="group" aria-label="状態で絞り込み"></div>
+    <div id="banner"></div>
+    <div id="siteList"></div>
+    <p class="legend">出動目安は、今後2日間の予報降水量と最低気温から計算した降雪量の目安(降水1mm≒雪1cm前後)が、現場ごとの出動基準を超えたとき、または警報・注意報が出ていて降雪が見込まれるときに表示します。実際の積雪量ではないため、出動の最終判断は現地の状況を見て行ってください。最低気温が設定した温度以下の予報は凍結注意として表示します。</p>
+  </section>
+
+  <section id="v-reports" class="page" hidden>
+    <div class="bar">
+      <div class="r">
+        <select id="repPeriod" aria-label="期間">
+          <option value="7d">直近7日</option>
+          <option value="month">今月</option>
+          <option value="prev">先月</option>
+          <option value="all">すべて</option>
+        </select>
+        <select id="repSiteSel" aria-label="現場で絞り込み"><option value="">すべての現場</option></select>
+      </div>
+    </div>
+    <div id="repList"></div>
+  </section>
+
+  <section id="v-notes" class="page" hidden>
+    <form class="card2 f" id="noteForm" autocomplete="off">
+      <div class="grp">
+        <label for="ntSite">連絡の対象<select id="ntSite"></select></label>
+        <label for="ntText">連絡内容<textarea id="ntText" maxlength="500" placeholder="例:北側の入口は雪山のため、先にローダで寄せてください。"></textarea></label>
+        <button class="btn primary" type="submit" id="ntPost">投稿する</button>
+      </div>
+    </form>
+    <div class="bar" style="margin-top:14px"><select id="ntFilter" aria-label="連絡の絞り込み"></select></div>
+    <div class="stack" id="noteList"></div>
+  </section>
+
+  <section id="v-stats" class="page" hidden>
+    <div class="vt" id="stMode" role="group" aria-label="集計の単位">
+      <button type="button" data-mode="month" aria-pressed="true">月別</button>
+      <button type="button" data-mode="season" aria-pressed="false">シーズン</button>
+    </div>
+    <div class="mnav">
+      <button class="btn" id="stPrev" type="button" aria-label="前へ">‹</button>
+      <div class="lbl" id="stLabel"></div>
+      <button class="btn" id="stNext" type="button" aria-label="次へ">›</button>
+    </div>
+    <div id="statsBody"></div>
+    <div class="row2" style="margin-top:14px"><button class="btn" id="stCsv" type="button">CSVで保存</button><span class="muted" id="stMsg" role="status"></span></div>
+    <p class="legend" id="stLegend">日報1件を、1回の出動として数えます。単価が「回」の現場は回数×単価、「時間」の現場は日報の開始〜終了時刻から出した作業時間×単価で計算します。単価が未登録の現場は、請求見込みに含みません。</p>
+  </section>
+
+  <section id="v-admin" class="page wide" hidden>
+    <div class="admhead"><h1 class="admh1">設定</h1><span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者専用</span></div>
+    <div class="subtabs admtabs" id="subtabs" role="group" aria-label="設定の項目">
+      <button type="button" class="admtab" data-sub="sites" aria-pressed="true">現場の管理</button>
+      <button type="button" class="admtab" data-sub="master" aria-pressed="false">マスタ</button>
+      <button type="button" class="admtab" data-sub="members" aria-pressed="false">メンバー</button>
+      <button type="button" class="admtab" data-sub="set" aria-pressed="false">全体設定</button>
+    </div>
+    <div class="admdesc" id="admDesc"></div>
+
+    <div id="adm-sites">
+      <div class="ahead"><h2 class="ah" style="margin-top:6px">現場の管理</h2><button class="btn primary" type="button" id="btnAdd2">現場を追加</button></div>
+      <div class="subtabs sm" id="siteTabs" role="group" aria-label="現場の管理の項目"><button type="button" class="admtab" data-st="list" aria-pressed="true">現場の一覧</button><button type="button" class="admtab" data-st="csv" aria-pressed="false">CSV・リセット</button></div>
+      <div id="adm-s-list">
+      <div class="panel" id="admTools">
+        <div class="fields">
+          <label for="admQ"><span class="vh">現場を探す</span><input type="search" id="admQ" placeholder="現場名・地区・担当班" autocomplete="off"></label>
+          <label for="admSort"><span class="vh">並び替え</span><select id="admSort"><option value="area">地区順</option><option value="name">現場名順</option><option value="crew">担当班順</option><option value="th">出動基準が大きい順</option><option value="contract">契約回数が多い順</option><option value="new">登録が新しい順</option><option value="old">登録が古い順</option></select></label>
+        </div>
+      </div>
+      <div class="panel" id="bulk" hidden>
+        <div><b class="num" id="bulkN">0</b> 件を選択中。入力した項目だけを、選択した現場にまとめて反映します。</div>
+        <div class="fields">
+          <label for="bArea">地区<input id="bArea" list="dlAreas" maxlength="40" placeholder="変更しない"></label>
+          <label for="bCrew">担当班<input id="bCrew" list="dlCrews" maxlength="40" placeholder="変更しない"></label>
+          <label for="bTh">出動基準(cm)<input id="bTh" type="number" min="1" max="200" step="1" placeholder="変更しない"></label>
+          <label for="bContract">契約回数<input id="bContract" type="number" min="0" max="200" step="1" placeholder="変更しない"></label>
+          <label for="bPrice">単価(円)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span><input id="bPrice" type="number" min="0" step="100" placeholder="変更しない"></label>
+          <label for="bUnit">単価の単位<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span><select id="bUnit"><option value="">変更しない</option><option value="回">1回あたり</option><option value="時間">1時間あたり</option></select></label>
+        </div>
+        <div class="row2">
+          <button class="btn primary" type="button" id="bApply">選択した現場に反映</button>
+          <button class="btn" type="button" id="bGeo">住所から位置を設定</button>
+          <button class="btn" type="button" id="bReset">作業状況を待機に戻す</button>
+          <button class="btn" type="button" id="bClear">選択を解除</button>
+          <button class="btn danger" type="button" id="bDel">選択した現場を削除</button>
+          <span class="muted" id="bMsg" role="status"></span>
+        </div>
+      </div>
+      <div class="ar-h"><label class="chk" for="selAll" style="min-height:40px"><input type="checkbox" id="selAll"> このページをすべて選択</label><span class="ar-hc">現場名</span><span>出動基準</span><span>契約回数</span><span>単価<span class="adm-badge">管理者のみ</span></span><span>位置</span><span>住所</span><span>備考</span><span></span></div>
+      <div class="stack" id="admList"></div>
+      <div class="pager" id="pager"></div>
+      <div class="muted" style="margin-top:8px">「天気の取得」が失敗の現場は、場所の入力(緯度・経度の書き方)を編集で確認してください。</div>
+
+      </div>
+      <div id="adm-s-csv" hidden>
+      <div class="panel" style="max-width:760px">
+        <div class="row2">
+          <button class="btn" type="button" id="csvOut">CSVで書き出す</button>
+          <label class="btn" for="csvIn" style="cursor:pointer">CSVから取り込む<input type="file" id="csvIn" accept=".csv,text/csv" hidden></label>
+          <button class="btn" type="button" id="csvTpl">取り込み用の見本を保存</button>
+          <span class="muted" id="csvMsg" role="status"></span>
+        </div>
+        <div class="help muted">CSVの1行目は項目名です。現場名が同じ行は更新、ない行は新しい現場として追加します。単価の列は金額なので、管理者の取り込みだけに反映されます。<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span></div>
+      </div>
+      <h2 class="ah">作業状況のリセット</h2>
+      <div class="panel">
+        <div class="muted">シフトの切り替えや降雪が落ち着いたときに、すべての現場の作業状況を「待機」に戻します。</div>
+        <div class="row2"><button class="btn danger" type="button" id="resetAll">すべて待機に戻す</button><span class="muted" id="rMsg" role="status"></span></div>
+      </div>
+      </div>
+    </div>
+
+    <div id="adm-master" hidden>
+      <div class="muted" id="mMsg" role="status" style="min-height:1.5em"></div>
+      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="mach" aria-pressed="false">使用機械</button></div>
+      <div id="mp-area">
+      <h2 class="ah">地区マスタ</h2>
+      <p class="muted" style="margin:0 0 8px;max-width:80ch">地区ごとに代表地点(緯度・経度)を登録しておくと、現場に場所が入っていないとき、その地点の天気を表示します。現場を登録するときの地区の選択肢にもなります。</p>
+      <div class="tw">
+        <table style="min-width:680px">
+          <thead><tr><th>地区名</th><th>代表地点(緯度, 経度)</th><th>現場数</th><th></th></tr></thead>
+          <tbody id="atbody"></tbody>
+        </table>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div class="fields">
+          <label for="maName">地区名<input id="maName" maxlength="30" placeholder="例:盛岡南"></label>
+          <label for="maLoc">代表地点(任意)<input id="maLoc" maxlength="80" placeholder="例:39.70, 141.13"></label>
+        </div>
+        <div class="row2"><button class="btn primary" type="button" id="maAdd">地区を追加</button></div>
+      </div>
+      </div>
+      <div id="mp-crew" hidden>
+      <h2 class="ah">担当班マスタ</h2>
+      <div class="panel">
+        <div class="ctags" id="ctags"></div>
+        <div class="fields"><label for="mcName">班の名前<input id="mcName" maxlength="40" placeholder="例:A班 山田"></label></div>
+        <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="crews" data-in="mcName">担当班を追加</button></div>
+      </div>
+      </div>
+      <div id="mp-mach" hidden>
+      <h2 class="ah">使用機械マスタ</h2>
+      <div class="panel">
+        <div class="ctags" id="mtags"></div>
+        <div class="fields"><label for="mmName">機械の名前<input id="mmName" maxlength="30" placeholder="例:除雪トラック"></label></div>
+        <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="machines" data-in="mmName">機械を追加</button></div>
+      </div>
+      </div>
+    </div>
+
+    <div id="adm-members" hidden>
+      <div class="ahead"><h2 class="ah" style="margin-top:6px">メンバー管理</h2><button class="btn primary" type="button" id="mbAdd">メンバーを追加</button></div>
+      <div class="mbstat" id="mbStat"></div>
+      <form class="card2 f" id="mbForm" hidden style="padding:0 0 4px;max-width:760px">
+        <h3 class="mbft" id="mbFormTitle">メンバーを追加</h3>
+        <div class="form-row"><label for="mbName">氏名<span class="req">必須</span></label><div><input id="mbName" maxlength="40" required placeholder="例:山田 太郎"></div></div>
+        <div class="form-row"><label for="mbCrew">担当班</label><div><input id="mbCrew" list="dlCrews" maxlength="40" placeholder="例:A班"></div></div>
+        <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option></select></div></div>
+        <div class="form-row"><label for="mbTel">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
+        <div class="form-row"><label for="mbNote">備考</label><div><input id="mbNote" maxlength="100" placeholder="例:大型除雪機の資格あり"></div></div>
+        <div class="form-row"><label for="mbAcctQ">ログインアカウント</label><div>
+          <div class="mbacct"><span id="mbAcctNow" class="mbacct-now">未連携</span><button class="btn sm" type="button" id="mbAcctMe">自分を連携</button><button class="btn sm" type="button" id="mbAcctClr" hidden>解除</button></div>
+          <input id="mbAcctQ" type="search" maxlength="40" placeholder="名前で探して連携" autocomplete="off"><div id="mbAcctRes" class="mbres"></div>
+          <span class="help">連携した人がこのアプリにログインすると、このメンバーとして表示されます。</span></div></div>
+        <div class="form-row"><label for="mbActive">状態</label><div><select id="mbActive"><option value="1">在籍</option><option value="0">休止中</option></select></div></div>
+        <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="mbSave">保存</button><button class="btn" type="button" id="mbCancel">キャンセル</button><span class="muted" id="mbMsg" role="status"></span></div></div>
+      </form>
+      <div class="admtools mbtools"><input id="mbQ" type="search" placeholder="氏名・担当班・電話で検索" aria-label="メンバーを検索"><select id="mbF" aria-label="絞り込み"></select></div>
+      <div id="mbList"></div>
+      <p class="legend">ここは社内の名簿です。アプリを開ける人・編集できる人は、このページの「共有」で決まります。「全体設定」でログインの制限を「する」にすると、ログインアカウントを連携したメンバーだけが画面を使えます(画面上の制限です)。電話番号などの個人情報は、管理者だけが見られます。</p>
+    </div>
+
+    <div id="adm-set" hidden>
+      <div class="admbody">
+      <h2 class="ah">出動の判定</h2>
+      <form class="card2 f" id="setForm" style="padding:0;max-width:760px">
+        <div class="form-row"><label for="sDefTh">新規現場の出動基準(降雪 cm)</label><div><input id="sDefTh" type="number" min="1" max="200" step="1" value="10"><span class="help">現場を追加するときの初期値です。現場ごとに変更できます。</span></div></div>
+        <div class="form-row"><label for="sIce">凍結注意にする最低気温(℃)</label><div><input id="sIce" type="number" min="-10" max="10" step="0.5" value="0"><span class="help">今後2日の最低気温がこの温度以下なら「凍結注意」を出します。</span></div></div>
+        <div class="form-row"><label for="sMult">降雪量の換算倍率</label><div><input id="sMult" type="number" min="0.3" max="3" step="0.1" value="1"><span class="help">標準は1.0。予報より積もりやすい地域は大きくします。</span></div></div>
+        <div class="form-row"><label for="sReq">ログインの制限</label><div><select id="sReq"><option value="0">しない(共有された人は誰でも使える)</option><option value="1">する(連携したメンバーだけ使える)</option></select><span class="help">「する」にすると、ログインアカウントを連携していない人には、利用できない画面を表示します。管理者は常に使えます。連携したメンバーが1人もいないあいだは制限されません。</span></div></div>
+        <div class="form-row"><label for="sRefresh">天気の自動更新</label><div><select id="sRefresh"><option value="5">5分ごと</option><option value="10">10分ごと</option><option value="30">30分ごと</option><option value="60">60分ごと</option></select><span class="help">画面を開いている間だけ更新します。</span></div></div>
+        <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="sSave">設定を保存</button><span class="muted" id="sMsg" role="status"></span></div></div>
+      </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar" id="tabbar" aria-label="メニュー"></nav>
+<button class="fab" id="fab" type="button" data-act="newrep" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>日報を書く</button>
+
+<div class="modal-layer" id="mdl" aria-hidden="true"><div class="modal-box" id="mdBox" role="dialog" aria-modal="true"></div></div>
+
+<div class="sheet" id="detail" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" data-act="close" data-sheet="detail">‹ 戻る</button>
+    <h2 id="detailTitle">現場</h2>
+    <span id="detailEdit"></span>
+  </div>
+  <div class="page" id="detailBody"></div>
+</div>
+
+<div class="sheet s2" id="rview" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" data-act="close" data-sheet="rview">‹ 戻る</button>
+    <h2>作業日報</h2>
+  </div>
+  <div class="page" id="rviewBody"></div>
+</div>
+
+<div class="sheet s2" id="rform" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" data-act="rfcancel">‹ 閉じる</button>
+    <h2 id="rfTitle">作業日報を書く</h2>
+  </div>
+  <form class="page f" id="rfForm" autocomplete="off">
+    <div class="grp">
+      <label for="rfSite">現場<select id="rfSite" required></select></label>
+      <label for="rfDate">作業日<input type="date" id="rfDate" required></label>
+      <div class="two">
+        <label for="rfStart">開始時刻<input type="time" id="rfStart"></label>
+        <label for="rfEnd">終了時刻<input type="time" id="rfEnd"></label>
+      </div>
+      <div class="row2">
+        <button type="button" class="btn sm" data-act="rfnow" data-t="start">開始を今にする</button>
+        <button type="button" class="btn sm" data-act="rfnow" data-t="end">終了を今にする</button>
+      </div>
+      <label for="rfCrew">担当班・作業者<input id="rfCrew" list="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
+      <label for="rfSnow">積雪量(実測 cm)<input type="number" id="rfSnow" min="0" max="300" step="0.5" inputmode="decimal" placeholder="例:12"></label>
+      <div><div class="lab2">使用機械</div><div class="tgs" id="rfMach"></div></div>
+      <label class="chk" for="rfHai"><input type="checkbox" id="rfHai"> 排雪あり(雪を運び出した)</label>
+      <label for="rfNote">メモ<textarea id="rfNote" maxlength="500" placeholder="例:駐車場の北側に雪山を作った。入口の段差に注意。"></textarea></label>
+      <div id="rfPhotoSec">
+        <div class="lab2">写真</div>
+        <div class="two" style="align-items:end">
+          <label for="rfKind">写真の種類
+            <select id="rfKind"><option value="before">作業前</option><option value="after">作業後</option><option value="other">その他</option></select>
+          </label>
+          <label for="rfFile">写真を追加<input type="file" id="rfFile" accept="image/*" multiple></label>
+        </div>
+        <div class="ph" id="rfPhotos" style="margin-top:8px"></div>
+        <div class="help" id="rfPhMsg" role="status"></div>
+      </div>
+      <label class="chk" id="rfDoneWrap" for="rfDone"><input type="checkbox" id="rfDone" checked> 保存して「完了」にする</label>
+      <div class="err" id="rfErr" role="alert"></div>
+    </div>
+  </form>
+  <div class="sheet-foot">
+    <button class="btn" type="button" data-act="rfcancel">キャンセル</button>
+    <button class="btn primary" type="submit" form="rfForm" id="rfSave">保存する</button>
+  </div>
+</div>
+
+<div class="sheet s2" id="sform" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" id="fCancel">‹ 閉じる</button>
+    <h2 id="dlgTitle">現場を追加</h2>
+  </div>
+  <form class="page f" id="form" autocomplete="off">
+    <div class="subtabs sm fjump" role="group" aria-label="項目へ移動"><button type="button" data-jump="fs1">基本情報</button><button type="button" data-jump="fs2">天気・位置</button><button type="button" data-jump="fs3">出動基準・状況</button><button type="button" data-jump="fs4">契約・金額</button></div>
+    <h2 class="ah" id="fs1">基本情報</h2>
+    <div class="panel"><div class="grp">
+      <label for="fName">現場名<input id="fName" required maxlength="60" placeholder="例:○○団地 駐車場"></label>
+      <label for="fArea">地区・区分(任意)<input id="fArea" list="dlAreas" maxlength="40" placeholder="例:駅前"></label>
+      <div>
+        <label for="fAddr">住所(任意)<input id="fAddr" maxlength="120" placeholder="例:盛岡市盛岡駅前北通10-38"></label>
+        <div class="help" id="fGeoMsg" role="status"></div>
+      </div>
+      <label for="fCrew">担当班(任意)<input id="fCrew" list="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
+      <label for="fNote">メモ(任意)<textarea id="fNote" maxlength="200" placeholder="例:除雪機は倉庫横。排雪場所は北側。"></textarea></label>
+    </div></div>
+    <h2 class="ah" id="fs2">天気・位置</h2>
+    <div class="panel"><div class="grp">
+      <div class="row2">
+        <button class="btn sm" type="button" id="fGeo">住所から位置を設定</button>
+        <a class="linka" id="fMap" href="#" target="_blank" rel="noopener" hidden>地図で確認</a>
+      </div>
+      <label for="fLoc">天気を調べる場所<input id="fLoc" maxlength="80" placeholder="例:39.72, 140.10">
+        <span class="help">緯度・経度(Googleマップで現場を長押しすると確認できます)を、緯度,経度の順に入力してください。空欄にすると、地区マスタの代表地点を使います。</span>
+      </label>
+      <div class="muted" id="fWxState"></div>
+    </div></div>
+    <h2 class="ah" id="fs3">出動基準・状況</h2>
+    <div class="panel"><div class="grp">
+      <label for="fTh">出動基準(降雪量 cm)<input id="fTh" type="number" min="1" max="200" step="1" value="10"></label>
+      <label for="fStatus">作業状況<select id="fStatus"><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done">完了</option></select></label>
+    </div></div>
+    <h2 class="ah" id="fs4">契約・金額</h2>
+    <div class="panel"><div class="grp">
+      <label for="fContract">契約回数(任意)<input id="fContract" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="例:10"></label>
+      <div class="two" id="fPriceBox">
+        <label for="fPrice">単価(円・任意)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>管理者のみ</span><input id="fPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="例:20000"></label>
+        <label for="fUnit">単価の単位<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>管理者のみ</span><select id="fUnit"><option value="回">1回あたり</option><option value="時間">1時間あたり</option></select></label>
+      </div>
+    </div></div>
+    <div class="err" id="fErr" role="alert"></div>
+    <div class="row2" style="margin-top:8px">
+      <button class="btn primary" type="submit" id="fSave" style="flex:1">すべて保存する</button>
+      <button class="btn danger" type="button" id="fDel" hidden>削除</button>
+    </div>
+  </form>
+</div>
+
+<div class="lb" id="lb" hidden>
+  <button class="lbb x" type="button" data-act="lbclose" aria-label="閉じる">×</button>
+  <button class="lbb pv" type="button" data-act="lbprev" aria-label="前の写真">‹</button>
+  <img id="lbImg" alt="">
+  <button class="lbb nx" type="button" data-act="lbnext" aria-label="次の写真">›</button>
+  <div class="cap" id="lbCap"></div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+<script>
+(function(){
+  "use strict";
+  var XW = "Vaisala Xweather";
+  var STALE = 300000;
+  var $ = function(id){return document.getElementById(id)};
+  var db=null, mcp=null, user=null, assets=null, dl=null;
+  var DEF={defaultTh:10,iceTemp:0,mult:1,refreshMin:10,requireLogin:false};
+  var access={}, accessLoaded=false, myName="";
+  function blobUrl(id){return window.__blobUrl?window.__blobUrl(id):"/_blob/"+id}
+  var DEFMACH=["手作業","自走式","軽トラ","ローダ"];
+  var sites=[], wx={}, ops={}, reports=[], notes=[], settings=Object.assign({},DEF), sel={};
+  var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
+  var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
+  var dbState="loading", busy={}, lastAt=0, mcpState="loading", lastAreaKey="";
+  var masters={areas:[],crews:[],machines:DEFMACH.slice()};
+  var nameMap={}, askedNames={}, prices={};
+  function priceOf(id){return prices[id]||null}
+  var detailId=null, rf=null, lb={list:[],i:0}, repFilter={period:"7d",site:""}, ntF="all";
+  var stS={mode:"month",y:0,m:0,sy:0};
+  function stOf(s){var o=ops[s.id];return (o&&o.status)||"standby"}
+  function stAt(s){var o=ops[s.id];return (o&&o.statusAt)||0}
+  function areaLoc(name){var a=masters.areas.filter(function(x){return x.name===name})[0];return a&&a.loc?a.loc:""}
+  function effLoc(s){return (s.loc&&String(s.loc).trim())||areaLoc(s.area)||""}
+  function siteById(id){return sites.filter(function(x){return x.id===id})[0]}
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function num(v){return typeof v==="number"&&isFinite(v)?v:null}
+  function fmt(v,d){return v==null?"–":(Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toFixed(d)}
+  function ms(kph){return kph==null?null:kph/3.6}
+
+  /* ---------- 天候表示 ---------- */
+  function cat(w){
+    w=String(w||"").toLowerCase();
+    if(/thunder|storm/.test(w))return "storm";
+    if(/snow|flurr/.test(w))return "snow";
+    if(/sleet|wintry|freezing|ice/.test(w))return "sleet";
+    if(/rain|shower|drizzle/.test(w))return "rain";
+    if(/fog|mist|haze|smoke/.test(w))return "fog";
+    if(/partly|mostly sunny|mostly clear|fair/.test(w))return "partly";
+    if(/cloud|overcast/.test(w))return "cloud";
+    if(/sunny|clear/.test(w))return "sun";
+    return "cloud";
+  }
+  function jp(w){
+    var s=String(w||"").toLowerCase();
+    if(!s)return "–";
+    if(/thunder/.test(s))return "雷雨";
+    if(/snow|flurr/.test(s))return /shower/.test(s)?"雪(にわか)":"雪";
+    if(/sleet|wintry|freezing/.test(s))return "みぞれ・凍雨";
+    if(/rain|shower|drizzle/.test(s))return "雨";
+    if(/fog|mist|haze/.test(s))return "霧";
+    if(/partly cloudy|partly sunny/.test(s))return "晴れ時々くもり";
+    if(/mostly cloudy/.test(s))return "おおむねくもり";
+    if(/mostly sunny|mostly clear/.test(s))return "おおむね晴れ";
+    if(/cloud|overcast/.test(s))return "くもり";
+    if(/sunny|clear|fair/.test(s))return "晴れ";
+    return "その他";
+  }
+  function jpAlert(x){
+    var raw=String((x&&((x.details&&x.details.name)||x.title||x.name||x.type))||"");
+    if(/[^\x00-\x7F]/.test(raw))return raw;
+    var t=raw.toLowerCase();
+    var kind=/fire weather|red flag/.test(t)?"乾燥・火災気象":/blizzard|winter storm|snow/.test(t)?"大雪":/ice|freez|frost|wintry|sleet/.test(t)?"凍結・着氷":/wind|gale/.test(t)?"強風":/flood|rain/.test(t)?"大雨・洪水":/thunder|lightning/.test(t)?"雷":/fog|visibility/.test(t)?"濃霧":/heat/.test(t)?"高温":/cold|chill/.test(t)?"低温":/avalanche/.test(t)?"雪崩":"";
+    var lv=/warning/.test(t)?"警報":/watch|advisory|statement|alert/.test(t)?"注意報":"";
+    if(!kind&&!lv)return "気象警報・注意報";
+    return (kind||"気象")+(lv?" "+lv:"");
+  }
+  var CLOUD="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 9.2 4.4 4.4 0 0 1 17.4 18H7z";
+  function icon(w){
+    var c=cat(w), p="";
+    var S='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+    if(c==="sun")p='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+    else if(c==="partly")p='<circle cx="8" cy="8" r="3"/><path d="M8 2v1M2 8h1M3.8 3.8l.7.7M12.2 3.8l-.7.7"/><path d="M9 20a3.5 3.5 0 0 1-.4-6.98A5 5 0 0 1 18 13.3 3.4 3.4 0 0 1 18 20H9z"/>';
+    else if(c==="rain")p='<path d="'+CLOUD.replace("18","15").replace("17.4 18","17.4 15")+'"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>';
+    else if(c==="snow")p='<path d="M7 15a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 6.2 4.4 4.4 0 0 1 17.4 15H7z"/><path d="M8 18v3M6.5 19.5h3M12 18v3M10.5 19.5h3M16 18v3M14.5 19.5h3"/>';
+    else if(c==="sleet")p='<path d="M7 15a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 6.2 4.4 4.4 0 0 1 17.4 15H7z"/><path d="M8 18l-1 3M12 18v3M16 18l-1 3"/>';
+    else if(c==="fog")p='<path d="M4 9h16M3 13h18M5 17h14"/>';
+    else if(c==="storm")p='<path d="M7 15a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 6.2 4.4 4.4 0 0 1 17.4 15H7z"/><path d="M12 14l-2 4h3l-2 4"/>';
+    else p='<path d="'+CLOUD+'"/>';
+    return S+p+'</svg>';
+  }
+
+  /* ---------- 判定 ---------- */
+  function snowEst(f){
+    var p=num(f.precipMM), mn=num(f.minTempC);
+    if(p==null||p<=0||mn==null||mn>2)return 0;
+    var r=mn<=-2?1.5:(mn<=1?1:0.5);
+    var k=+settings.mult>0?+settings.mult:1;
+    return p*r*k;
+  }
+  function snowLabel(v){return v<=0?"なし":(v<1?"1cm未満":"約"+Math.round(v)+"cm")}
+  function assess(s){
+    var w=wx[s.id];
+    if(!w||w.state!=="ok")return {lv:0,label:w&&w.state==="err"?"取得失敗":w&&w.state==="noloc"?"場所未設定":"取得中",snow2:0,ice:false,snowing:false};
+    var cur=w.cur||{}, fc=w.fc||[], al=w.alerts||[];
+    var snow2=0, ice=false;
+    for(var i=0;i<fc.length&&i<2;i++){snow2+=snowEst(fc[i]); var m=num(fc[i].minTempC); var it=num(+settings.iceTemp); if(m!=null&&m<=(it==null?0:it))ice=true;}
+    var snowing=(num(cur.snowCM)||0)>0||cat(cur.weather)==="snow"||cat(cur.weather)==="sleet";
+    var th=num(s.threshold)||10, lv=1;
+    if(snow2>=th||(al.length>0&&snow2>0))lv=3;
+    else if(snowing||snow2>0||al.length>0||ice)lv=2;
+    return {lv:lv,label:lv===3?"出動目安":lv===2?"警戒":"平常",snow2:snow2,ice:ice,snowing:snowing,th:th};
+  }
+
+  /* ---------- 天気取得 ---------- */
+  function sleep(t){return new Promise(function(r){setTimeout(r,t)})}
+  function errText(e){
+    var c=e&&e.code;
+    if(c==="not_in_manifest"||c==="consent_required")return "この画面での天気データの利用が許可されていません。ページの権限設定で気象コネクタを許可してください。";
+    if(c==="server_not_connected"||c==="server_not_found")return "気象コネクタが接続されていません。claude.aiの設定 → コネクタで追加してください。";
+    if(c==="needs_reauth")return "気象コネクタの認証が切れています。claude.aiの設定 → コネクタで再接続してください。";
+    if(c==="approval_required")return "天気の取得に承認が必要です。「天気を更新」を押して許可してください。";
+    if(c==="blocked_by_policy")return "組織の設定により気象コネクタは利用できません。";
+    if(c==="tool_error")return "場所を特定できないか、天気データを返せませんでした。「天気を調べる場所」を確認してください。";
+    return "天気を取得できませんでした。しばらくしてからもう一度お試しください。";
+  }
+  async function call(tool,input,force,retry){
+    var opt={cache:force?{staleTime:STALE,refresh:true}:{staleTime:STALE}};
+    try{return await mcp.callTool(XW,tool,input,opt);}
+    catch(e){
+      if(!retry&&e&&e.retryable){await sleep(Math.min(e.retryAfterMs||1500,5000)+Math.random()*500);return call(tool,input,force,true);}
+      throw e;
+    }
+  }
+  function pl(r){var p=r&&r.payload; if(typeof p==="string"){try{p=JSON.parse(p)}catch(e){p=null}} return p||{}}
+  async function loadOne(s,force){
+    if(!mcp)return;
+    var key=s.id, loc=effLoc(s);
+    if(!loc){wx[key]={state:"noloc",loc:""};render();return}
+    wx[key]=Object.assign({},wx[key],{state:(wx[key]&&wx[key].state==="ok")?"ok":"loading",loc:loc});
+    render();
+    try{
+      var res=await Promise.all([
+        call("xweather_get_current_weather",{location:loc},force),
+        call("xweather_get_forecast_weather",{location:loc,forecast_filter:"day",limit:4,fields:["datetime_local","max_temp_c","min_temp_c","precip_mm","precip_probability_percent","max_wind_speed_kph","weather_primary"]},force)
+      ]);
+      var c=pl(res[0]), f=pl(res[1]);
+      var at=(res[0].cache&&res[0].cache.storedAt)||Date.now();
+      wx[key]={state:"ok",loc:loc,cur:c.weather||{},alerts:Array.isArray(c.alerts)?c.alerts:[],fc:Array.isArray(f.forecasts)?f.forecasts:[],at:at};
+      if(at>lastAt)lastAt=at;
+    }catch(e){
+      wx[key]={state:"err",loc:loc,err:errText(e),code:e&&e.code};
+      if(e&&(e.code==="not_in_manifest"||e.code==="server_not_connected"||e.code==="needs_reauth"))mcpState=e.code;
+    }
+    render();
+  }
+  var running=false;
+  async function refreshAll(force){
+    if(!mcp||running)return;
+    running=true; $("btnRefresh").disabled=true;
+    try{
+      var list=sites.slice();
+      if(list.length){
+        await loadOne(list[0],force);
+        var i=1;
+        var worker=async function(){while(i<list.length){var s=list[i++];await loadOne(s,force);}};
+        await Promise.all([worker(),worker(),worker()]);
+      }
+    }finally{running=false;$("btnRefresh").disabled=false;render();}
+  }
+
+  /* ---------- 日付・共通表示 ---------- */
+  function p2(n){return ("0"+n).slice(-2)}
+  function dstr(d){return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())}
+  function todayStr(){return dstr(new Date())}
+  function timeStr(t){var d=new Date(t);return p2(d.getHours())+":"+p2(d.getMinutes())}
+  function dayLabel(iso,i){
+    var d=String(iso||"").slice(0,10).split("-");
+    if(d.length<3)return "";
+    var dt=new Date(+d[0],+d[1]-1,+d[2]);
+    var base=i===0?"今日":i===1?"明日":"";
+    return base||((+d[1])+"/"+(+d[2])+"("+"日月火水木金土"[dt.getDay()]+")");
+  }
+  function dlabel(ds){
+    var d=String(ds||"").split("-"); if(d.length<3)return ds||"";
+    var dt=new Date(+d[0],+d[1]-1,+d[2]);
+    var t=todayStr(), y=dstr(new Date(Date.now()-86400000));
+    var s=(+d[1])+"月"+(+d[2])+"日("+"日月火水木金土"[dt.getDay()]+")";
+    return ds===t?"今日 "+s:ds===y?"昨日 "+s:s;
+  }
+  function yen(n){return "¥"+Math.round(n).toLocaleString("ja-JP")}
+  function okId(id){return typeof id==="string"&&/^[0-9a-zA-Z_-]{8,64}$/.test(id)}
+  function who(id){if(id&&nameMap[id])return nameMap[id];return id&&id===myId?"自分":"スタッフ"}
+  function toast(t){var el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){el.hidden=true},3200)}
+  function flash(id,txt){var el=$(id);el.textContent=txt;setTimeout(function(){if(el.textContent===txt)el.textContent=""},6000)}
+  var ST={standby:"待機",prep:"準備中",out:"出動中",done:"完了"};
+  var canWrite=function(){return !!db&&canStatus};
+
+  function kvHtml(c){
+    return '<div class="kv"><div><small>現在の降雪</small><b>'+fmt(num(c.snowCM),1)+' cm</b></div><div><small>風(突風)</small><b>'+fmt(ms(num(c.windSpeedKPH)),1)+'<span style="font-weight:400"> ('+fmt(ms(num(c.windGustKPH)),0)+')</span> m/s</b></div><div><small>視程</small><b>'+fmt(num(c.visibilityKM),1)+' km</b></div></div>';
+  }
+  function fcHtml(fc){
+    if(!fc||!fc.length)return "";
+    return '<div class="fc">'+fc.slice(0,4).map(function(f,i){
+      var m=ms(num(f.windSpeedMaxKPH));
+      return '<div><div class="d">'+esc(dayLabel(f.dateTimeISO,i))+'</div>'+icon(f.weather)+'<div class="tt">'+fmt(num(f.maxTempC),0)+'/'+fmt(num(f.minTempC),0)+'℃</div><div class="tt">'+fmt(num(f.precipMM),0)+'mm</div><div class="s">'+snowLabel(snowEst(f))+'</div><div class="d">風'+fmt(m,0)+'m/s</div></div>';
+    }).join("")+'</div>';
+  }
+  function tagsHtml(a,w){
+    var al=(w&&w.alerts)||[], h="";
+    al.slice(0,3).forEach(function(x){h+='<span>'+esc(jpAlert(x))+'</span>'});
+    if(al.length>3)h+='<span>ほか'+(al.length-3)+'件</span>';
+    if(a.ice)h+='<span class="tag ice">凍結注意</span>';
+    if(a.snowing)h+='<span class="tag ice">降雪中</span>';
+    return h?'<div class="alerts">'+h+'</div>':'';
+  }
+  function meterHtml(a){
+    var th=a.th||10, pct=Math.min(100,Math.round(a.snow2/th*100));
+    return '<div class="sn"><span>降雪目安 <b class="num">'+snowLabel(a.snow2)+'</b></span><span class="muted">基準 '+th+'cm</span></div><div class="track" role="img" aria-label="出動基準に対して'+pct+'パーセント"><div class="fill'+(a.snow2>=th?' hot':'')+'" style="width:'+pct+'%"></div></div>';
+  }
+  function wxState(s){
+    var w=wx[s.id];
+    if(!mcp)return '<div class="muted">この画面では天気を取得できません</div>';
+    if(!w||(w.state==="loading"&&!w.cur))return '<div class="muted">天気を取得中…</div>';
+    if(w.state==="noloc")return '<div class="muted">天気を調べる場所が未設定です</div>';
+    if(w.state==="err")return '<div class="err">天気を取得できません</div><button class="link" type="button" data-act="retry" data-id="'+esc(s.id)+'">再取得</button>';
+    return "";
+  }
+  function wxBrief(s,a){
+    var w=wx[s.id], bad=wxState(s);
+    if(bad)return bad;
+    var c=w.cur||{}, f0=w.fc&&w.fc[0];
+    return '<div class="wb"><div class="wb-w">'+icon(c.weather)+'<div><div class="t num">'+fmt(num(c.tempC),1)+'<small>℃</small></div><div class="w">'+esc(jp(c.weather))+'</div></div></div><div>'+meterHtml(a)+'</div></div>'+tagsHtml(a,w);
+  }
+  function segHtml(s){
+    var st=stOf(s), id=esc(s.id);
+    var h='<div class="seg" role="group" aria-label="'+esc(s.name)+'の作業状況">';
+    ["standby","prep","out","done"].forEach(function(k){
+      h+='<button type="button" class="'+(k==="standby"?"":k)+'" data-act="status" data-id="'+id+'" data-v="'+k+'" aria-pressed="'+(st===k)+'"'+(canWrite()?"":" disabled")+'>'+ST[k]+'</button>';
+    });
+    return h+'</div>';
+  }
+  function siteCard(s){
+    var a=assess(s), st=stOf(s), id=esc(s.id);
+    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
+  }
+  function stSelHtml(s){
+    var st=stOf(s);
+    return '<select class="stsel s-'+st+'" data-stsel="'+esc(s.id)+'" aria-label="'+esc(s.name)+'の作業状況"'+(canWrite()?'':' disabled')+'>'+["standby","prep","out","done"].map(function(k){return '<option value="'+k+'"'+(k===st?' selected':'')+'>'+ST[k]+'</option>'}).join("")+'</select>';
+  }
+  function siteRow(s){
+    var a=assess(s), w=wx[s.id], ok=!!(w&&w.state==="ok"), c=ok?(w.cur||{}):{}, id=esc(s.id);
+    var tg="";
+    if(ok){
+      ((w.alerts)||[]).slice(0,2).forEach(function(x){tg+='<span>'+esc(jpAlert(x))+'</span>'});
+      if(a.ice)tg+='<span class="ice">凍結注意</span>';
+      if(a.snowing)tg+='<span class="ice">降雪中</span>';
+    }
+    var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw">'+esc(jp(c.weather))+'<span class="sx"> ・ 降雪 '+snowLabel(a.snow2)+' / 基準'+(a.th||10)+'cm</span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
+    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterHtml(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
+  }
+  var layout="row";
+  try{var L0=localStorage.getItem("josetsu.layout2");if(L0==="card"||L0==="row")layout=L0}catch(e){}
+  function prioritySort(items){
+    var ratio=function(x){return x.a.th?x.a.snow2/x.a.th:0};
+    return items.sort(function(p,r){
+      if(r.a.lv!==p.a.lv)return r.a.lv-p.a.lv;
+      if(p.a.lv>=2&&ratio(r)!==ratio(p))return ratio(r)-ratio(p);
+      return String(p.s.area||"").localeCompare(String(r.s.area||""),"ja")||String(p.s.name).localeCompare(String(r.s.name),"ja");
+    });
+  }
+  function banners(){
+    var b="";
+    if(dbState==="unavailable")b+='<div class="banner">現場データを読み込めません。ログインしているか、このページの共有設定を確認してください。</div>';
+    if(!mcp&&mcpState!=="loading")b+='<div class="banner">この表示環境では天気データに接続できません。claude.aiのアプリまたはブラウザで開き直してください。</div>';
+    else if(mcpState==="not_in_manifest"||mcpState==="server_not_connected"||mcpState==="needs_reauth"){
+      var any=false;for(var k in wx){if(wx[k].state==="ok")any=true}
+      if(!any)b+='<div class="banner">気象コネクタに接続できていません。上の「天気を更新」を押して許可するか、claude.aiの設定 → コネクタを確認してください。</div>';
+    }
+    return b;
+  }
+
+  /* ---------- 日報・連絡の部品 ---------- */
+  function sortReps(list){
+    return list.slice().sort(function(a,b){
+      return String(b.date||"").localeCompare(String(a.date||""))||String(b.start||"").localeCompare(String(a.start||""))||((b.at||0)-(a.at||0));
+    });
+  }
+  function repCard(r){
+    var n=(r.photos||[]).length, ln=[];
+    if(r.crew)ln.push(esc(r.crew));
+    if(r.snowCm!=null&&r.snowCm!=="")ln.push('積雪 '+esc(r.snowCm)+'cm');
+    if(r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
+    var h='<article class="rc" data-act="rep" data-id="'+esc(r.id)+'" role="button" tabindex="0"><div class="top"><span class="nm">'+esc(r.siteName||"(現場名なし)")+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>';
+    h+='<div class="ln">'+(ln.length?'<span>'+ln.join('</span><span>')+'</span>':'')+(r.haisetsu?'<span class="tag ice">排雪</span>':'')+(n?'<span>写真 '+n+'枚</span>':'')+'</div>';
+    h+='<div class="ln"><span>'+esc(dlabel(r.date))+' ・ 記入 '+esc(who(r.by))+'</span></div>';
+    if(r.note)h+='<div class="sc-sub" style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(r.note.length>80?r.note.slice(0,80)+"…":r.note)+'</div>';
+    return h+'</article>';
+  }
+  function canDelete(x){return !!db&&(canAdmin||(!!myId&&x.by===myId))}
+  function noteCard(n){
+    var site=n.siteId?siteById(n.siteId):null, nm=n.siteId?(site?site.name:(n.siteName||"削除された現場")):"全体への連絡";
+    var d=new Date(n.at||0);
+    var h='<article class="note"><div class="hd"><span><b style="color:var(--ink)">'+esc(nm)+'</b></span><span>'+(n.at?esc((d.getMonth()+1)+"/"+d.getDate()+" "+timeStr(n.at)):"")+'</span></div><div class="tx">'+esc(n.text)+'</div><div class="hd"><span>'+esc(who(n.by))+'</span><span>';
+    if(n.siteId&&site)h+='<button class="link" type="button" data-act="open" data-id="'+esc(n.siteId)+'">現場を見る</button> ';
+    if(canDelete(n))h+='<button class="link" type="button" data-act="ntdel" data-id="'+esc(n.id)+'">削除</button>';
+    return h+'</span></div></article>';
+  }
+  function photoGrid(list,group){
+    if(!list||!list.length)return "";
+    return '<div class="ph">'+list.map(function(p,i){
+      if(!okId(p.id))return "";
+      return '<button type="button" data-act="photo" data-g="'+esc(group)+'" data-i="'+i+'" aria-label="写真を大きく表示"><img src="/_blob/'+esc(p.id)+'" alt="'+esc(KIND[p.kind]||"写真")+'" loading="lazy"><span class="pk">'+esc(KIND[p.kind]||"その他")+'</span></button>';
+    }).join("")+'</div>';
+  }
+  var KIND={before:"作業前",after:"作業後",other:"その他"};
+
+  /* ---------- ホーム ---------- */
+  function renderHome(){
+    var items=sites.map(function(s){return {s:s,a:assess(s)}});
+    var c3=0,c2=0,out=0;
+    items.forEach(function(x){if(x.a.lv===3)c3++;else if(x.a.lv===2)c2++; if(stOf(x.s)==="out")out++});
+    var td=todayStr(), todayReps=sortReps(reports.filter(function(r){return r.date===td}));
+    var h=banners()+annHome();
+    h+='<div class="hello"><span class="d">'+esc(new Date().toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"}))+'</span><span class="muted">全'+sites.length+'現場</span></div>';
+    h+='<div class="tiles">'+
+      '<button type="button" class="tile c3" data-nav="sites" data-f="l3"><span class="n">'+c3+'</span><span class="l">出動目安</span></button>'+
+      '<button type="button" class="tile c2" data-nav="sites" data-f="l2"><span class="n">'+c2+'</span><span class="l">警戒</span></button>'+
+      '<button type="button" class="tile" data-nav="sites" data-f="out"><span class="n">'+out+'</span><span class="l">出動中</span></button>'+
+      '<button type="button" class="tile" data-nav="reports"><span class="n">'+todayReps.length+'</span><span class="l">本日の日報</span></button></div>';
+    var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
+    h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
+    h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return siteCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
+    var outs=items.filter(function(x){return stOf(x.s)==="out"});
+    if(outs.length){
+      h+='<div class="sec"><h2>出動中<span class="gc num">'+outs.length+'件</span></h2></div><div class="stack">'+outs.map(function(x){return siteCard(x.s)}).join("")+'</div>';
+    }
+    var nt=notes.slice(0,3);
+    h+='<div class="sec"><h2>最新の連絡</h2><button class="link" type="button" data-nav="notes">連絡板を開く</button></div>';
+    h+=nt.length?'<div class="stack">'+nt.map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はまだありません</b>申し送りは「連絡」から書けます。</div>';
+    h+='<div class="sec"><h2>本日の日報</h2><button class="link" type="button" data-nav="reports">日報を見る</button></div>';
+    h+=todayReps.length?'<div class="stack">'+todayReps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>今日の日報はまだありません</b>作業が終わったら、右下のボタンから書けます。</div>';
+    $("v-home").innerHTML=h;
+  }
+
+  /* ---------- 現場一覧 ---------- */
+  function syncAreaSel(){
+    var set={}; sites.forEach(function(s){if(s.area)set[s.area]=1});
+    var list=Object.keys(set).sort(function(a,b){return a.localeCompare(b,"ja")});
+    var key=list.join("|");
+    if(key!==lastAreaKey){
+      lastAreaKey=key;
+      if(areaF&&!set[areaF])areaF="";
+      $("areaSel").innerHTML='<option value="">すべての地区</option>'+list.map(function(a){return '<option value="'+esc(a)+'">'+esc(a)+'</option>'}).join("");
+    }
+    $("areaSel").value=areaF;
+  }
+  function renderSites(){
+    var items=sites.map(function(s){return {s:s,a:assess(s)}});
+    var cnt={all:items.length,l3:0,l2:0,l1:0,out:0};
+    items.forEach(function(x){if(x.a.lv===3)cnt.l3++;else if(x.a.lv===2)cnt.l2++;else if(x.a.lv===1)cnt.l1++; if(stOf(x.s)==="out")cnt.out++});
+    var defs=[["all","全現場"],["l3","出動目安"],["l2","警戒"],["l1","平常"],["out","出動中"]];
+    $("siteChips").innerHTML=defs.map(function(d){return '<button type="button" data-filter="'+d[0]+'" aria-pressed="'+(filter===d[0])+'">'+d[1]+'<span class="num">'+cnt[d[0]]+'</span></button>'}).join("");
+    syncAreaSel();
+    Array.prototype.forEach.call($("layoutT").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.layout===layout))});
+    var qs=query.trim().toLowerCase();
+    var shown=items.filter(function(x){
+      if(areaF&&(x.s.area||"")!==areaF)return false;
+      if(qs&&[x.s.name,x.s.area,x.s.crew,x.s.address].join(" ").toLowerCase().indexOf(qs)<0)return false;
+      if(filter==="all")return true;
+      if(filter==="out")return stOf(x.s)==="out";
+      return x.a.lv===({l3:3,l2:2,l1:1})[filter];
+    });
+    prioritySort(shown);
+    $("siteCount").textContent=shown.length+"件を表示";
+    $("banner").innerHTML=banners();
+    if(!sites.length){
+      $("siteList").innerHTML='<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"現場がまだ登録されていません")+'</b>'+(dbState==="loading"?"":(canAdmin?"「設定」の「現場を追加」から、現場名と天気を調べる場所を登録してください。":"登録された現場がここに表示されます。"))+'</div>';
+    }else if(!shown.length){
+      $("siteList").innerHTML='<div class="empty"><b>該当する現場はありません</b>絞り込みを「全現場」に戻してください。</div>';
+    }else{
+      var GN={3:"出動目安",2:"警戒",1:"平常",0:"天気を取得できていない現場"}, out="";
+      [3,2,1,0].forEach(function(lv){
+        var g=shown.filter(function(x){return x.a.lv===lv}); if(!g.length)return;
+        out+='<div class="grp-h l'+lv+'">'+GN[lv]+'<span class="gc num">'+g.length+'件</span></div><div class="stack'+(layout==="row"?" rows":"")+'">'+g.map(function(x){return layout==="row"?siteRow(x.s):siteCard(x.s)}).join("")+'</div>';
+      });
+      $("siteList").innerHTML=out;
+    }
+  }
+
+  /* ---------- 現場の詳細 ---------- */
+  function seasonOf(ds){var y=+String(ds).slice(0,4), m=+String(ds).slice(5,7);return m>=10?y:y-1}
+  function seasonRange(sy){return [sy+"-10-01",(sy+1)+"-09-30"]}
+  function siteSeasonCount(id){
+    var sy=seasonOf(todayStr()), r=seasonRange(sy);
+    return reports.filter(function(x){return x.siteId===id&&x.date>=r[0]&&x.date<=r[1]}).length;
+  }
+  var LOCK='<svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  function admBadge(){return '<span class="adm-badge">'+LOCK+'管理者のみ</span>'}
+  function unitText(s){var p=canAdmin?priceOf(s.id):null;return p&&p.unitPrice>0?(yen(p.unitPrice)+" / "+(p.unit==="時間"?"時間":"回")):""}
+  function detailHtml(s){
+    var a=assess(s), w=wx[s.id], id=esc(s.id), h="";
+    var bad=wxState(s);
+    h+='<div class="card2"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</span></div>';
+    if(bad)h+=bad;
+    else{
+      var c=w.cur||{};
+      h+='<div class="bignow">'+icon(c.weather)+'<div><div class="t">'+fmt(num(c.tempC),1)+'<small>℃</small></div><div class="w">'+esc(jp(c.weather))+'</div></div></div><div style="margin-top:12px">'+meterHtml(a)+'</div>'+tagsHtml(a,w)+'<div style="margin-top:12px">'+kvHtml(c)+'</div><div style="margin-top:10px">'+fcHtml(w.fc)+'</div>';
+    }
+    if(mcp)h+='<div style="margin-top:6px"><button class="link" type="button" data-act="retry" data-id="'+id+'">この現場の天気を更新</button></div>';
+    h+='</div>';
+    h+='<div class="sec"><h2>作業状況</h2><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s);
+    h+='<div class="row2" style="margin-top:12px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div>';
+    var n=siteSeasonCount(s.id), cc=+s.contractCount||0;
+    h+='<div class="sec"><h2>現場の情報</h2></div><div class="card2"><dl class="dl">';
+    h+='<dt>住所</dt><dd>'+(s.address?esc(s.address)+' <a class="linka" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図</a>':'未登録')+'</dd>';
+    h+='<dt>出動基準</dt><dd class="num">降雪 '+esc(s.threshold||10)+' cm</dd>';
+    if(canAdmin)h+='<dt>単価'+admBadge()+'</dt><dd>'+(unitText(s)?'<span class="num">'+esc(unitText(s))+'</span>':'未登録')+'</dd>';
+    h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
+    h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(s.note?esc(s.note):'なし')+'</dd></dl></div>';
+    var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
+    h+='<div class="sec"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
+    h+=reps.length?'<div class="stack">'+reps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>この現場の日報はまだありません</b></div>';
+    var phs=[]; reps.forEach(function(r){(r.photos||[]).forEach(function(p){phs.push({id:p.id,kind:p.kind,cap:(r.date||"")})})});
+    detailPhotos=phs.slice(0,18);
+    if(detailPhotos.length)h+='<div class="sec"><h2>写真<span class="gc num">'+phs.length+'枚</span></h2></div>'+photoGrid(detailPhotos,"detail");
+    var nts=notes.filter(function(x){return x.siteId===s.id});
+    h+='<div class="sec"><h2>この現場への連絡</h2></div>';
+    h+=nts.length?'<div class="stack">'+nts.slice(0,5).map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はありません</b></div>';
+    return h;
+  }
+  var detailPhotos=[];
+  function renderDetail(){
+    if(!detailId||$("detail").hidden)return;
+    var s=siteById(detailId);
+    if(!s){closeSheet("detail");return}
+    var sc=$("detail").scrollTop;
+    $("detailTitle").textContent=s.name;
+    $("detailEdit").innerHTML='';
+    $("detailBody").innerHTML=detailHtml(s);
+    $("detail").scrollTop=sc;
+  }
+
+  /* ---------- シート ---------- */
+  function lockBody(){
+    var any=["detail","rview","rform","sform"].some(function(id){return !$(id).hidden});
+    document.body.style.overflow=any?"hidden":"";
+  }
+  function openSheet(id){$(id).hidden=false;$(id).scrollTop=0;lockBody()}
+  function closeSheet(id){$(id).hidden=true;if(id==="detail")detailId=null;lockBody();render()}
+  function openDetail(id){detailId=id;openSheet("detail");renderDetail()}
+
+  /* ---------- 日報一覧 ---------- */
+  function periodOk(d){
+    var p=repFilter.period, now=new Date(), t=todayStr();
+    if(p==="all")return true;
+    if(p==="7d"){return d>=dstr(new Date(now.getTime()-6*86400000))&&d<=t}
+    var ym=now.getFullYear()*12+now.getMonth()-(p==="prev"?1:0);
+    var y=Math.floor(ym/12), m=ym%12+1;
+    return String(d).slice(0,7)===y+"-"+p2(m);
+  }
+  function syncSiteSels(){
+    var opts=sites.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")});
+    var o='<option value="">すべての現場</option>'+opts.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'}).join("");
+    var key=opts.map(function(s){return s.id+s.name}).join("|");
+    if(syncSiteSels.k!==key){
+      syncSiteSels.k=key;
+      $("repSiteSel").innerHTML=o;
+      var cur=$("ntSite").value;
+      $("ntSite").innerHTML='<option value="">全体(現場を指定しない)</option>'+opts.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'}).join("");
+      $("ntSite").value=cur;
+      var cf=ntF;
+      $("ntFilter").innerHTML='<option value="all">すべての連絡</option><option value="none">全体への連絡</option>'+opts.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'}).join("");
+      $("ntFilter").value=cf;
+    }
+    $("repSiteSel").value=repFilter.site;
+  }
+  function renderReports(){
+    syncSiteSels();
+    $("repPeriod").value=repFilter.period;
+    var list=sortReps(reports.filter(function(r){return periodOk(r.date)&&(!repFilter.site||r.siteId===repFilter.site)}));
+    if(!list.length){$("repList").innerHTML='<div class="empty"><b>該当する日報はありません</b>期間や現場の絞り込みを変えるか、右下のボタンから日報を書いてください。</div>';return}
+    var h="", last="";
+    list.forEach(function(r){
+      if(r.date!==last){last=r.date;h+='<div class="dgrp">'+esc(dlabel(r.date))+'</div><div class="stack">'}
+      h+=repCard(r);
+      var nx=list[list.indexOf(r)+1];
+      if(!nx||nx.date!==r.date)h+='</div>';
+    });
+    $("repList").innerHTML=h;
+  }
+
+  /* ---------- 日報の表示 ---------- */
+  var viewRepId=null;
+  function openRepView(id){
+    var r=reports.filter(function(x){return x.id===id})[0]; if(!r)return;
+    viewRepId=id; openSheet("rview"); renderRepView();
+  }
+  function hoursOf(r){
+    var a=/^(\d{1,2}):(\d{2})$/.exec(r.start||""), b=/^(\d{1,2}):(\d{2})$/.exec(r.end||"");
+    if(!a||!b)return null;
+    var m=(+b[1]*60+ +b[2])-(+a[1]*60+ +a[2]);
+    if(m<0)m+=1440;
+    return m/60;
+  }
+  function renderRepView(){
+    if($("rview").hidden)return;
+    var r=reports.filter(function(x){return x.id===viewRepId})[0];
+    if(!r){closeSheet("rview");return}
+    var hr=hoursOf(r), s=r.siteId?siteById(r.siteId):null, h="";
+    h+='<div class="card2"><dl class="dl">';
+    h+='<dt>現場</dt><dd><b>'+esc(r.siteName||"")+'</b>'+(s?' <button class="link" type="button" data-act="open2" data-id="'+esc(s.id)+'">現場を見る</button>':'')+'</dd>';
+    h+='<dt>作業日</dt><dd>'+esc(dlabel(r.date))+'</dd>';
+    h+='<dt>時間</dt><dd class="num">'+esc(r.start||"--:--")+' 〜 '+esc(r.end||"--:--")+(hr!=null?' ('+fmt(hr,1)+'時間)':'')+'</dd>';
+    h+='<dt>担当</dt><dd>'+(r.crew?esc(r.crew):'未入力')+'</dd>';
+    h+='<dt>積雪量</dt><dd class="num">'+(r.snowCm!=null&&r.snowCm!==""?esc(r.snowCm)+' cm':'未入力')+'</dd>';
+    h+='<dt>使用機械</dt><dd>'+(r.machines&&r.machines.length?esc(r.machines.join("、")):'未入力')+'</dd>';
+    h+='<dt>排雪</dt><dd>'+(r.haisetsu?'あり':'なし')+'</dd>';
+    h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(r.note?esc(r.note):'なし')+'</dd>';
+    h+='<dt>記入者</dt><dd>'+esc(who(r.by))+(r.at?' ・ '+esc(new Date(r.at).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})):'')+'</dd></dl></div>';
+    var ph=(r.photos||[]).filter(function(p){return okId(p.id)});
+    h+='<div class="sec"><h2>写真<span class="gc num">'+ph.length+'枚</span></h2></div>';
+    h+=ph.length?photoGrid(ph,"rep:"+r.id):'<div class="empty"><b>写真はありません</b></div>';
+    if(db&&(canAdmin||(myId&&r.by===myId))){
+      h+='<div class="row2" style="margin-top:20px"><button class="btn" type="button" data-act="repedit" data-id="'+esc(r.id)+'" style="flex:1">編集</button><button class="btn danger" type="button" data-act="repdel" data-id="'+esc(r.id)+'" style="flex:1">削除</button></div>';
+    }
+    $("rviewBody").innerHTML=h;
+  }
+
+  /* ---------- 日報フォーム ---------- */
+  function shrink(file){
+    return new Promise(function(resolve,reject){
+      var fallback=function(){
+        if(/^image\/(jpeg|png|webp|gif)$/.test(file.type)&&file.size<=20*1048576)resolve({blob:file,type:file.type});
+        else reject(new Error("unsupported"));
+      };
+      if(!window.createImageBitmap)return fallback();
+      createImageBitmap(file,{imageOrientation:"from-image"}).then(function(bm){
+        var sc=Math.min(1,1600/Math.max(bm.width,bm.height));
+        var c=document.createElement("canvas"); c.width=Math.max(1,Math.round(bm.width*sc)); c.height=Math.max(1,Math.round(bm.height*sc));
+        c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
+        if(bm.close)bm.close();
+        c.toBlob(function(b){if(b)resolve({blob:b,type:"image/jpeg"});else fallback()},"image/jpeg",0.82);
+      },fallback);
+    });
+  }
+  function machList(extra){
+    var l=masters.machines.slice();
+    (extra||[]).forEach(function(m){if(l.indexOf(m)<0)l.push(m)});
+    return l;
+  }
+  function renderMachChips(sel){
+    $("rfMach").innerHTML=machList(sel).map(function(m){
+      return '<label class="tg"><input type="checkbox" data-mach="'+esc(m)+'"'+(sel.indexOf(m)>=0?' checked':'')+'><span>'+esc(m)+'</span></label>';
+    }).join("");
+  }
+  function machSel(){return Array.prototype.map.call($("rfMach").querySelectorAll("input:checked"),function(i){return i.getAttribute("data-mach")})}
+  function renderRfPhotos(){
+    var h=rf.photos.map(function(p,i){
+      return '<div class="phb"><button type="button" data-act="photo" data-g="form" data-i="'+i+'" style="border:0;padding:0;background:none;width:100%;height:100%;cursor:pointer" aria-label="写真を大きく表示"><img src="'+esc(blobUrl(p.id))+'" alt="'+esc(KIND[p.kind]||"写真")+'"></button><span class="pk">'+esc(KIND[p.kind]||"その他")+'</span><button class="px" type="button" data-act="rfrm" data-i="'+i+'" aria-label="この写真を外す">×</button></div>';
+    }).join("");
+    if(rf.up)h+='<div class="phb ph-load">送信中…</div>';
+    $("rfPhotos").innerHTML=h;
+  }
+  function openReportForm(siteId,repId){
+    if(!canWrite()){toast("日報を書く権限がありません。");return}
+    var r=repId?reports.filter(function(x){return x.id===repId})[0]:null;
+    if(repId&&!r)return;
+    rf={id:repId||null,photos:r?(r.photos||[]).filter(function(p){return okId(p.id)}).map(function(p){return {id:p.id,kind:p.kind||"other"}}):[],added:[],removed:[],up:0};
+    $("rfTitle").textContent=r?"日報を編集":"作業日報を書く";
+    var opts=sites.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")});
+    var sid=r?r.siteId:siteId;
+    var o=opts.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'}).join("");
+    if(r&&!siteById(r.siteId))o='<option value="'+esc(r.siteId)+'">'+esc(r.siteName||"削除された現場")+'</option>'+o;
+    $("rfSite").innerHTML='<option value="">現場を選んでください</option>'+o;
+    $("rfSite").value=sid||"";
+    $("rfDate").value=r?r.date:todayStr();
+    $("rfStart").value=r?(r.start||""):"";
+    $("rfEnd").value=r?(r.end||""):"";
+    var s0=sid?siteById(sid):null;
+    $("rfCrew").value=r?(r.crew||""):(s0&&s0.crew||"");
+    $("rfSnow").value=r&&r.snowCm!=null?r.snowCm:"";
+    renderMachChips(r?(r.machines||[]):[]);
+    $("rfHai").checked=!!(r&&r.haisetsu);
+    $("rfNote").value=r?(r.note||""):"";
+    $("rfKind").value="after"; $("rfFile").value="";
+    $("rfPhotoSec").hidden=!(canPhoto&&assets)&&!rf.photos.length;
+    $("rfFile").closest("label").hidden=!(canPhoto&&assets);
+    $("rfKind").closest("label").hidden=!(canPhoto&&assets);
+    $("rfPhMsg").textContent=(canPhoto&&assets)?"":"写真を追加できるのは、このページの編集権限がある方のみです。";
+    $("rfDoneWrap").hidden=!!r;
+    $("rfDone").checked=!r;
+    $("rfErr").textContent="";
+    $("rfSave").disabled=false;
+    renderRfPhotos();
+    openSheet("rform");
+  }
+  async function dropAssets(ids){
+    if(!assets)return;
+    for(var i=0;i<ids.length;i++){try{await assets.delete(ids[i])}catch(e){}}
+  }
+  async function closeRform(){
+    if(rf&&rf.added.length){var ids=rf.added.slice();rf.added=[];await dropAssets(ids)}
+    rf=null; $("rform").hidden=true; lockBody();
+  }
+  function upErr(e){
+    var c=e&&e.code;
+    if(c==="too_large")return "写真が大きすぎます。";
+    if(c==="unsupported_type")return "この形式の写真は追加できません。";
+    if(c==="quota_exceeded"||c==="storage_full")return "写真の保存容量がいっぱいです。";
+    if(c==="forbidden"||c==="permission_denied"||c==="not_writer")return "写真を追加する権限がありません。";
+    return "写真を追加できませんでした。もう一度お試しください。";
+  }
+  $("rfFile").addEventListener("change",async function(e){
+    var files=Array.prototype.slice.call(e.target.files||[]); e.target.value="";
+    if(!rf||!assets||!files.length)return;
+    var kind=$("rfKind").value, fails=0, last="";
+    for(var i=0;i<files.length;i++){
+      if(!rf)return;
+      rf.up++; $("rfPhMsg").textContent="写真を送信しています…("+(i+1)+"/"+files.length+")"; renderRfPhotos();
+      try{
+        var sh=await shrink(files[i]);
+        var res=await assets.upload(sh.blob,{type:sh.type});
+        if(!rf){try{await assets.delete(res.id)}catch(e2){}return}
+        rf.photos.push({id:res.id,kind:kind}); rf.added.push(res.id);
+      }catch(err){fails++;last=err&&err.code?upErr(err):"この写真は読み込めませんでした。"}
+      if(rf)rf.up--;
+      if(rf)renderRfPhotos();
+    }
+    if(rf)$("rfPhMsg").textContent=fails?(fails+"枚を追加できませんでした。"+last):files.length+"枚を追加しました。";
+  });
+  $("rfSite").addEventListener("change",function(){
+    var s=siteById($("rfSite").value);
+    if(s&&s.crew&&!$("rfCrew").value.trim())$("rfCrew").value=s.crew;
+  });
+  function nowHM(){var d=new Date();return p2(d.getHours())+":"+p2(d.getMinutes())}
+  $("rfForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    if(!rf||!db)return;
+    var sid=$("rfSite").value, date=$("rfDate").value;
+    if(!sid){$("rfErr").textContent="現場を選んでください。";return}
+    if(!date){$("rfErr").textContent="作業日を入力してください。";return}
+    if(rf.up){$("rfErr").textContent="写真の送信が終わるまでお待ちください。";return}
+    var s=siteById(sid), old=rf.id?reports.filter(function(x){return x.id===rf.id})[0]:null;
+    var sn=parseFloat($("rfSnow").value);
+    var data={
+      siteId:sid, siteName:s?s.name:(old&&old.siteName)||"", date:date,
+      start:$("rfStart").value||"", end:$("rfEnd").value||"", crew:$("rfCrew").value.trim(),
+      snowCm:isFinite(sn)?sn:"", machines:machSel(), haisetsu:$("rfHai").checked, note:$("rfNote").value.trim(),
+      photos:rf.photos.map(function(p){return {id:p.id,kind:p.kind}}), updatedAt:Date.now()
+    };
+    $("rfSave").disabled=true; $("rfErr").textContent="";
+    try{
+      if(rf.id){await db.doc("reports/"+rf.id).update(data)}
+      else{
+        data.by=myId||""; data.at=Date.now();
+        await db.collection("reports").add(data);
+        if($("rfDone").checked&&s){try{await db.doc("ops/"+sid).set({status:"done",statusAt:Date.now()})}catch(e2){}}
+      }
+      var gone=rf.removed.slice(); rf.added=[]; rf.removed=[];
+      rf=null; $("rform").hidden=true; lockBody();
+      dropAssets(gone);
+      toast("日報を保存しました。");
+      if(!$("rview").hidden)renderRepView();
+      render();
+    }catch(err){
+      $("rfErr").textContent=(err&&err.code==="quota_exceeded")?"登録できる件数の上限に達しています。":"保存できませんでした。もう一度お試しください。";
+      $("rfSave").disabled=false;
+    }
+  });
+
+  /* ---------- 写真ビューア ---------- */
+  function lbShow(){
+    var p=lb.list[lb.i]; if(!p)return;
+    $("lbImg").src=blobUrl(p.id);
+    $("lbCap").textContent=(KIND[p.kind]||"写真")+"  "+(lb.i+1)+" / "+lb.list.length;
+    $("lb").querySelector(".pv").hidden=lb.list.length<2; $("lb").querySelector(".nx").hidden=lb.list.length<2;
+  }
+  function openLb(group,i){
+    var list=[];
+    if(group==="form")list=rf?rf.photos:[];
+    else if(group==="detail")list=detailPhotos;
+    else if(group.indexOf("rep:")===0){var r=reports.filter(function(x){return x.id===group.slice(4)})[0];list=r?(r.photos||[]):[]}
+    list=list.filter(function(p){return okId(p.id)});
+    if(!list.length)return;
+    lb={list:list,i:Math.min(i,list.length-1)}; $("lb").hidden=false; lbShow();
+  }
+
+  /* ---------- 連絡板 ---------- */
+  function renderNotes(){
+    syncSiteSels();
+    $("ntFilter").value=ntF;
+    var list=notes.filter(function(n){return ntF==="all"||(ntF==="none"?!n.siteId:n.siteId===ntF)});
+    $("ntPost").disabled=!canWrite();
+    $("noteList").innerHTML=list.length?list.map(noteCard).join(""):'<div class="empty"><b>連絡はまだありません</b>現場への申し送りや、全員への連絡を書いておくと、みんなの画面に表示されます。</div>';
+  }
+  $("noteForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    if(!canWrite())return;
+    var text=$("ntText").value.trim(); if(!text){toast("連絡内容を入力してください。");return}
+    var sid=$("ntSite").value, s=sid?siteById(sid):null;
+    $("ntPost").disabled=true;
+    try{
+      await db.collection("notes").add({siteId:sid,siteName:s?s.name:"",text:text,by:myId||"",at:Date.now()});
+      $("ntText").value=""; toast("連絡を投稿しました。");
+    }catch(err){toast(err&&err.code==="quota_exceeded"?"登録できる件数の上限に達しています。":"投稿できませんでした。もう一度お試しください。")}
+    finally{$("ntPost").disabled=false}
+  });
+  $("ntFilter").addEventListener("change",function(e){ntF=e.target.value;renderNotes()});
+
+  /* ---------- 集計 ---------- */
+  function initStats(){var n=new Date();stS.y=n.getFullYear();stS.m=n.getMonth()+1;stS.sy=seasonOf(todayStr())}
+  function statRange(){
+    if(stS.mode==="season"){var r=seasonRange(stS.sy);return {a:r[0],b:r[1],label:stS.sy+"〜"+(stS.sy+1)+"年シーズン"}}
+    var ym=stS.y+"-"+p2(stS.m);
+    return {a:ym+"-01",b:ym+"-31",label:stS.y+"年"+stS.m+"月"};
+  }
+  function statsData(){
+    var rg=statRange(), by={}, rows=[];
+    reports.forEach(function(r){
+      if(!r.date||r.date<rg.a||r.date>rg.b)return;
+      var k=r.siteId||("n:"+r.siteName);
+      var o=by[k]||(by[k]={id:r.siteId,name:r.siteName||"",n:0,h:0,hai:0,noTime:0});
+      var hr=hoursOf(r);
+      o.n++; if(hr==null)o.noTime++; else o.h+=hr;
+      if(r.haisetsu)o.hai++;
+    });
+    var tot={n:0,h:0,hai:0,amt:0,noPrice:0,noTime:0};
+    Object.keys(by).forEach(function(k){
+      var o=by[k], s=o.id?siteById(o.id):null;
+      if(s)o.name=s.name;
+      o.area=s?s.area||"":""; var pz=canAdmin&&s?priceOf(s.id):null; o.price=pz&&pz.unitPrice>0?+pz.unitPrice:0; o.unit=pz&&pz.unit==="時間"?"時間":"回"; o.contract=s?(+s.contractCount||0):0;
+      o.amt=o.price?(o.unit==="時間"?o.price*o.h:o.price*o.n):null;
+      if(o.amt==null&&canAdmin)tot.noPrice++; else tot.amt+=o.amt;
+      if(o.price&&o.unit==="時間")tot.noTime+=o.noTime;
+      tot.n+=o.n; tot.h+=o.h; tot.hai+=o.hai;
+      rows.push(o);
+    });
+    rows.sort(function(a,b){return (b.amt||0)-(a.amt||0)||b.n-a.n||String(a.name).localeCompare(String(b.name),"ja")});
+    return {rg:rg,rows:rows,tot:tot};
+  }
+  function renderStats(){
+    var d=statsData(), t=d.tot;
+    $("stLabel").textContent=d.rg.label;
+    Array.prototype.forEach.call($("stMode").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.mode===stS.mode))});
+    var h='<div class="tiles">'+
+      '<div class="tile"><span class="n">'+t.n+'</span><span class="l">出動回数(日報の件数)</span></div>'+
+      '<div class="tile"><span class="n">'+fmt(t.h,1)+'</span><span class="l">作業時間(時間)</span></div>'+
+      '<div class="tile"><span class="n">'+t.hai+'</span><span class="l">排雪の回数</span></div>'+
+      (canAdmin?'<div class="tile money"><span class="n" style="font-size:1.5rem;padding-top:.35rem">'+yen(t.amt)+'</span><span class="l">請求見込み'+admBadge()+'</span></div>':'')+'</div>';
+    var notes2=[];
+    if(canAdmin&&t.noPrice)notes2.push('単価が未登録の'+t.noPrice+'現場は、請求見込みに含みません。');
+    if(canAdmin&&t.noTime)notes2.push('時間単価の現場で、開始・終了時刻のない日報'+t.noTime+'件は、作業時間0として計算しています。');
+    if(notes2.length)h+='<div class="banner" style="margin-top:12px">'+esc(notes2.join(" "))+'</div>';
+    h+='<div class="sec"><h2>現場ごとの実績<span class="gc num">'+d.rows.length+'件</span>'+(canAdmin?admBadge():'')+'</h2></div>';
+    if(!d.rows.length)h+='<div class="empty"><b>この期間の日報はありません</b>日報を書くと、ここに出動回数などが集計されます。</div>';
+    else h+='<div class="stack">'+d.rows.map(function(o){
+      var left=['出動 '+o.n+'回'+(o.h>0||o.unit==="時間"?' ・ 作業 '+fmt(o.h,1)+'時間':'')+(o.hai?' ・ 排雪 '+o.hai+'回':'')];
+      if(stS.mode==="season"&&o.contract)left.push('契約 '+o.contract+'回 中 '+o.n+'回'+(o.n>o.contract?'(契約回数を超過)':''));
+      return '<div class="srow'+(canAdmin&&o.amt!=null?' money':'')+'"><div class="nm">'+esc(o.name||"(現場名なし)")+'</div><div class="amt">'+(!canAdmin?'':o.amt==null?'<span class="muted">単価なし</span>':yen(o.amt))+'</div><div class="sb">'+left.map(esc).join('<br>')+'</div><div class="sb r">'+(o.price?esc(yen(o.price)+' / '+o.unit):'')+'</div></div>';
+    }).join("")+'</div>';
+    $("statsBody").innerHTML=h;
+    $("stLegend").hidden=!canAdmin;
+    $("stCsv").disabled=!d.rows.length||!dl;
+  }
+  function csvCell(v){v=String(v==null?"":v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+  $("stCsv").addEventListener("click",async function(){
+    if(!dl)return;
+    var d=statsData(), hd=["現場名","地区","出動回数","作業時間(時間)","排雪の回数"].concat(canAdmin?["単価(円)","単価の単位","請求見込み(円)"]:[]).concat(["契約回数"]);
+    var lines=[hd.map(csvCell).join(",")];
+    d.rows.forEach(function(o){lines.push([o.name,o.area,o.n,fmt(o.h,1),o.hai].concat(canAdmin?[o.price||"",o.price?o.unit:"",o.amt==null?"":Math.round(o.amt)]:[]).concat([o.contract||""]).map(csvCell).join(","))});
+    var fn="除雪実績_"+(stS.mode==="season"?stS.sy+"-"+(stS.sy+1)+"シーズン":stS.y+"-"+p2(stS.m))+".csv";
+    try{await dl.save({filename:fn,data:"﻿"+lines.join("\r\n")});flash("stMsg","保存しました。")}
+    catch(err){if(!err||err.code!=="declined")flash("stMsg","保存できませんでした。")}
+  });
+  $("stMode").addEventListener("click",function(e){var b=e.target.closest("button[data-mode]");if(!b)return;stS.mode=b.dataset.mode;renderStats()});
+  function stepStat(dir){
+    if(stS.mode==="season")stS.sy+=dir;
+    else{stS.m+=dir;if(stS.m>12){stS.m=1;stS.y++}if(stS.m<1){stS.m=12;stS.y--}}
+    renderStats();
+  }
+  $("stPrev").addEventListener("click",function(){stepStat(-1)});
+  $("stNext").addEventListener("click",function(){stepStat(1)});
+
+  /* ---------- 画面の切り替え・描画 ---------- */
+  var TABI={
+    home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    sites:'<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    reports:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
+    notes:'<path d="M4 5h16v11H9l-5 4z"/>',
+    stats:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    admin:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'
+  };
+  var TABS=[["home","ホーム"],["sites","現場一覧"],["reports","日報"],["notes","連絡"],["stats","集計"],["admin","設定"]];
+  function goto(v,f){
+    if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
+    view=v; render(); window.scrollTo(0,0);
+  }
+  var rqT=0;
+  function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
+  function doRender(){
+    if(!canAdmin&&view==="admin")view="home";
+    $("tabbar").innerHTML=TABS.filter(function(t){return t[0]!=="admin"||canAdmin}).map(function(t){
+      return '<button type="button" data-nav="'+t[0]+'"'+(view===t[0]?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg>'+t[1]+'</button>';
+    }).join("");
+    TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
+    $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
+    $("upd").textContent=lastAt?timeStr(lastAt):"--:--";
+    if(view==="home")renderHome();
+    else if(view==="sites")renderSites();
+    else if(view==="reports")renderReports();
+    else if(view==="notes")renderNotes();
+    else if(view==="stats")renderStats();
+    else if(view==="admin")renderAdminAll();
+    renderBell();
+    renderDetail(); renderRepView();
+  }
+  $("query").addEventListener("input",function(e){query=e.target.value;render()});
+  $("areaSel").addEventListener("change",function(e){areaF=e.target.value;render()});
+  $("repPeriod").addEventListener("change",function(e){repFilter.period=e.target.value;render()});
+  $("repSiteSel").addEventListener("change",function(e){repFilter.site=e.target.value;render()});
+  $("btnRefresh").addEventListener("click",function(){refreshAll(true)});
+
+  /* ---------- 操作 ---------- */
+  var armKey="", armT=0;
+  function arm(key,btn,orig){
+    if(armKey===key){armKey="";clearTimeout(armT);return true}
+    armKey=key; btn.textContent="もう一度押すと削除";
+    clearTimeout(armT); armT=setTimeout(function(){armKey="";btn.textContent=orig},4000);
+    return false;
+  }
+  document.addEventListener("click",async function(e){
+    if(e.target.closest("select"))return;
+    var t=e.target.closest("[data-act],[data-nav],[data-filter],[data-layout]"); if(!t||t.disabled)return;
+    var d=t.dataset;
+    if(d.layout){layout=d.layout;try{localStorage.setItem("josetsu.layout2",layout)}catch(e2){}render();return}
+    if(d.nav){goto(d.nav,d.f);return}
+    if(d.filter){filter=d.filter;render();return}
+    var act=d.act, id=d.id, s=id?siteById(id):null;
+    if(act==="open"){if(s)openDetail(id)}
+    else if(act==="open2"){closeSheet("rview");if(s)openDetail(id)}
+    else if(act==="close"){closeSheet(d.sheet)}
+    else if(act==="logout"){if(window.__FB)window.__FB.signOut()}
+    else if(act==="inbox"){openNotices()}
+    else if(act==="annhist"){openAnnHist()}
+    else if(act==="anopen"){openAnnView(id)}
+    else if(act==="retry"){if(s)loadOne(s,true)}
+    else if(act==="edit"){if(canAdmin)openDlg(id)}
+    else if(act==="status"){
+      if(!s||!canWrite()||busy[id]||stOf(s)===d.v)return;
+      busy[id]=true;
+      try{await db.doc("ops/"+id).set({status:d.v,statusAt:Date.now()})}catch(err){toast("作業状況を保存できませんでした。")}
+      busy[id]=false;
+    }
+    else if(act==="newrep"){openReportForm(id||(detailId||""),null)}
+    else if(act==="newnote"){
+      closeSheet("detail"); goto("notes");
+      setTimeout(function(){$("ntSite").value=id||"";$("ntText").focus()},60);
+    }
+    else if(act==="allreps"){closeSheet("detail");repFilter={period:"all",site:id};goto("reports")}
+    else if(act==="rep"){openRepView(id)}
+    else if(act==="repedit"){var r0=reports.filter(function(x){return x.id===id})[0];if(r0)openReportForm(r0.siteId,id)}
+    else if(act==="repdel"){
+      if(!arm("rd"+id,t,"削除"))return;
+      var r1=reports.filter(function(x){return x.id===id})[0];
+      try{await db.doc("reports/"+id).delete();if(r1)dropAssets((r1.photos||[]).map(function(p){return p.id}));closeSheet("rview");toast("日報を削除しました。")}
+      catch(err){toast("削除できませんでした。")}
+    }
+    else if(act==="ntdel"){
+      if(!arm("nd"+id,t,"削除"))return;
+      try{await db.doc("notes/"+id).delete();toast("連絡を削除しました。")}catch(err){toast("削除できませんでした。")}
+    }
+    else if(act==="rfcancel"){closeRform()}
+    else if(act==="rfnow"){$(d.t==="end"?"rfEnd":"rfStart").value=nowHM()}
+    else if(act==="rfrm"){
+      if(!rf)return;
+      var p=rf.photos.splice(+d.i,1)[0]; if(!p)return;
+      var ai=rf.added.indexOf(p.id);
+      if(ai>=0){rf.added.splice(ai,1);dropAssets([p.id])}else rf.removed.push(p.id);
+      renderRfPhotos();
+    }
+    else if(act==="photo"){openLb(d.g,+d.i)}
+    else if(act==="lbclose"){$("lb").hidden=true}
+    else if(act==="lbprev"){lb.i=(lb.i+lb.list.length-1)%lb.list.length;lbShow()}
+    else if(act==="lbnext"){lb.i=(lb.i+1)%lb.list.length;lbShow()}
+  });
+  document.addEventListener("change",async function(e){
+    var sl=e.target.closest&&e.target.closest("select[data-stsel]"); if(!sl)return;
+    var id=sl.dataset.stsel, s=siteById(id);
+    if(!s||!canWrite()||busy[id])return;
+    busy[id]=true;
+    try{await db.doc("ops/"+id).set({status:sl.value,statusAt:Date.now()})}catch(err){toast("作業状況を保存できませんでした。");render()}
+    busy[id]=false;
+  });
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Enter"||e.key===" "){
+      var t=e.target; if(t&&t.getAttribute&&t.getAttribute("role")==="button"&&t.tagName!=="BUTTON"){e.preventDefault();t.click();return}
+    }
+    if(e.key==="Escape"){
+      if(!$("lb").hidden)$("lb").hidden=true;
+      else if(!$("rform").hidden)closeRform();
+      else if(!$("sform").hidden)closeDlg();
+      else if(!$("rview").hidden)closeSheet("rview");
+      else if(!$("detail").hidden)closeSheet("detail");
+    }else if(!$("lb").hidden){
+      if(e.key==="ArrowLeft"){lb.i=(lb.i+lb.list.length-1)%lb.list.length;lbShow()}
+      else if(e.key==="ArrowRight"){lb.i=(lb.i+1)%lb.list.length;lbShow()}
+    }
+  });
+
+  /* ---------- 現場の追加・編集 ---------- */
+  var geoLoc="";
+  function updLocHint(){
+    var l=areaLoc($("fArea").value.trim());
+    $("fLoc").placeholder=l?("空欄なら地区の代表地点 "+l):"例:39.72, 140.10";
+  }
+  $("fArea").addEventListener("input",updLocHint);
+  function mapLink(){
+    var a=$("fAddr").value.trim(), el=$("fMap");
+    el.hidden=!a;
+    el.href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(a);
+  }
+  $("fAddr").addEventListener("input",mapLink);
+  function openDlg(id){
+    editingId=id||null;
+    var s=id?siteById(id):null;
+    $("dlgTitle").textContent=s?"現場を編集":"現場を追加";
+    $("fName").value=s?s.name:""; $("fArea").value=s&&s.area||""; $("fLoc").value=s?s.loc:"";
+    $("fTh").value=s&&s.threshold||settings.defaultTh||10; $("fCrew").value=s&&s.crew||""; $("fNote").value=s&&s.note||"";
+    var pz=s?priceOf(s.id):null; $("fPrice").value=pz&&pz.unitPrice>0?pz.unitPrice:""; $("fUnit").value=pz&&pz.unit==="時間"?"時間":"回"; $("fContract").value=s&&s.contractCount>0?s.contractCount:"";
+    $("fStatus").value=s?stOf(s):"standby"; $("fPriceBox").hidden=!canAdmin;
+    var w0=s?wx[s.id]:null; $("fWxState").textContent=!s?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
+    $("fDel").hidden=!s; $("fDel").textContent="削除"; $("fErr").textContent="";
+    updLocHint();
+    $("fAddr").value=s&&s.address||""; geoLoc=(s&&s.locSrc==="city")?s.loc:""; $("fGeoMsg").textContent=""; mapLink();
+    openSheet("sform"); setTimeout(function(){$("fName").focus()},0);
+  }
+  function closeDlg(){$("sform").hidden=true;editingId=null;lockBody()}
+  $("form").addEventListener("submit",async function(e){
+    e.preventDefault();
+    if(!db)return;
+    var th=parseInt($("fTh").value,10); if(!(th>0))th=10;
+    var pr=parseInt($("fPrice").value,10), ct=parseInt($("fContract").value,10);
+    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
+      contractCount:ct>0?ct:0};
+    var priceData={unitPrice:pr>0?pr:0,unit:$("fUnit").value==="時間"?"時間":"回"};
+    data.locSrc=data.loc?(data.loc===geoLoc?"city":"manual"):"";
+    if(!data.name||(!data.loc&&!areaLoc(data.area))){$("fErr").textContent="現場名と天気を調べる場所を入力してください。場所を空欄にする場合は、代表地点を登録した地区を選んでください。";return}
+    $("fSave").disabled=true;
+    try{
+      var sid=editingId;
+      if(sid){await db.doc("sites/"+sid).update(data);}
+      else{
+        data.createdAt=Date.now();
+        var ref=await db.collection("sites").add(data); sid=ref&&ref.id;
+      }
+      if(sid&&canAdmin){
+        try{if(priceData.unitPrice>0)await db.doc("prices/"+sid).set(priceData);else if(prices[sid])await db.doc("prices/"+sid).delete()}
+        catch(e3){toast("現場は保存しましたが、単価を保存できませんでした。")}
+      }
+      if(sid&&canWrite()){var cur=editingId?stOf(siteById(editingId)||{id:sid}):"standby"; var nv=$("fStatus").value; if(nv!==cur||!editingId){try{if(nv!=="standby"||editingId)await db.doc("ops/"+sid).set({status:nv,statusAt:Date.now()})}catch(e4){}}}
+      closeDlg(); toast("保存しました。");
+    }catch(err){
+      $("fErr").textContent=(err&&err.code==="invalid_argument")?"保存する権限がありません。編集権限のある方に依頼してください。":(err&&err.code==="quota_exceeded")?"登録できる件数の上限に達しています。":"保存できませんでした。もう一度お試しください。";
+    }finally{$("fSave").disabled=false}
+  });
+  $("fCancel").addEventListener("click",closeDlg);
+  document.querySelector(".fjump").addEventListener("click",function(e){var b=e.target.closest("[data-jump]");if(!b)return;var el=$(b.dataset.jump);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})});
+  $("fDel").addEventListener("click",async function(){
+    if($("fDel").textContent==="削除"){$("fDel").textContent="もう一度押すと削除";return}
+    try{var did=editingId;await db.doc("sites/"+did).delete();try{await db.doc("ops/"+did).delete()}catch(e2){}delete wx[did];delete sel[did];closeDlg();}
+    catch(err){$("fErr").textContent="削除できませんでした。権限を確認してください。"}
+  });
+  $("btnAdd2").addEventListener("click",function(){openDlg(null)});
+
+  /* ---------- 設定:現場の管理 ---------- */
+  var timer=null;
+  function schedule(){
+    if(timer)clearInterval(timer);
+    timer=setInterval(function(){if(document.visibilityState==="visible")refreshAll(true)},(+settings.refreshMin||10)*60000);
+  }
+  function selIds(){return sites.filter(function(s){return sel[s.id]}).map(function(s){return s.id})}
+  function fillSettings(){
+    if($("setForm").contains(document.activeElement))return;
+    $("sDefTh").value=settings.defaultTh; $("sIce").value=settings.iceTemp; $("sMult").value=settings.mult; $("sRefresh").value=String(settings.refreshMin); $("sReq").value=settings.requireLogin?"1":"0";
+  }
+  var members=[], mbEdit=null, mbDel=null;
+  function mbVisible(){
+    var q=($("mbQ").value||"").trim().toLowerCase(), f=$("mbF").value;
+    return members.filter(function(m){
+      if(f==="off"&&m.active!==false)return false;
+      if(f.indexOf("c:")===0&&(m.crew||"")!==f.slice(2))return false;
+      if(f==="on"&&m.active===false)return false;
+      return !q||[m.name,m.crew,m.phone,m.role,m.note].join(" ").toLowerCase().indexOf(q)>=0;
+    }).sort(function(a,b){return String(a.crew||"~").localeCompare(String(b.crew||"~"),"ja")||String(a.name).localeCompare(String(b.name),"ja")});
+  }
+  function renderMembers(){
+    var act=members.filter(function(m){return m.active!==false}).length;
+    var crews={};members.forEach(function(m){if(m.active!==false&&m.crew)crews[m.crew]=(crews[m.crew]||0)+1});
+    $("mbStat").innerHTML='<div class="ms">在籍<b class="num">'+act+'人</b></div><div class="ms">休止中<b class="num">'+(members.length-act)+'人</b></div>'+Object.keys(crews).sort().map(function(c){return '<div class="ms">'+esc(c)+'<b class="num">'+crews[c]+'人</b></div>'}).join("");
+    var cur=$("mbF").value||"all";
+    $("mbF").innerHTML='<option value="all">すべて</option><option value="on">在籍のみ</option><option value="off">休止中のみ</option>'+Object.keys(crews).sort().map(function(c){return '<option value="c:'+esc(c)+'">'+esc(c)+'</option>'}).join("");
+    $("mbF").value=cur; if($("mbF").value!==cur)$("mbF").value="all";
+    var rows=mbVisible();
+    $("mbList").innerHTML=rows.length?rows.map(function(m){
+      var id=esc(m.id), askDel=mbDel===m.id;
+      return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc([m.crew||"担当班 未設定",m.role||"現場スタッフ"].join(" ・ "))+'</span></div>'+
+        '<div class="ed"><button class="btn sm" type="button" data-mb="edit" data-id="'+id+'">編集</button><button class="btn sm'+(askDel?' danger':'')+'" type="button" data-mb="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div>'+
+        '<div class="kvs">'+(m.active===false?'<span class="k">休止中</span>':'')+'<span class="k">'+(m.uid?'ログイン連携済':'ログイン未連携')+'</span>'+(m.phone?'<span class="k">電話 <a href="tel:'+esc(String(m.phone).replace(/[^0-9+]/g,""))+'">'+esc(m.phone)+'</a></span>':'')+(m.note?'<span class="k">'+esc(m.note)+'</span>':'')+'</div></article>';
+    }).join(""):'<div class="empty"><b>'+(members.length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(members.length?'':'「メンバーを追加」から登録してください。')+'</div>';
+  }
+  function mbOpen(m){
+    mbEdit=m?m.id:null; $("mbFormTitle").textContent=m?"メンバーを編集":"メンバーを追加";
+    $("mbName").value=m?m.name:""; $("mbCrew").value=m&&m.crew||""; $("mbRole").value=m&&m.role||"現場スタッフ";
+    $("mbTel").value=m&&m.phone||""; $("mbNote").value=m&&m.note||""; $("mbActive").value=m&&m.active===false?"0":"1";
+    mbUid=m&&m.uid||""; mbAcctShow(); $("mbAcctQ").value=""; $("mbAcctRes").innerHTML="";
+    $("mbMsg").textContent=""; $("mbForm").hidden=false; $("mbName").focus();
+  }
+  var mbUid="";
+  async function mbAcctShow(){
+    $("mbAcctClr").hidden=!mbUid; var t="未連携";
+    if(mbUid){t="連携済";try{var ps=user&&user.profiles?await user.profiles([mbUid]):null;if(ps&&ps[mbUid]&&ps[mbUid].name)t="連携済:"+ps[mbUid].name}catch(e){}}
+    $("mbAcctNow").textContent=t;
+  }
+  $("mbAcctMe").addEventListener("click",function(){if(myId){mbUid=myId;mbAcctShow()}else $("mbMsg").textContent="自分のアカウントを取得できませんでした。"});
+  $("mbAcctClr").addEventListener("click",function(){mbUid="";mbAcctShow()});
+  var mbSt;
+  $("mbAcctQ").addEventListener("input",function(){
+    clearTimeout(mbSt); var q=$("mbAcctQ").value.trim();
+    if(!user||!user.search){$("mbAcctRes").innerHTML='<span class="help">この環境では、名前検索を使えません。「自分を連携」を使ってください。</span>';return}
+    mbSt=setTimeout(async function(){
+      try{var hits=await user.search(q)||[];hits=hits.slice(0,6);
+        $("mbAcctRes").innerHTML=hits.length?hits.map(function(h){return '<button type="button" data-uid="'+esc(h.id)+'">'+esc(h.name||"(名前なし)")+'</button>'}).join(""):'<span class="help">見つかりませんでした。</span>';
+      }catch(err){$("mbAcctRes").innerHTML='<span class="help">検索できませんでした。</span>'}
+    },250);
+  });
+  $("mbAcctRes").addEventListener("click",function(e){var b=e.target.closest("button[data-uid]");if(!b)return;mbUid=b.dataset.uid;$("mbAcctRes").innerHTML="";$("mbAcctQ").value="";mbAcctShow()});
+  $("mbAdd").addEventListener("click",function(){mbOpen(null)});
+  $("mbCancel").addEventListener("click",function(){$("mbForm").hidden=true;mbEdit=null});
+  $("mbQ").addEventListener("input",renderMembers); $("mbF").addEventListener("change",renderMembers);
+  $("mbForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    var name=$("mbName").value.trim(); if(!name){$("mbMsg").textContent="氏名を入力してください。";return}
+    var data={name:name,crew:$("mbCrew").value.trim(),role:$("mbRole").value,phone:$("mbTel").value.trim(),note:$("mbNote").value.trim(),active:$("mbActive").value==="1"};
+    if(!db){$("mbMsg").textContent="保存できませんでした。";return}
+    if(mbUid&&members.some(function(x){return x.uid===mbUid&&x.id!==mbEdit})){$("mbMsg").textContent="このアカウントは、ほかのメンバーに連携されています。";return}
+    data.uid=mbUid;
+    $("mbSave").disabled=true;
+    try{
+      var old=mbEdit?members.filter(function(x){return x.id===mbEdit})[0]:null, mid=mbEdit;
+      if(mbEdit){await db.doc("members/"+mbEdit).update(data)}
+      else{data.createdAt=Date.now();var ref=await db.collection("members").add(data);mid=ref&&ref.id||""}
+      if(old&&old.uid&&old.uid!==mbUid){try{await db.doc("access/"+old.uid).delete()}catch(e1){}if(window.__FB)try{await window.__FB.setRole(old.uid,"pending")}catch(e1){}}
+      if(mbUid&&window.__FB)await window.__FB.setRole(mbUid,data.active?"member":"pending");
+      if(mbUid)await db.doc("access/"+mbUid).set({memberId:mid,name:data.name,crew:data.crew,role:data.role,active:data.active});
+      $("mbForm").hidden=true; mbEdit=null; toast("メンバーを保存しました。");
+    }catch(err){$("mbMsg").textContent="保存できませんでした。編集権限を確認してください。"}
+    $("mbSave").disabled=false;
+  });
+  $("mbList").addEventListener("click",async function(e){
+    var b=e.target.closest("button[data-mb]"); if(!b)return;
+    var id=b.dataset.id, m=members.filter(function(x){return x.id===id})[0]; if(!m)return;
+    if(b.dataset.mb==="edit"){mbDel=null;mbOpen(m);window.scrollTo({top:0,behavior:"smooth"});return}
+    if(mbDel!==id){mbDel=id;renderMembers();clearTimeout(mbOpen.t);mbOpen.t=setTimeout(function(){mbDel=null;renderMembers()},4000);return}
+    mbDel=null;
+    try{await db.doc("members/"+id).delete();if(m.uid){try{await db.doc("access/"+m.uid).delete()}catch(e1){}if(window.__FB)try{await window.__FB.setRole(m.uid,"pending")}catch(e1){}}toast("「"+m.name+"」を削除しました。")}catch(err){toast("削除できませんでした。");renderMembers()}
+  });
+
+  /* ---------- お知らせ(ベル) ---------- */
+  var announcements=[], readMap={}, annFirst=true, annEdit=null;
+  function fmtDT(t){if(!t)return "";var d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+timeStr(t)}
+  function annSorted(){return announcements.slice().sort(function(a,b){return (b.important?1:0)-(a.important?1:0)||(b.at||0)-(a.at||0)})}
+  function isUnread(x){return (x.at||0)>Date.now()-30*864e5&&x.by!==myId&&!readMap[x.id]}
+  function iBell(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>'}
+  function noticeItems(){
+    var items=[];
+    annSorted().filter(isUnread).forEach(function(a){
+      items.push({grp:"ann",urgent:!!a.important,title:(a.important?"【重要】":"")+a.title,sub:fmtDT(a.at)+"("+who(a.by)+")",go:function(){openAnnView(a.id)}});
+    });
+    sites.forEach(function(s){
+      var st=stOf(s), lv=0; try{lv=assess(s).lv}catch(e){}
+      if(lv===3&&(st==="standby"||st==="prep"))items.push({grp:"site",urgent:true,title:s.name,sub:"出動目安です(いまは"+ST[st]+")",go:function(){openDetail(s.id)}});
+    });
+    notes.filter(isUnread).forEach(function(n){
+      var site=n.siteId?siteById(n.siteId):null;
+      items.push({grp:"note",title:n.siteId?(site?site.name:(n.siteName||"削除された現場")):"全体への連絡",sub:fmtDT(n.at)+"("+who(n.by)+") "+(n.text||"").slice(0,40),go:function(){markRead(n.id);goto("notes")}});
+    });
+    return items;
+  }
+  function renderBell(){
+    var n=noticeItems().length, el=$("btnBell");
+    el.innerHTML=iBell()+(n?'<span class="bell-dot">'+(n>99?"99+":n)+'</span>':'');
+    el.setAttribute("aria-label","お知らせ"+(n?("(未対応"+n+"件)"):""));
+    try{if(navigator.setAppBadge){if(n>0)navigator.setAppBadge(n).catch(function(){});else navigator.clearAppBadge().catch(function(){})}}catch(e){}
+  }
+  async function persistRead(){
+    var ks=Object.keys(readMap); if(ks.length>300){ks.slice(0,ks.length-300).forEach(function(k){delete readMap[k]})}
+    try{localStorage.setItem("josetsu.read",JSON.stringify(readMap))}catch(e){}
+    if(db&&myId){try{await db.doc("data/users/"+myId+"/state").set({read:readMap})}catch(e){}}
+  }
+  function markRead(id){if(!id||readMap[id])return;readMap[id]=1;persistRead();renderBell()}
+  function openModal(title,body,foot){
+    $("mdBox").innerHTML='<div class="modal-head"><h3>'+esc(title)+'</h3><button class="iconbtn" type="button" data-mclose aria-label="閉じる">&times;</button></div><div class="modal-body">'+body+'</div><div class="modal-foot">'+foot+'</div>';
+    $("mdl").classList.add("open"); $("mdl").setAttribute("aria-hidden","false"); $("mdl").scrollTop=0; document.body.style.overflow="hidden";
+  }
+  function closeModal(){$("mdl").classList.remove("open");$("mdl").setAttribute("aria-hidden","true");lockBody()}
+  var noticeFns=[];
+  function openNotices(){
+    var items=noticeItems(); noticeFns=items;
+    var GL={ann:"お知らせ",site:"出動の目安",note:"連絡"}, IC={ann:"📢",site:"🚨",note:"💬"};
+    var body="";
+    if(!items.length)body='<div class="nt-empty">新しいお知らせはありません</div>';
+    ["ann","site","note"].forEach(function(g){
+      var xs=items.map(function(it,i){return [it,i]}).filter(function(p){return p[0].grp===g});
+      if(!xs.length)return;
+      body+='<div class="nt-grp">'+GL[g]+'('+xs.length+')</div>'+xs.map(function(p){
+        return '<button type="button" class="nt-row" data-notice="'+p[1]+'"><span class="ic">'+IC[g]+'</span><span style="flex:1;min-width:0"><span class="tt">'+esc(p[0].title)+'</span><span class="sb'+(p[0].urgent?' urg':'')+'">'+esc(p[0].sub)+'</span></span></button>';
+      }).join("");
+    });
+    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button><button class="btn" type="button" data-mclose>閉じる</button>');
+  }
+  function openAnnView(id){
+    var a=announcements.filter(function(x){return x.id===id})[0]; if(!a){closeModal();return}
+    markRead(id);
+    openModal("お知らせ",'<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+'</div><div class="m">'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div></div>',
+      (canAdmin?'<button class="btn first" type="button" data-mact="anedit" data-id="'+esc(id)+'">編集</button>':'')+'<button class="btn primary" type="button" data-mclose>閉じる</button>');
+  }
+  function openAnnHist(){
+    var l=annSorted(), unseen={};
+    l.forEach(function(a){if(isUnread(a))unseen[a.id]=1});
+    var body=l.length?l.map(function(a){
+      return '<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+(unseen[a.id]?'<span class="nt-new">NEW</span>':'')+'</div><div class="m">'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div>'+
+        (canAdmin?'<div class="ops"><button class="link" type="button" data-mact="anedit" data-id="'+esc(a.id)+'">編集</button><button class="link" type="button" data-mact="andel" data-id="'+esc(a.id)+'">削除</button></div>':'')+'</div>';
+    }).join(""):'<div class="nt-empty">お知らせはまだありません</div>';
+    openModal("お知らせの履歴",body,'<button class="btn first" type="button" data-mact="notices">戻る</button>'+(canAdmin?'<button class="btn primary" type="button" data-mact="annew">お知らせを作成</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
+    Object.keys(unseen).forEach(function(k){readMap[k]=1}); if(Object.keys(unseen).length){persistRead();renderBell()}
+  }
+  function openNtHist(){
+    var feed=[]; announcements.forEach(function(a){feed.push({at:a.at||0,ic:"📢",t:(a.important?"【重要】":"")+a.title,b:(a.body||"").slice(0,60)})});
+    notes.forEach(function(n){var s=n.siteId?siteById(n.siteId):null;feed.push({at:n.at||0,ic:"💬",t:n.siteId?(s?s.name:(n.siteName||"削除された現場")):"全体への連絡",b:(n.text||"").slice(0,60)+"("+who(n.by)+")"})});
+    var lim=Date.now()-30*864e5; feed=feed.filter(function(f){return f.at>=lim}).sort(function(a,b){return b.at-a.at}).slice(0,100);
+    var last="", body=feed.length?feed.map(function(f){
+      var d=new Date(f.at), day=d.getFullYear()+"/"+p2(d.getMonth()+1)+"/"+p2(d.getDate()), head="";
+      if(day!==last){last=day;head='<div class="nt-day">'+day+'</div>'}
+      return head+'<div class="nt-his"><span class="ic">'+f.ic+'</span><span style="flex:1;min-width:0"><b>'+esc(f.t)+'</b><span class="bd">'+esc(f.b)+'</span></span><span class="tm">'+timeStr(f.at)+'</span></div>';
+    }).join(""):'<div class="nt-empty">この30日間に届いた通知はありません</div>';
+    openModal("通知の履歴",body,'<button class="btn first" type="button" data-mact="notices">戻る</button><button class="btn" type="button" data-mclose>閉じる</button>');
+  }
+  function openAnnForm(a){
+    annEdit=a?a.id:null;
+    openModal(a?"お知らせを編集":"お知らせを作成",
+      '<label class="nt-field">タイトル<input id="anTitle" maxlength="60" placeholder="例:明日の早朝出動について" value="'+esc(a?a.title:"")+'"></label>'+
+      '<label class="nt-field">内容<textarea id="anBody" rows="6" maxlength="1000" placeholder="連絡したい内容を書きます">'+esc(a?a.body:"")+'</textarea></label>'+
+      '<label class="nt-field">重要度<select id="anImp"><option value="0">通常</option><option value="1"'+(a&&a.important?' selected':'')+'>重要(ベルとホームで目立たせる)</option></select></label><div class="muted" id="anMsg" role="status"></div>',
+      '<button class="btn" type="button" data-mact="annhist">キャンセル</button><button class="btn primary" type="button" id="anSave" data-mact="ansave">'+(a?"保存する":"投稿する")+'</button>');
+    $("anTitle").focus();
+  }
+  async function saveAnn(){
+    if(!db||!canAdmin)return;
+    var d={title:$("anTitle").value.trim(),body:$("anBody").value.trim(),important:$("anImp").value==="1"};
+    if(!d.title||!d.body){$("anMsg").textContent="タイトルと内容を入力してください。";return}
+    $("anSave").disabled=true;
+    try{
+      if(annEdit){await db.doc("announcements/"+annEdit).update(d)}
+      else{d.at=Date.now();d.by=myId||"";await db.collection("announcements").add(d)}
+      toast(annEdit?"お知らせを更新しました。":"お知らせを投稿しました。"); openAnnHist();
+    }catch(err){$("anMsg").textContent="保存できませんでした。編集権限を確認してください。";$("anSave").disabled=false}
+  }
+  function annHome(){
+    var l=annSorted().filter(function(a){return a.important||(Date.now()-(a.at||0))<7*864e5}).slice(0,2);
+    if(!l.length)return "";
+    return '<div class="sec"><h2>お知らせ</h2><button class="link" type="button" data-act="annhist">履歴を見る</button></div>'+l.map(function(a){
+      return '<article class="anc'+(a.important?' imp':'')+'"><b class="t">'+(a.important?'<span class="nt-imp">重要</span> ':'')+(isUnread(a)?'<span class="nt-new">NEW</span> ':'')+esc(a.title)+'</b><div class="bd">'+esc(a.body)+'</div><div class="mt"><span>'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</span><button class="link" type="button" data-act="anopen" data-id="'+esc(a.id)+'">続きを読む</button></div></article>';
+    }).join("");
+  }
+  $("mdl").addEventListener("click",async function(e){
+    if(e.target===$("mdl")||e.target.closest("[data-mclose]")){closeModal();return}
+    var r=e.target.closest("[data-notice]");
+    if(r){var f=noticeFns[+r.dataset.notice];closeModal();if(f&&f.go)f.go();return}
+    var b=e.target.closest("[data-mact]"); if(!b)return;
+    var k=b.dataset.mact, id=b.dataset.id;
+    if(k==="notices")openNotices();
+    else if(k==="annhist")openAnnHist();
+    else if(k==="nthist")openNtHist();
+    else if(k==="annew"){if(canAdmin)openAnnForm(null)}
+    else if(k==="anedit"){var a0=announcements.filter(function(x){return x.id===id})[0];if(a0&&canAdmin)openAnnForm(a0)}
+    else if(k==="ansave")saveAnn();
+    else if(k==="andel"){
+      if(!canAdmin||!arm("ad"+id,b,"削除"))return;
+      try{await db.doc("announcements/"+id).delete();toast("お知らせを削除しました。");openAnnHist()}catch(err){toast("削除できませんでした。")}
+    }
+  });
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"&&$("mdl").classList.contains("open"))closeModal()});
+  function checkGate(){
+    var me=access[myId], any=Object.keys(access).length>0;
+    var ok=!(settings.requireLogin&&accessLoaded&&any&&!canAdmin&&myId)||!!(me&&me.active!==false);
+    $("gate").hidden=ok;
+    $("gateWho").textContent=myName?("ログイン中のアカウント:"+myName):"";
+    var l=$("meLine"), t=me?(me.name+(me.role?"(" +me.role+ ")":"")):(myName?myName:"");
+    if(t&&!canAdmin||t&&canAdmin){l.textContent="ログイン中:"+t+(canAdmin?"・管理者":"")+" ";if(window.__FB){var lb=document.createElement("button");lb.type="button";lb.className="link";lb.dataset.act="logout";lb.textContent="ログアウト";l.appendChild(lb)}l.hidden=false}else l.hidden=true;
+  }
+  $("gateRetry").addEventListener("click",function(){checkGate();location.reload()});
+  function renderAdminAll(){
+    Array.prototype.forEach.call($("subtabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.sub===sub))});
+    var DESC={members:"社内メンバーの名簿を管理します。担当班は、マスタの担当班から選べます。",sites:"現場の登録・編集と、出動基準・担当班のまとめ変更、作業状況のリセットができます。",master:"地区・担当班・使用機械の選択肢を管理します。現場や日報の入力欄の候補になります。",set:"出動目安の判定に使う基準と、天気の自動更新の間隔を設定します。"};
+    $("admDesc").textContent=DESC[sub]||"";
+    Array.prototype.forEach.call($("siteTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.st===stab))});
+    Array.prototype.forEach.call($("mTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.mt===mtab))});
+    $("adm-s-list").hidden=stab!=="list"; $("adm-s-csv").hidden=stab!=="csv";
+    $("mp-area").hidden=mtab!=="area"; $("mp-crew").hidden=mtab!=="crew"; $("mp-mach").hidden=mtab!=="mach";
+    $("adm-sites").hidden=sub!=="sites"; $("adm-master").hidden=sub!=="master"; $("adm-set").hidden=sub!=="set"; $("adm-members").hidden=sub!=="members";
+    if(sub==="sites")renderAdmin();
+    else if(sub==="master")renderMaster(false);
+    else if(sub==="members")renderMembers();
+  }
+  var stab="list", mtab="area", pg=0, pgSize=10;
+  $("siteTabs").addEventListener("click",function(e){var b=e.target.closest("button[data-st]");if(!b)return;stab=b.dataset.st;renderAdminAll()});
+  $("mTabs").addEventListener("click",function(e){var b=e.target.closest("button[data-mt]");if(!b)return;mtab=b.dataset.mt;renderAdminAll()});
+  $("subtabs").addEventListener("click",function(e){var b=e.target.closest("button[data-sub]");if(!b)return;sub=b.dataset.sub;renderAdminAll()});
+  function adminRows(){
+    var q=($("admQ").value||"").trim().toLowerCase(), k=$("admSort").value;
+    var jp2=function(a,b){return String(a||"").localeCompare(String(b||""),"ja")};
+    var rows=sites.filter(function(s){return !q||[s.name,s.area,s.crew,s.address].join(" ").toLowerCase().indexOf(q)>=0});
+    rows.sort(function(a,b){
+      if(k==="name")return jp2(a.name,b.name);
+      if(k==="crew")return jp2(a.crew||"~",b.crew||"~")||jp2(a.name,b.name);
+      if(k==="th")return (b.threshold||0)-(a.threshold||0)||jp2(a.name,b.name);
+      if(k==="contract")return (b.contractCount||0)-(a.contractCount||0)||jp2(a.name,b.name);
+      if(k==="new")return (b.createdAt||0)-(a.createdAt||0);
+      if(k==="old")return (a.createdAt||0)-(b.createdAt||0);
+      return jp2(a.area,b.area)||jp2(a.name,b.name);
+    });
+    return rows;
+  }
+  $("admQ").addEventListener("input",function(){pg=0;renderAdmin()});
+  $("admSort").addEventListener("change",function(){pg=0;renderAdmin()});
+  $("pager").addEventListener("click",function(e){
+    var b=e.target.closest("[data-pg]"); if(!b)return;
+    var v=b.dataset.pg;
+    if(v==="prev")pg=Math.max(0,pg-1); else if(v==="next")pg++;
+    else if(v==="all"){adminRows().forEach(function(s){sel[s.id]=true})}
+    renderAdmin();
+  });
+  $("pager").addEventListener("change",function(e){if(e.target.id==="pgSize"){pgSize=+e.target.value||10;pg=0;renderAdmin()}});
+  function renderAdmin(){
+    var all=adminRows(), pages=Math.max(1,Math.ceil(all.length/pgSize));
+    if(pg>=pages)pg=pages-1;
+    var rows=all.slice(pg*pgSize,pg*pgSize+pgSize);
+    $("pager").innerHTML=all.length?'<button class="btn sm" type="button" data-pg="prev"'+(pg===0?' disabled':'')+'>‹ 前へ</button><span class="pg-info"><b class="num">'+(pg+1)+' / '+pages+'</b> ページ(全'+all.length+'件)</span><button class="btn sm" type="button" data-pg="next"'+(pg>=pages-1?' disabled':'')+'>次へ ›</button><select id="pgSize" aria-label="1ページの件数">'+[10,20,50].map(function(n){return '<option value="'+n+'"'+(n===pgSize?' selected':'')+'>'+n+'件ずつ</option>'}).join("")+'</select><button class="btn sm" type="button" data-pg="all">検索結果をすべて選択</button>':'';
+    $("admList").innerHTML=rows.length?rows.map(function(s){
+      var w=wx[s.id], id=esc(s.id), st=stOf(s);
+      var wp=!mcp?'<span class="pill l0">未接続</span>':(!w||(w.state==="loading"&&!w.cur))?'<span class="pill l0">取得中</span>':w.state==="noloc"?'<span class="pill l0">場所未設定</span>':w.state==="err"?'<span class="pill l3">取得失敗</span>':'<span class="pill l1">取得OK</span>';
+      var pt=unitText(s);
+      return '<article class="ar"><label class="ck"><input type="checkbox" data-sel="'+id+'"'+(sel[s.id]?' checked':'')+' aria-label="'+esc(s.name)+'を選択"></label>'+
+        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div>'+
+        '<button class="btn sm ed" type="button" data-act="edit" data-id="'+id+'">編集</button>'+
+        '<div class="kvs"><span class="k"><small>出動基準</small><span class="num"><span class="pf">基準 </span>'+esc(s.threshold||"–")+'cm</span></span>'+
+        '<span class="k'+(s.contractCount>0?'':' emp')+'"><small>契約回数</small><span class="num">'+(s.contractCount>0?'<span class="pf">契約 </span>'+esc(s.contractCount)+'回':'–')+'</span></span>'+
+        '<span class="k money'+(pt?'':' emp')+'"><small>単価 '+admBadge()+'</small><span class="num">'+(pt?'<span class="pf">単価 </span>':'')+esc(pt||"–")+'</span></span>'+
+        '<span class="k'+(s.loc?'':' emp')+'"><small>位置</small><span>'+(s.loc?'<span class="pf">位置 </span>設定済':'未設定')+'</span></span>'+
+        '<span class="k wide'+(s.address?'':' emp')+'" title="'+esc(s.address||"")+'"><small>住所</small><span class="tx">'+esc(s.address||"–")+'</span></span>'+
+        '<span class="k wide'+(s.note?'':' emp')+'" title="'+esc(s.note||"")+'"><small>備考</small><span class="tx">'+(s.note?'<span class="pf">備考 </span>':'')+esc(s.note||"–")+'</span></span></div></article>';
+    }).join(""):'<div class="empty"><b>該当する現場はありません</b>「現場を追加」から登録するか、検索を変えてください。</div>';
+    var n=selIds().length;
+    $("bulk").hidden=n===0; $("bulkN").textContent=n;
+    $("selAll").checked=rows.length>0&&rows.every(function(s){return sel[s.id]});
+  }
+  async function resetStatus(ids){
+    var n=0;
+    for(var i=0;i<ids.length;i++){
+      var s=siteById(ids[i]);
+      if(!s||stOf(s)==="standby")continue;
+      try{await db.doc("ops/"+ids[i]).set({status:"standby",statusAt:Date.now()});n++}catch(e){}
+    }
+    return n;
+  }
+  function twoStep(btn,label,run){
+    btn.addEventListener("click",function(){
+      if(btn.dataset.arm!=="1"){btn.dataset.arm="1";btn.textContent="もう一度押すと実行します";setTimeout(function(){btn.dataset.arm="";btn.textContent=label},4000);return}
+      btn.dataset.arm="";btn.textContent=label;run();
+    });
+  }
+  $("admList").addEventListener("change",function(e){
+    var id=e.target.getAttribute("data-sel"); if(!id)return;
+    if(e.target.checked)sel[id]=true; else delete sel[id];
+    renderAdmin();
+  });
+  $("selAll").addEventListener("change",function(e){
+    adminRows().slice(pg*pgSize,pg*pgSize+pgSize).forEach(function(s){if(e.target.checked)sel[s.id]=true; else delete sel[s.id]});
+    renderAdmin();
+  });
+  $("bClear").addEventListener("click",function(){sel={};renderAdmin()});
+  $("bApply").addEventListener("click",async function(){
+    if(!db)return;
+    var ids=selIds(); if(!ids.length)return;
+    var th=parseInt($("bTh").value,10), crew=$("bCrew").value.trim(), area=$("bArea").value.trim(), ct=$("bContract").value, data={};
+    var pr=parseInt($("bPrice").value,10), un=$("bUnit").value, pdata={};
+    if(th>0)data.threshold=th;
+    if(crew)data.crew=crew;
+    if(area)data.area=area;
+    if(ct!==""&&parseInt(ct,10)>=0)data.contractCount=parseInt(ct,10);
+    if(pr>=0)pdata.unitPrice=pr;
+    if(un)pdata.unit=un;
+    if(!Object.keys(data).length&&!Object.keys(pdata).length){flash("bMsg","変更する項目を入力してください。");return}
+    $("bApply").disabled=true;
+    var ok=0;
+    for(var i=0;i<ids.length;i++){
+      try{
+        if(Object.keys(data).length)await db.doc("sites/"+ids[i]).update(data);
+        if(Object.keys(pdata).length&&canAdmin){var old=prices[ids[i]]||{unitPrice:0,unit:"回"};await db.doc("prices/"+ids[i]).set(Object.assign({},old,pdata))}
+        ok++;
+      }catch(e){}
+    }
+    $("bApply").disabled=false;
+    ["bTh","bCrew","bArea","bContract","bPrice"].forEach(function(x){$(x).value=""});$("bUnit").value="";
+    flash("bMsg",ok+"件に反映しました"+(ok<ids.length?("("+(ids.length-ok)+"件は保存できませんでした)"):""));
+  });
+  twoStep($("bDel"),"選択した現場を削除",async function(){
+    if(!db)return;
+    var ids=selIds(), ok=0;
+    for(var i=0;i<ids.length;i++){
+      try{
+        await db.doc("sites/"+ids[i]).delete();
+        try{await db.doc("ops/"+ids[i]).delete()}catch(e1){}
+        try{if(prices[ids[i]])await db.doc("prices/"+ids[i]).delete()}catch(e2){}
+        delete wx[ids[i]]; delete sel[ids[i]]; ok++;
+      }catch(e){}
+    }
+    renderAdmin();
+    flash("bMsg",ok+"件の現場を削除しました。"+(ok<ids.length?("("+(ids.length-ok)+"件は削除できませんでした)"):"日報や連絡の記録は残ります。"));
+  });
+  $("bReset").addEventListener("click",async function(){
+    if(!db)return;
+    var n=await resetStatus(selIds());
+    flash("bMsg",n?n+"件を待機に戻しました。":"待機に戻す現場はありませんでした。");
+  });
+  twoStep($("resetAll"),"すべて待機に戻す",async function(){
+    if(!db)return;
+    var n=await resetStatus(sites.map(function(s){return s.id}));
+    flash("rMsg",n?n+"件を待機に戻しました。":"待機に戻す現場はありませんでした。");
+  });
+  $("setForm").addEventListener("submit",async function(e){
+    e.preventDefault(); if(!db)return;
+    var ice=parseFloat($("sIce").value), mult=parseFloat($("sMult").value);
+    var d={
+      defaultTh:Math.max(1,parseInt($("sDefTh").value,10)||10),
+      iceTemp:isFinite(ice)?ice:0,
+      mult:Math.min(3,Math.max(0.3,isFinite(mult)&&mult>0?mult:1)),
+      refreshMin:parseInt($("sRefresh").value,10)||10,
+      requireLogin:$("sReq").value==="1"
+    };
+    $("sSave").disabled=true;
+    try{await db.doc("settings/main").set(d);flash("sMsg","保存しました。")}
+    catch(err){flash("sMsg","保存できませんでした。編集権限を確認してください。")}
+    finally{$("sSave").disabled=false}
+  });
+
+  /* ---------- 設定:マスタ ---------- */
+  function mflash(txt){flash("mMsg",txt)}
+  function fillLists(){
+    $("dlAreas").innerHTML=masters.areas.map(function(a){return '<option value="'+esc(a.name)+'"></option>'}).join("");
+    $("dlCrews").innerHTML=masters.crews.map(function(c){return '<option value="'+esc(c)+'"></option>'}).join("");
+  }
+  function tagList(list,key,empty){
+    return list.length?list.map(function(c,i){
+      return '<span class="ctag">'+esc(c)+'<button type="button" data-mact="ldel" data-list="'+key+'" data-i="'+i+'" aria-label="'+esc(c)+'を削除">×</button></span>';
+    }).join(""):'<span class="muted">'+empty+'</span>';
+  }
+  function renderMaster(force){
+    var box=$("adm-master");
+    if(!force&&box.contains(document.activeElement)&&document.activeElement.tagName==="INPUT")return;
+    var cnt={}; sites.forEach(function(s){var k=s.area||"";cnt[k]=(cnt[k]||0)+1});
+    $("atbody").innerHTML=masters.areas.length?masters.areas.map(function(a,i){
+      return '<tr><td><input data-an="'+i+'" value="'+esc(a.name)+'" maxlength="30" aria-label="地区名"></td><td><input data-al="'+i+'" value="'+esc(a.loc||"")+'" maxlength="80" placeholder="未設定" aria-label="代表地点"></td><td class="num">'+(cnt[a.name]||0)+'</td><td><div class="row2"><button class="btn" type="button" data-mact="save" data-i="'+i+'">保存</button><button class="btn" type="button" data-mact="apply" data-i="'+i+'">地区の現場に反映</button><button class="btn danger" type="button" data-mact="del" data-i="'+i+'">削除</button></div></td></tr>';
+    }).join(""):'<tr><td colspan="4" class="muted">地区が登録されていません。下の欄から追加してください。</td></tr>';
+    $("ctags").innerHTML=tagList(masters.crews,"crews","担当班が登録されていません。");
+    $("mtags").innerHTML=tagList(masters.machines,"machines","使用機械が登録されていません。");
+  }
+  async function saveAreas(items){await db.doc("masters/areas").set({items:items});masters.areas=items;fillLists();}
+  async function saveList(key,items){await db.doc("masters/"+key).set({items:items});masters[key]=items;fillLists();}
+  async function loadMany(list){
+    var i=0;
+    var worker=async function(){while(i<list.length){var s=list[i++];await loadOne(s,false);}};
+    await Promise.all([worker(),worker(),worker()]);
+  }
+  function syncWx(){
+    if(!mcp||!sites.length)return;
+    var need=sites.filter(function(s){return !wx[s.id]||wx[s.id].loc!==effLoc(s)});
+    if(need.length)loadMany(need);
+  }
+  var armed="";
+  $("adm-master").addEventListener("click",async function(e){
+    var b=e.target.closest("[data-mact]"); if(!b||!db)return;
+    var act=b.dataset.mact, i=+b.dataset.i;
+    try{
+      if(act==="ladd"){
+        var key=b.dataset.list, inp=$(b.dataset.in), name=inp.value.trim();
+        if(!name){mflash("名前を入力してください。");return}
+        if(masters[key].indexOf(name)>=0){mflash("同じ名前がすでにあります。");return}
+        await saveList(key,masters[key].concat([name])); inp.value=""; renderMaster(true); mflash("「"+name+"」を追加しました。");
+      }else if(act==="save"){
+        var row=b.closest("tr"), nm=row.querySelector("[data-an]").value.trim(), loc=row.querySelector("[data-al]").value.trim();
+        if(!nm){mflash("地区名を入力してください。");return}
+        if(masters.areas.some(function(a,j){return j!==i&&a.name===nm})){mflash("同じ名前の地区がすでにあります。");return}
+        var old=masters.areas[i].name, items=masters.areas.slice();
+        items[i]={name:nm,loc:loc};
+        await saveAreas(items);
+        var moved=0;
+        if(old!==nm){
+          var tg=sites.filter(function(s){return s.area===old});
+          for(var k=0;k<tg.length;k++){try{await db.doc("sites/"+tg[k].id).update({area:nm});moved++}catch(e1){}}
+        }
+        renderMaster(true);
+        mflash("保存しました。"+(moved?("地区名を変えたため、"+moved+"件の現場の地区名も更新しました。"):""));
+      }else if(act==="apply"||act==="del"||act==="ldel"){
+        var ak=act+(b.dataset.list||"")+i;
+        if(armed!==ak){
+          armed=ak; var orig=b.textContent; b.textContent="もう一度押すと実行";
+          setTimeout(function(){if(armed===ak){armed="";b.textContent=orig}},4000);
+          return;
+        }
+        armed="";
+        if(act==="apply"){
+          var a=masters.areas[i], l2=a.loc;
+          if(!l2){mflash("この地区には代表地点がありません。先に入力して保存してください。");renderMaster(true);return}
+          var tg2=sites.filter(function(s){return s.area===a.name}), n=0;
+          for(var m=0;m<tg2.length;m++){try{await db.doc("sites/"+tg2[m].id).update({loc:l2});n++}catch(e2){}}
+          renderMaster(true);
+          mflash(n?(a.name+"の"+n+"件の現場に代表地点を反映しました。"):"反映する現場がありません。");
+        }else if(act==="del"){
+          var dn=masters.areas[i].name;
+          await saveAreas(masters.areas.filter(function(x,j){return j!==i}));
+          renderMaster(true);
+          mflash("「"+dn+"」を削除しました。この地区の現場の地区名は変わりません。");
+        }else{
+          var lk=b.dataset.list, cn=masters[lk][i];
+          await saveList(lk,masters[lk].filter(function(x,j){return j!==i}));
+          renderMaster(true);
+          mflash("「"+cn+"」を削除しました。");
+        }
+      }
+    }catch(err){mflash("保存できませんでした。編集権限を確認してください。")}
+  });
+  $("maAdd").addEventListener("click",async function(){
+    if(!db)return;
+    var name=$("maName").value.trim(), loc=$("maLoc").value.trim();
+    if(!name){mflash("地区名を入力してください。");return}
+    if(masters.areas.some(function(a){return a.name===name})){mflash("同じ名前の地区がすでにあります。");return}
+    try{await saveAreas(masters.areas.concat([{name:name,loc:loc}]));$("maName").value="";$("maLoc").value="";renderMaster(true);mflash("「"+name+"」を追加しました。")}
+    catch(err){mflash("保存できませんでした。編集権限を確認してください。")}
+  });
+
+  /* ---------- CSV ---------- */
+  var CSVH=["現場名","地区","住所","天気を調べる場所","担当班","出動基準(cm)","契約回数","単価(円)","単価の単位","メモ"];
+  function csvCell2(v){v=String(v==null?"":v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+  function parseCsv(t){
+    t=String(t||"").replace(/^\uFEFF/,"");
+    var rows=[],row=[],f="",q=false,i=0;
+    for(;i<t.length;i++){
+      var c=t[i];
+      if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+      else if(c==='"')q=true;
+      else if(c===","){row.push(f);f=""}
+      else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;row.push(f);f="";rows.push(row);row=[]}
+      else f+=c;
+    }
+    if(f!==""||row.length){row.push(f);rows.push(row)}
+    return rows.filter(function(r){return r.some(function(x){return String(x).trim()!==""})});
+  }
+  function csvSave(name,lines,msgId){
+    if(!dl){flash(msgId,"この表示環境では保存できません。");return}
+    dl.save({filename:name,data:"\uFEFF"+lines.join("\r\n")}).then(function(){flash(msgId,"保存しました。")},function(err){if(!err||err.code!=="declined")flash(msgId,"保存できませんでした。")});
+  }
+  $("csvOut").addEventListener("click",function(){
+    var lines=[CSVH.map(csvCell2).join(",")];
+    adminRows().forEach(function(s){
+      var p=canAdmin?priceOf(s.id):null;
+      lines.push([s.name,s.area||"",s.address||"",s.loc||"",s.crew||"",s.threshold||"",s.contractCount||"",p&&p.unitPrice>0?p.unitPrice:"",p&&p.unitPrice>0?p.unit:"",s.note||""].map(csvCell2).join(","));
+    });
+    csvSave("現場一覧_"+todayStr()+".csv",lines,"csvMsg");
+  });
+  $("csvTpl").addEventListener("click",function(){
+    csvSave("現場取り込み見本.csv",[CSVH.map(csvCell2).join(","),["○○団地 駐車場","駅前","盛岡市盛岡駅前北通1-1","39.7017,141.1363","A班",10,8,20000,"回","除雪機は倉庫横"].map(csvCell2).join(",")],"csvMsg");
+  });
+  $("csvIn").addEventListener("change",async function(e){
+    var f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f||!db)return;
+    var rows;
+    try{rows=parseCsv(await f.text())}catch(err){flash("csvMsg","ファイルを読み込めませんでした。");return}
+    if(rows.length<2){flash("csvMsg","取り込める行がありません。1行目に項目名、2行目以降に現場を入れてください。");return}
+    var hd=rows[0].map(function(x){return String(x).trim()}), ix={};
+    CSVH.forEach(function(h){ix[h]=hd.indexOf(h)});
+    if(ix["現場名"]<0){flash("csvMsg","「現場名」の列がありません。見本のCSVを確認してください。");return}
+    if(rows.length>501){flash("csvMsg","一度に取り込めるのは500行までです。");return}
+    var norm=function(x){return String(x||"").normalize("NFKC").replace(/\s/g,"")};
+    var byName={}; sites.forEach(function(s){byName[norm(s.name)]=s});
+    var add=0,upd=0,skip=0;
+    $("csvIn").disabled=true; flash("csvMsg","取り込み中…");
+    for(var r=1;r<rows.length;r++){
+      var g=function(h){var i=ix[h];return i>=0?String(rows[r][i]==null?"":rows[r][i]).trim():""};
+      var name=g("現場名"); if(!name){skip++;continue}
+      var d={};
+      if(g("地区"))d.area=g("地区"); if(g("住所"))d.address=g("住所"); if(g("担当班"))d.crew=g("担当班"); if(g("メモ"))d.note=g("メモ");
+      if(g("天気を調べる場所")){d.loc=g("天気を調べる場所");d.locSrc="manual"}
+      var th=parseInt(g("出動基準(cm)"),10); if(th>0)d.threshold=th;
+      var ct=parseInt(g("契約回数"),10); if(ct>=0)d.contractCount=ct;
+      var pr=parseInt(g("単価(円)"),10), un=g("単価の単位")==="時間"?"時間":(g("単価の単位")==="回"?"回":"");
+      try{
+        var ex=byName[norm(name)], sid;
+        if(ex){sid=ex.id; if(Object.keys(d).length)await db.doc("sites/"+sid).update(d); upd++}
+        else{
+          var nd=Object.assign({name:name,area:"",address:"",loc:"",crew:"",note:"",threshold:settings.defaultTh||10,contractCount:0,createdAt:Date.now()+r},d);
+          if(!nd.loc&&nd.address){var gg=geoFromAddress(nd.address);if(gg){nd.loc=gg.loc;nd.locSrc="city"}}
+          var ref=await db.collection("sites").add(nd); sid=ref&&ref.id; add++;
+          byName[norm(name)]={id:sid,name:name};
+        }
+        if(sid&&canAdmin&&(pr>=0||un)){var old=prices[sid]||{unitPrice:0,unit:"回"};await db.doc("prices/"+sid).set({unitPrice:pr>=0?pr:old.unitPrice,unit:un||old.unit})}
+      }catch(err){skip++}
+    }
+    $("csvIn").disabled=false;
+    flash("csvMsg","取り込み完了:追加"+add+"件、更新"+upd+"件"+(skip?("、読み飛ばし"+skip+"件"):"")+"。");
+  });
+
+  /* ---------- 住所から位置 ---------- */
+  /* 天気データは日本語の住所を場所として解決できないため、市町村の中心付近の座標(概算)を使う。 */
+  var MUNI=[["盛岡市","39.7017,141.1363"],["滝沢市","39.7378,141.0757"],["矢巾町","39.5946,141.1349"],["紫波町","39.5518,141.1599"],["花巻市","39.3883,141.1167"],["北上市","39.2875,141.1131"],["八幡平市","39.9300,141.1000"],["奥州市","39.1436,141.1394"],["遠野市","39.3283,141.5333"],["一関市","38.9347,141.1264"],["雫石町","39.6900,140.9740"],["岩手町","39.9900,141.2300"],["葛巻町","40.0300,141.4400"],["金ケ崎町","39.1950,141.1280"],["平泉町","38.9890,141.1170"],["西和賀町","39.2800,140.7900"],["住田町","39.1350,141.5890"],["釜石市","39.2756,141.8856"],["大船渡市","39.0819,141.7089"],["陸前高田市","39.0153,141.6269"],["宮古市","39.6419,141.9570"],["久慈市","40.1903,141.7761"],["二戸市","40.2706,141.3046"],["一戸町","40.2060,141.3050"],["大槌町","39.3650,141.9060"],["山田町","39.4670,141.9470"],["岩泉町","39.8450,141.7960"],["青森市","40.8244,140.7400"],["八戸市","40.5123,141.4883"],["秋田市","39.7200,140.1000"],["仙台市","38.2682,140.8694"]];
+  function geoFromAddress(addr){
+    var a=String(addr||"").replace(/[\s　]/g,"").replace(/[ヶｹ]/g,"ケ"), best=null, pos=1e9;
+    for(var i=0;i<MUNI.length;i++){
+      var p=a.indexOf(MUNI[i][0]);
+      if(p>=0&&p<pos){pos=p;best={name:MUNI[i][0],loc:MUNI[i][1]};}
+    }
+    return best;
+  }
+  $("fGeo").addEventListener("click",function(){
+    var a=$("fAddr").value.trim();
+    if(!a){$("fGeoMsg").textContent="先に住所を入力してください。";return}
+    var g=geoFromAddress(a);
+    if(!g){$("fGeoMsg").textContent="住所から市町村を判定できませんでした。「地図で確認」で場所を調べ、緯度・経度を入力してください。";return}
+    $("fLoc").value=g.loc; geoLoc=g.loc;
+    $("fGeoMsg").textContent=g.name+"の中心付近(概算)を設定しました。現場の緯度・経度がわかる場合は、上書きしてください。";
+  });
+  $("bGeo").addEventListener("click",async function(){
+    if(!db)return;
+    var ids=selIds(); if(!ids.length)return;
+    var ok=0,noAddr=0,noMatch=0,manual=0;
+    $("bGeo").disabled=true;
+    for(var i=0;i<ids.length;i++){
+      var s=siteById(ids[i]);
+      if(!s)continue;
+      if(!s.address){noAddr++;continue}
+      if(s.locSrc==="manual"){manual++;continue}
+      var g=geoFromAddress(s.address);
+      if(!g){noMatch++;continue}
+      try{await db.doc("sites/"+s.id).update({loc:g.loc,locSrc:"city"});ok++}catch(e){}
+    }
+    $("bGeo").disabled=false;
+    var t=ok+"件の位置を設定しました(市町村の中心付近・概算)。";
+    if(noAddr)t+=" 住所なし"+noAddr+"件。";
+    if(noMatch)t+=" 市町村を判定できず"+noMatch+"件。";
+    if(manual)t+=" 緯度・経度を直接入力済みの"+manual+"件は変更していません。";
+    flash("bMsg",t);
+  });
+
+  /* ---------- 起動 ---------- */
+  async function resolveNames(){
+    if(!user||!user.profiles)return;
+    var need=[];
+    reports.concat(notes,announcements).forEach(function(x){if(x.by&&!askedNames[x.by]){askedNames[x.by]=1;need.push(x.by)}});
+    if(myId&&!askedNames[myId]){askedNames[myId]=1;need.push(myId)}
+    if(!need.length)return;
+    try{var p=await user.profiles(need);need.forEach(function(id){if(p&&p[id]&&p[id].name)nameMap[id]=p[id].name});render()}catch(e){}
+  }
+  $("today").textContent=new Date().toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"});
+  initStats();
+  doRender();
+
+  (async function(){
+    try{ if(window.claude&&claude.use){ user=await claude.use("user"); } }catch(e){}
+    try{
+      var w=user&&user.can?await user.can("data.write"):null;
+      canStatus=(w!==false);
+      canAdmin=!!(user&&user.canEdit&&await user.canEdit());
+      myId=user&&user.id?await user.id():null;
+      try{var mm=user&&user.me?await user.me():null;myName=mm&&mm.name||""}catch(e0){}
+    }catch(e){}
+    try{ db=await claude.use("db"); }catch(e){db=null}
+    try{ mcp=await claude.use("mcp"); }catch(e){mcp=null}
+    try{ assets=await claude.use("assets"); }catch(e){assets=null}
+    try{ dl=await claude.use("downloads"); }catch(e){dl=null}
+    try{ var pw=user&&user.can?await user.can("assets.write"):null; canPhoto=!!assets&&pw!==false; }catch(e){canPhoto=!!assets}
+    mcpState=mcp?"ready":"none";
+    if(!db){dbState="unavailable";render();}
+    else{
+      db.doc("masters/areas").onSnapshot(function(snap){
+        var d=snap.exists?snap.data():{};
+        masters.areas=Array.isArray(d.items)?d.items:[];
+        fillLists(); render(); syncWx();
+      },function(){});
+      db.doc("masters/crews").onSnapshot(function(snap){
+        var d=snap.exists?snap.data():{};
+        masters.crews=Array.isArray(d.items)?d.items:[];
+        fillLists(); render();
+      },function(){});
+      db.doc("masters/machines").onSnapshot(function(snap){
+        var d=snap.exists?snap.data():null;
+        masters.machines=d&&Array.isArray(d.items)?d.items:DEFMACH.slice();
+        render();
+      },function(){});
+      db.collection("ops").onSnapshot(function(snap){
+        ops={};
+        snap.docs.forEach(function(d){ops[d.id]=d.data()});
+        render();
+      },function(){});
+      db.collection("reports").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
+        reports=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        render(); resolveNames();
+      },function(){});
+      db.collection("notes").orderBy("at","desc").limit(300).onSnapshot(function(snap){
+        notes=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        render(); resolveNames();
+      },function(){});
+      db.collection("announcements").orderBy("at","desc").limit(100).onSnapshot(function(snap){
+        if(!annFirst&&snap.docChanges){snap.docChanges().forEach(function(c){var o=c.doc.data();if(c.type==="added"&&o.by!==myId)toast("新しいお知らせ:"+o.title)})}
+        annFirst=false;
+        announcements=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        render(); resolveNames();
+      },function(){});
+      if(myId)db.doc("data/users/"+myId+"/state").onSnapshot(function(snap){
+        var v=snap.exists&&snap.data().read||{}, l={};try{l=JSON.parse(localStorage.getItem("josetsu.read")||"{}")}catch(e){}
+        readMap=Object.assign({},l,v); render();
+      },function(){});
+      db.collection("access").onSnapshot(function(snap){
+        access={};snap.docs.forEach(function(d){access[d.id]=d.data()});accessLoaded=true;checkGate();
+      },function(){});
+      if(canAdmin)db.collection("members").onSnapshot(function(snap){
+        members=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        if(sub==="members")renderMembers();
+      },function(){});
+      if(canAdmin)db.collection("prices").onSnapshot(function(snap){
+        prices={};
+        snap.docs.forEach(function(d){prices[d.id]=d.data()});
+        render();
+      },function(){});
+      db.doc("settings/main").onSnapshot(function(snap){
+        settings=Object.assign({},DEF,snap.exists?snap.data():{});
+        fillSettings(); schedule(); render(); checkGate();
+      },function(){});
+      var first=true;
+      db.collection("sites").onSnapshot(function(snap){
+        sites=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        dbState="ready";
+        render();
+        if(mcp){
+          var need=sites.filter(function(s){return !wx[s.id]||wx[s.id].loc!==effLoc(s)});
+          if(first||need.length){
+            first=false;
+            if(need.length===sites.length)refreshAll(false);
+            else need.forEach(function(s){loadOne(s,false)});
+          }
+        }
+      },function(){dbState="unavailable";render()});
+    }
+    render();
+    schedule();
+  })();
+})();
+</script>
+</body></html>

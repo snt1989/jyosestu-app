@@ -1,0 +1,40 @@
+rules_version = '2';
+// 管理者のメールアドレス(firebase-config.js の ADMIN_EMAILS と同じにします)
+function adminEmails() { return ['admin@sanoh-ltd.jp']; }
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function udoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function hasUser() { return exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function isAdmin() {
+      return signed() && (
+        (request.auth.token.email != null && request.auth.token.email.lower() in adminEmails()) ||
+        (hasUser() && udoc().role == 'admin'));
+    }
+    function isMember() { return isAdmin() || (signed() && hasUser() && udoc().role == 'member'); }
+
+    // 現場・設定・マスタ・お知らせ・ログイン連携: みんなが読めて、管理者だけが書ける
+    match /{col}/{id} {
+      allow read: if isMember() && col in ['sites', 'settings', 'masters', 'announcements', 'access'];
+      allow write: if isAdmin() && col in ['sites', 'settings', 'masters', 'announcements', 'access'];
+      // 作業状況・日報・連絡: メンバーなら読み書きできる
+      allow read, write: if isMember() && col in ['ops', 'reports', 'notes'];
+      // 単価・メンバー名簿(電話番号): 管理者だけ
+      allow read, write: if isAdmin() && col in ['prices', 'members'];
+    }
+
+    // 利用者(ログインした人)。自分の分は登録時に「承認待ち」で作れる。承認(役割の変更)は管理者だけ。
+    match /users/{uid} {
+      allow read: if signed() && (request.auth.uid == uid || isMember());
+      allow create: if signed() && request.auth.uid == uid && request.resource.data.role == 'pending'
+                    && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'createdAt']);
+      allow update, delete: if isAdmin();
+    }
+
+    // 本人だけが読み書きできる個人の記録(既読など)
+    match /data/users/{uid}/{doc=**} {
+      allow read, write: if signed() && request.auth.uid == uid && isMember();
+    }
+  }
+}

@@ -1,0 +1,342 @@
+
+<header class="appbar">
+  <div>
+    <h1>除雪管理アプリ</h1>
+    <div class="sub"><span id="today"></span> ・ 天気更新 <span id="upd" class="num">--:--</span></div>
+    <div class="sub meline" id="meLine" hidden></div>
+  </div>
+  <div class="abr"><button class="bellbtn" id="btnBell" type="button" data-act="inbox" aria-label="お知らせ"></button>
+  <button class="ab-btn" id="btnRefresh" type="button"><span class="hm">天気を</span>更新</button></div>
+</header>
+
+<datalist id="dlAreas"></datalist>
+<datalist id="dlCrews"></datalist>
+
+<div class="gate" id="gate" hidden role="alertdialog" aria-labelledby="gateT">
+  <div class="gate-box">
+    <div class="gate-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+    <h2 id="gateT">ログインできません</h2>
+    <p id="gateWho" class="gate-who"></p>
+    <p>このアプリは、メンバー登録された人だけが使えます。管理者に、メンバーへの登録とログインアカウントの紐づけを依頼してください。</p>
+    <button class="btn primary" type="button" id="gateRetry">もう一度確認する</button>
+  </div>
+</div>
+<main>
+  <section id="v-home" class="page"></section>
+
+  <section id="v-sites" class="page" hidden>
+    <div class="bar"><div class="r r21">
+      <input type="search" id="query" placeholder="現場名・地区・担当班で探す" aria-label="現場を探す" autocomplete="off">
+      <select id="areaSel" aria-label="地区で絞り込み"><option value="">すべての地区</option></select>
+    </div></div>
+    <div class="row2" style="justify-content:space-between;margin-bottom:6px"><span class="muted" id="siteCount"></span><div class="vt vt-sm" id="layoutT" role="group" aria-label="表示の切り替え"><button type="button" data-layout="row" aria-pressed="true">一覧表示</button><button type="button" data-layout="card" aria-pressed="false">カード表示</button></div></div>
+    <div class="chips" id="siteChips" role="group" aria-label="状態で絞り込み"></div>
+    <div id="banner"></div>
+    <div id="siteList"></div>
+    <p class="legend">出動目安は、今後2日間の予報降水量と最低気温から計算した降雪量の目安(降水1mm≒雪1cm前後)が、現場ごとの出動基準を超えたとき、または警報・注意報が出ていて降雪が見込まれるときに表示します。実際の積雪量ではないため、出動の最終判断は現地の状況を見て行ってください。最低気温が設定した温度以下の予報は凍結注意として表示します。</p>
+  </section>
+
+  <section id="v-reports" class="page" hidden>
+    <div class="bar">
+      <div class="r">
+        <select id="repPeriod" aria-label="期間">
+          <option value="7d">直近7日</option>
+          <option value="month">今月</option>
+          <option value="prev">先月</option>
+          <option value="all">すべて</option>
+        </select>
+        <select id="repSiteSel" aria-label="現場で絞り込み"><option value="">すべての現場</option></select>
+      </div>
+    </div>
+    <div id="repList"></div>
+  </section>
+
+  <section id="v-notes" class="page" hidden>
+    <form class="card2 f" id="noteForm" autocomplete="off">
+      <div class="grp">
+        <label for="ntSite">連絡の対象<select id="ntSite"></select></label>
+        <label for="ntText">連絡内容<textarea id="ntText" maxlength="500" placeholder="例:北側の入口は雪山のため、先にローダで寄せてください。"></textarea></label>
+        <button class="btn primary" type="submit" id="ntPost">投稿する</button>
+      </div>
+    </form>
+    <div class="bar" style="margin-top:14px"><select id="ntFilter" aria-label="連絡の絞り込み"></select></div>
+    <div class="stack" id="noteList"></div>
+  </section>
+
+  <section id="v-stats" class="page" hidden>
+    <div class="vt" id="stMode" role="group" aria-label="集計の単位">
+      <button type="button" data-mode="month" aria-pressed="true">月別</button>
+      <button type="button" data-mode="season" aria-pressed="false">シーズン</button>
+    </div>
+    <div class="mnav">
+      <button class="btn" id="stPrev" type="button" aria-label="前へ">‹</button>
+      <div class="lbl" id="stLabel"></div>
+      <button class="btn" id="stNext" type="button" aria-label="次へ">›</button>
+    </div>
+    <div id="statsBody"></div>
+    <div class="row2" style="margin-top:14px"><button class="btn" id="stCsv" type="button">CSVで保存</button><span class="muted" id="stMsg" role="status"></span></div>
+    <p class="legend" id="stLegend">日報1件を、1回の出動として数えます。単価が「回」の現場は回数×単価、「時間」の現場は日報の開始〜終了時刻から出した作業時間×単価で計算します。単価が未登録の現場は、請求見込みに含みません。</p>
+  </section>
+
+  <section id="v-admin" class="page wide" hidden>
+    <div class="admhead"><h1 class="admh1">設定</h1><span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者専用</span></div>
+    <div class="subtabs admtabs" id="subtabs" role="group" aria-label="設定の項目">
+      <button type="button" class="admtab" data-sub="sites" aria-pressed="true">現場の管理</button>
+      <button type="button" class="admtab" data-sub="master" aria-pressed="false">マスタ</button>
+      <button type="button" class="admtab" data-sub="members" aria-pressed="false">メンバー</button>
+      <button type="button" class="admtab" data-sub="set" aria-pressed="false">全体設定</button>
+    </div>
+    <div class="admdesc" id="admDesc"></div>
+
+    <div id="adm-sites">
+      <div class="ahead"><h2 class="ah" style="margin-top:6px">現場の管理</h2><button class="btn primary" type="button" id="btnAdd2">現場を追加</button></div>
+      <div class="subtabs sm" id="siteTabs" role="group" aria-label="現場の管理の項目"><button type="button" class="admtab" data-st="list" aria-pressed="true">現場の一覧</button><button type="button" class="admtab" data-st="csv" aria-pressed="false">CSV・リセット</button></div>
+      <div id="adm-s-list">
+      <div class="panel" id="admTools">
+        <div class="fields">
+          <label for="admQ"><span class="vh">現場を探す</span><input type="search" id="admQ" placeholder="現場名・地区・担当班" autocomplete="off"></label>
+          <label for="admSort"><span class="vh">並び替え</span><select id="admSort"><option value="area">地区順</option><option value="name">現場名順</option><option value="crew">担当班順</option><option value="th">出動基準が大きい順</option><option value="contract">契約回数が多い順</option><option value="new">登録が新しい順</option><option value="old">登録が古い順</option></select></label>
+        </div>
+      </div>
+      <div class="panel" id="bulk" hidden>
+        <div><b class="num" id="bulkN">0</b> 件を選択中。入力した項目だけを、選択した現場にまとめて反映します。</div>
+        <div class="fields">
+          <label for="bArea">地区<input id="bArea" list="dlAreas" maxlength="40" placeholder="変更しない"></label>
+          <label for="bCrew">担当班<input id="bCrew" list="dlCrews" maxlength="40" placeholder="変更しない"></label>
+          <label for="bTh">出動基準(cm)<input id="bTh" type="number" min="1" max="200" step="1" placeholder="変更しない"></label>
+          <label for="bContract">契約回数<input id="bContract" type="number" min="0" max="200" step="1" placeholder="変更しない"></label>
+          <label for="bPrice">単価(円)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span><input id="bPrice" type="number" min="0" step="100" placeholder="変更しない"></label>
+          <label for="bUnit">単価の単位<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span><select id="bUnit"><option value="">変更しない</option><option value="回">1回あたり</option><option value="時間">1時間あたり</option></select></label>
+        </div>
+        <div class="row2">
+          <button class="btn primary" type="button" id="bApply">選択した現場に反映</button>
+          <button class="btn" type="button" id="bGeo">住所から位置を設定</button>
+          <button class="btn" type="button" id="bReset">作業状況を待機に戻す</button>
+          <button class="btn" type="button" id="bClear">選択を解除</button>
+          <button class="btn danger" type="button" id="bDel">選択した現場を削除</button>
+          <span class="muted" id="bMsg" role="status"></span>
+        </div>
+      </div>
+      <div class="ar-h"><label class="chk" for="selAll" style="min-height:40px"><input type="checkbox" id="selAll"> このページをすべて選択</label><span class="ar-hc">現場名</span><span>出動基準</span><span>契約回数</span><span>単価<span class="adm-badge">管理者のみ</span></span><span>位置</span><span>住所</span><span>備考</span><span></span></div>
+      <div class="stack" id="admList"></div>
+      <div class="pager" id="pager"></div>
+      <div class="muted" style="margin-top:8px">「天気の取得」が失敗の現場は、場所の入力(緯度・経度の書き方)を編集で確認してください。</div>
+
+      </div>
+      <div id="adm-s-csv" hidden>
+      <div class="panel" style="max-width:760px">
+        <div class="row2">
+          <button class="btn" type="button" id="csvOut">CSVで書き出す</button>
+          <label class="btn" for="csvIn" style="cursor:pointer">CSVから取り込む<input type="file" id="csvIn" accept=".csv,text/csv" hidden></label>
+          <button class="btn" type="button" id="csvTpl">取り込み用の見本を保存</button>
+          <span class="muted" id="csvMsg" role="status"></span>
+        </div>
+        <div class="help muted">CSVの1行目は項目名です。現場名が同じ行は更新、ない行は新しい現場として追加します。単価の列は金額なので、管理者の取り込みだけに反映されます。<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span></div>
+      </div>
+      <h2 class="ah">作業状況のリセット</h2>
+      <div class="panel">
+        <div class="muted">シフトの切り替えや降雪が落ち着いたときに、すべての現場の作業状況を「待機」に戻します。</div>
+        <div class="row2"><button class="btn danger" type="button" id="resetAll">すべて待機に戻す</button><span class="muted" id="rMsg" role="status"></span></div>
+      </div>
+      </div>
+    </div>
+
+    <div id="adm-master" hidden>
+      <div class="muted" id="mMsg" role="status" style="min-height:1.5em"></div>
+      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="mach" aria-pressed="false">使用機械</button></div>
+      <div id="mp-area">
+      <h2 class="ah">地区マスタ</h2>
+      <p class="muted" style="margin:0 0 8px;max-width:80ch">地区ごとに代表地点(緯度・経度)を登録しておくと、現場に場所が入っていないとき、その地点の天気を表示します。現場を登録するときの地区の選択肢にもなります。</p>
+      <div class="tw">
+        <table style="min-width:680px">
+          <thead><tr><th>地区名</th><th>代表地点(緯度, 経度)</th><th>現場数</th><th></th></tr></thead>
+          <tbody id="atbody"></tbody>
+        </table>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div class="fields">
+          <label for="maName">地区名<input id="maName" maxlength="30" placeholder="例:盛岡南"></label>
+          <label for="maLoc">代表地点(任意)<input id="maLoc" maxlength="80" placeholder="例:39.70, 141.13"></label>
+        </div>
+        <div class="row2"><button class="btn primary" type="button" id="maAdd">地区を追加</button></div>
+      </div>
+      </div>
+      <div id="mp-crew" hidden>
+      <h2 class="ah">担当班マスタ</h2>
+      <div class="panel">
+        <div class="ctags" id="ctags"></div>
+        <div class="fields"><label for="mcName">班の名前<input id="mcName" maxlength="40" placeholder="例:A班 山田"></label></div>
+        <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="crews" data-in="mcName">担当班を追加</button></div>
+      </div>
+      </div>
+      <div id="mp-mach" hidden>
+      <h2 class="ah">使用機械マスタ</h2>
+      <div class="panel">
+        <div class="ctags" id="mtags"></div>
+        <div class="fields"><label for="mmName">機械の名前<input id="mmName" maxlength="30" placeholder="例:除雪トラック"></label></div>
+        <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="machines" data-in="mmName">機械を追加</button></div>
+      </div>
+      </div>
+    </div>
+
+    <div id="adm-members" hidden>
+      <div class="ahead"><h2 class="ah" style="margin-top:6px">メンバー管理</h2><button class="btn primary" type="button" id="mbAdd">メンバーを追加</button></div>
+      <div class="mbstat" id="mbStat"></div>
+      <form class="card2 f" id="mbForm" hidden style="padding:0 0 4px;max-width:760px">
+        <h3 class="mbft" id="mbFormTitle">メンバーを追加</h3>
+        <div class="form-row"><label for="mbName">氏名<span class="req">必須</span></label><div><input id="mbName" maxlength="40" required placeholder="例:山田 太郎"></div></div>
+        <div class="form-row"><label for="mbCrew">担当班</label><div><input id="mbCrew" list="dlCrews" maxlength="40" placeholder="例:A班"></div></div>
+        <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option></select></div></div>
+        <div class="form-row"><label for="mbTel">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
+        <div class="form-row"><label for="mbNote">備考</label><div><input id="mbNote" maxlength="100" placeholder="例:大型除雪機の資格あり"></div></div>
+        <div class="form-row"><label for="mbAcctQ">ログインアカウント</label><div>
+          <div class="mbacct"><span id="mbAcctNow" class="mbacct-now">未連携</span><button class="btn sm" type="button" id="mbAcctMe">自分を連携</button><button class="btn sm" type="button" id="mbAcctClr" hidden>解除</button></div>
+          <input id="mbAcctQ" type="search" maxlength="40" placeholder="名前で探して連携" autocomplete="off"><div id="mbAcctRes" class="mbres"></div>
+          <span class="help">連携した人がこのアプリにログインすると、このメンバーとして表示されます。</span></div></div>
+        <div class="form-row"><label for="mbActive">状態</label><div><select id="mbActive"><option value="1">在籍</option><option value="0">休止中</option></select></div></div>
+        <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="mbSave">保存</button><button class="btn" type="button" id="mbCancel">キャンセル</button><span class="muted" id="mbMsg" role="status"></span></div></div>
+      </form>
+      <div class="admtools mbtools"><input id="mbQ" type="search" placeholder="氏名・担当班・電話で検索" aria-label="メンバーを検索"><select id="mbF" aria-label="絞り込み"></select></div>
+      <div id="mbList"></div>
+      <p class="legend">ここは社内の名簿です。アプリを開ける人・編集できる人は、このページの「共有」で決まります。「全体設定」でログインの制限を「する」にすると、ログインアカウントを連携したメンバーだけが画面を使えます(画面上の制限です)。電話番号などの個人情報は、管理者だけが見られます。</p>
+    </div>
+
+    <div id="adm-set" hidden>
+      <div class="admbody">
+      <h2 class="ah">出動の判定</h2>
+      <form class="card2 f" id="setForm" style="padding:0;max-width:760px">
+        <div class="form-row"><label for="sDefTh">新規現場の出動基準(降雪 cm)</label><div><input id="sDefTh" type="number" min="1" max="200" step="1" value="10"><span class="help">現場を追加するときの初期値です。現場ごとに変更できます。</span></div></div>
+        <div class="form-row"><label for="sIce">凍結注意にする最低気温(℃)</label><div><input id="sIce" type="number" min="-10" max="10" step="0.5" value="0"><span class="help">今後2日の最低気温がこの温度以下なら「凍結注意」を出します。</span></div></div>
+        <div class="form-row"><label for="sMult">降雪量の換算倍率</label><div><input id="sMult" type="number" min="0.3" max="3" step="0.1" value="1"><span class="help">標準は1.0。予報より積もりやすい地域は大きくします。</span></div></div>
+        <div class="form-row"><label for="sReq">ログインの制限</label><div><select id="sReq"><option value="0">しない(共有された人は誰でも使える)</option><option value="1">する(連携したメンバーだけ使える)</option></select><span class="help">「する」にすると、ログインアカウントを連携していない人には、利用できない画面を表示します。管理者は常に使えます。連携したメンバーが1人もいないあいだは制限されません。</span></div></div>
+        <div class="form-row"><label for="sRefresh">天気の自動更新</label><div><select id="sRefresh"><option value="5">5分ごと</option><option value="10">10分ごと</option><option value="30">30分ごと</option><option value="60">60分ごと</option></select><span class="help">画面を開いている間だけ更新します。</span></div></div>
+        <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="sSave">設定を保存</button><span class="muted" id="sMsg" role="status"></span></div></div>
+      </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar" id="tabbar" aria-label="メニュー"></nav>
+<button class="fab" id="fab" type="button" data-act="newrep" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>日報を書く</button>
+
+<div class="modal-layer" id="mdl" aria-hidden="true"><div class="modal-box" id="mdBox" role="dialog" aria-modal="true"></div></div>
+
+<div class="sheet" id="detail" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" data-act="close" data-sheet="detail">‹ 戻る</button>
+    <h2 id="detailTitle">現場</h2>
+    <span id="detailEdit"></span>
+  </div>
+  <div class="page" id="detailBody"></div>
+</div>
+
+<div class="sheet s2" id="rview" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" data-act="close" data-sheet="rview">‹ 戻る</button>
+    <h2>作業日報</h2>
+  </div>
+  <div class="page" id="rviewBody"></div>
+</div>
+
+<div class="sheet s2" id="rform" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" data-act="rfcancel">‹ 閉じる</button>
+    <h2 id="rfTitle">作業日報を書く</h2>
+  </div>
+  <form class="page f" id="rfForm" autocomplete="off">
+    <div class="grp">
+      <label for="rfSite">現場<select id="rfSite" required></select></label>
+      <label for="rfDate">作業日<input type="date" id="rfDate" required></label>
+      <div class="two">
+        <label for="rfStart">開始時刻<input type="time" id="rfStart"></label>
+        <label for="rfEnd">終了時刻<input type="time" id="rfEnd"></label>
+      </div>
+      <div class="row2">
+        <button type="button" class="btn sm" data-act="rfnow" data-t="start">開始を今にする</button>
+        <button type="button" class="btn sm" data-act="rfnow" data-t="end">終了を今にする</button>
+      </div>
+      <label for="rfCrew">担当班・作業者<input id="rfCrew" list="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
+      <label for="rfSnow">積雪量(実測 cm)<input type="number" id="rfSnow" min="0" max="300" step="0.5" inputmode="decimal" placeholder="例:12"></label>
+      <div><div class="lab2">使用機械</div><div class="tgs" id="rfMach"></div></div>
+      <label class="chk" for="rfHai"><input type="checkbox" id="rfHai"> 排雪あり(雪を運び出した)</label>
+      <label for="rfNote">メモ<textarea id="rfNote" maxlength="500" placeholder="例:駐車場の北側に雪山を作った。入口の段差に注意。"></textarea></label>
+      <div id="rfPhotoSec">
+        <div class="lab2">写真</div>
+        <div class="two" style="align-items:end">
+          <label for="rfKind">写真の種類
+            <select id="rfKind"><option value="before">作業前</option><option value="after">作業後</option><option value="other">その他</option></select>
+          </label>
+          <label for="rfFile">写真を追加<input type="file" id="rfFile" accept="image/*" multiple></label>
+        </div>
+        <div class="ph" id="rfPhotos" style="margin-top:8px"></div>
+        <div class="help" id="rfPhMsg" role="status"></div>
+      </div>
+      <label class="chk" id="rfDoneWrap" for="rfDone"><input type="checkbox" id="rfDone" checked> 保存して「完了」にする</label>
+      <div class="err" id="rfErr" role="alert"></div>
+    </div>
+  </form>
+  <div class="sheet-foot">
+    <button class="btn" type="button" data-act="rfcancel">キャンセル</button>
+    <button class="btn primary" type="submit" form="rfForm" id="rfSave">保存する</button>
+  </div>
+</div>
+
+<div class="sheet s2" id="sform" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" id="fCancel">‹ 閉じる</button>
+    <h2 id="dlgTitle">現場を追加</h2>
+  </div>
+  <form class="page f" id="form" autocomplete="off">
+    <div class="subtabs sm fjump" role="group" aria-label="項目へ移動"><button type="button" data-jump="fs1">基本情報</button><button type="button" data-jump="fs2">天気・位置</button><button type="button" data-jump="fs3">出動基準・状況</button><button type="button" data-jump="fs4">契約・金額</button></div>
+    <h2 class="ah" id="fs1">基本情報</h2>
+    <div class="panel"><div class="grp">
+      <label for="fName">現場名<input id="fName" required maxlength="60" placeholder="例:○○団地 駐車場"></label>
+      <label for="fArea">地区・区分(任意)<input id="fArea" list="dlAreas" maxlength="40" placeholder="例:駅前"></label>
+      <div>
+        <label for="fAddr">住所(任意)<input id="fAddr" maxlength="120" placeholder="例:盛岡市盛岡駅前北通10-38"></label>
+        <div class="help" id="fGeoMsg" role="status"></div>
+      </div>
+      <label for="fCrew">担当班(任意)<input id="fCrew" list="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
+      <label for="fNote">メモ(任意)<textarea id="fNote" maxlength="200" placeholder="例:除雪機は倉庫横。排雪場所は北側。"></textarea></label>
+    </div></div>
+    <h2 class="ah" id="fs2">天気・位置</h2>
+    <div class="panel"><div class="grp">
+      <div class="row2">
+        <button class="btn sm" type="button" id="fGeo">住所から位置を設定</button>
+        <a class="linka" id="fMap" href="#" target="_blank" rel="noopener" hidden>地図で確認</a>
+      </div>
+      <label for="fLoc">天気を調べる場所<input id="fLoc" maxlength="80" placeholder="例:39.72, 140.10">
+        <span class="help">緯度・経度(Googleマップで現場を長押しすると確認できます)を、緯度,経度の順に入力してください。空欄にすると、地区マスタの代表地点を使います。</span>
+      </label>
+      <div class="muted" id="fWxState"></div>
+    </div></div>
+    <h2 class="ah" id="fs3">出動基準・状況</h2>
+    <div class="panel"><div class="grp">
+      <label for="fTh">出動基準(降雪量 cm)<input id="fTh" type="number" min="1" max="200" step="1" value="10"></label>
+      <label for="fStatus">作業状況<select id="fStatus"><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done">完了</option></select></label>
+    </div></div>
+    <h2 class="ah" id="fs4">契約・金額</h2>
+    <div class="panel"><div class="grp">
+      <label for="fContract">契約回数(任意)<input id="fContract" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="例:10"></label>
+      <div class="two" id="fPriceBox">
+        <label for="fPrice">単価(円・任意)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>管理者のみ</span><input id="fPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="例:20000"></label>
+        <label for="fUnit">単価の単位<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>管理者のみ</span><select id="fUnit"><option value="回">1回あたり</option><option value="時間">1時間あたり</option></select></label>
+      </div>
+    </div></div>
+    <div class="err" id="fErr" role="alert"></div>
+    <div class="row2" style="margin-top:8px">
+      <button class="btn primary" type="submit" id="fSave" style="flex:1">すべて保存する</button>
+      <button class="btn danger" type="button" id="fDel" hidden>削除</button>
+    </div>
+  </form>
+</div>
+
+<div class="lb" id="lb" hidden>
+  <button class="lbb x" type="button" data-act="lbclose" aria-label="閉じる">×</button>
+  <button class="lbb pv" type="button" data-act="lbprev" aria-label="前の写真">‹</button>
+  <img id="lbImg" alt="">
+  <button class="lbb nx" type="button" data-act="lbnext" aria-label="次の写真">›</button>
+  <div class="cap" id="lbCap"></div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
