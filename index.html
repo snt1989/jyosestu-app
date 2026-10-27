@@ -664,18 +664,23 @@ tbody tr:last-child td{border-bottom:0}
     </div>
     <div id="adm-set" hidden>
       <div class="admbody">
-      <h2 class="ah">出動の判定</h2>
+      <div class="subtabs sm" id="setTabs" style="margin-bottom:12px" role="group" aria-label="全体設定の項目"><button type="button" class="admtab" data-sg="jd" aria-pressed="true">出動の判定</button><button type="button" class="admtab" data-sg="lg" aria-pressed="false">天気・ログイン</button><button type="button" class="admtab" data-sg="ph" aria-pressed="false">写真の画質</button></div>
       <form class="card2 f" id="setForm" style="padding:0;max-width:760px">
+        <div data-sg-box="jd">
         <div class="form-row"><label for="sDefTh">新規現場の出動基準(降雪 cm)</label><div><input id="sDefTh" type="number" min="1" max="200" step="1" value="10"><span class="help">現場を追加するときの初期値です。現場ごとに変更できます。</span></div></div>
         <div class="form-row"><label for="sIce">凍結注意にする最低気温(℃)</label><div><input id="sIce" type="number" min="-10" max="10" step="0.5" value="0"><span class="help">今後2日の最低気温がこの温度以下なら「凍結注意」を出します。</span></div></div>
         <div class="form-row"><label for="sMult">降雪量の換算倍率</label><div><input id="sMult" type="number" min="0.3" max="3" step="0.1" value="1"><span class="help">標準は1.0。予報より積もりやすい地域は大きくします。</span></div></div>
+        </div>
+        <div data-sg-box="lg" hidden>
         <div class="form-row"><label for="sReq">ログインの制限</label><div><select id="sReq"><option value="0">しない(共有された人は誰でも使える)</option><option value="1">する(連携したメンバーだけ使える)</option></select><span class="help">「する」にすると、ログインアカウントを連携していない人には、利用できない画面を表示します。管理者は常に使えます。連携したメンバーが1人もいないあいだは制限されません。</span></div></div>
         <div class="form-row"><label for="sRefresh">天気の自動更新</label><div><select id="sRefresh"><option value="5">5分ごと</option><option value="10">10分ごと</option><option value="30">30分ごと</option><option value="60">60分ごと</option></select><span class="help">画面を開いている間だけ更新します。</span></div></div>
-        <h2 class="ah" style="margin-top:18px">写真の画質</h2>
+        </div>
+        <div data-sg-box="ph" hidden>
         <div class="form-row"><label for="pqLevel">保存時の画質</label><div><select id="pqLevel"><option value="light">軽量</option><option value="std">標準</option><option value="high">高画質</option></select><span class="help">写真を保存するとき、ここで選んだ画質で自動的に軽くします。メンバーは変更できません。変えても、すでに保存した写真はそのままです(「写真の管理」で軽量化できます)。</span></div></div>
         <div class="form-row"><label>軽量</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_light_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_light_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_light_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
         <div class="form-row"><label>標準</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_std_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_std_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_std_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
         <div class="form-row"><label>高画質</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_high_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_high_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_high_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
+        </div>
         <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="sSave">設定を保存</button><span class="muted" id="sMsg" role="status"></span></div></div>
       </form>
       </div>
@@ -1952,6 +1957,12 @@ tbody tr:last-child td{border-bottom:0}
     }
     phBusy=false; $("phMsg").textContent=ok+"枚を軽量化しました(約 "+Math.round(saved*0.75/1024)+"KB 削減)"+(fail?("。"+fail+"枚は失敗しました。写真が読み込まれてから再度お試しください。"):"。"); renderPhotos();
   });
+  var setTab="jd";
+  function showSetTab(){
+    Array.prototype.forEach.call($("setTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.sg===setTab))});
+    Array.prototype.forEach.call($("setForm").querySelectorAll("[data-sg-box]"),function(d){d.hidden=d.dataset.sgBox!==setTab});
+  }
+  $("setTabs").addEventListener("click",function(e){var b=e.target.closest("button[data-sg]");if(!b)return;setTab=b.dataset.sg;showSetTab()});
   var spSite="";
   document.addEventListener("change",function(e){var t=e.target;if(t&&t.dataset&&t.dataset.pq){try{localStorage.setItem("josetsu.pq",t.value)}catch(e1){}}});
   $("spFile").addEventListener("change",async function(e){

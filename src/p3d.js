@@ -350,6 +350,12 @@
     }
     phBusy=false; $("phMsg").textContent=ok+"枚を軽量化しました(約 "+Math.round(saved*0.75/1024)+"KB 削減)"+(fail?("。"+fail+"枚は失敗しました。写真が読み込まれてから再度お試しください。"):"。"); renderPhotos();
   });
+  var setTab="jd";
+  function showSetTab(){
+    Array.prototype.forEach.call($("setTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.sg===setTab))});
+    Array.prototype.forEach.call($("setForm").querySelectorAll("[data-sg-box]"),function(d){d.hidden=d.dataset.sgBox!==setTab});
+  }
+  $("setTabs").addEventListener("click",function(e){var b=e.target.closest("button[data-sg]");if(!b)return;setTab=b.dataset.sg;showSetTab()});
   var spSite="";
   document.addEventListener("change",function(e){var t=e.target;if(t&&t.dataset&&t.dataset.pq){try{localStorage.setItem("josetsu.pq",t.value)}catch(e1){}}});
   $("spFile").addEventListener("change",async function(e){
