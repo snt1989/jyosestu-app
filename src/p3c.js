@@ -85,11 +85,11 @@
       };
       if(!window.createImageBitmap)return fallback();
       createImageBitmap(file,{imageOrientation:"from-image"}).then(function(bm){
-        var sc=Math.min(1,1600/Math.max(bm.width,bm.height));
+        var PQ=(window.__PQ?window.__PQ():{side:1600,q:0.82}), sc=Math.min(1,PQ.side/Math.max(bm.width,bm.height));
         var c=document.createElement("canvas"); c.width=Math.max(1,Math.round(bm.width*sc)); c.height=Math.max(1,Math.round(bm.height*sc));
         c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
         if(bm.close)bm.close();
-        c.toBlob(function(b){if(b)resolve({blob:b,type:"image/jpeg"});else fallback()},"image/jpeg",0.82);
+        c.toBlob(function(b){if(b)resolve({blob:b,type:"image/jpeg"});else fallback()},"image/jpeg",PQ.q);
       },fallback);
     });
   }
@@ -222,13 +222,14 @@
   function lbShow(){
     var p=lb.list[lb.i]; if(!p)return;
     $("lbImg").dataset.pid=p.id; $("lbImg").src=blobUrl(p.id);
-    $("lbCap").textContent=(KIND[p.kind]||"写真")+"  "+(lb.i+1)+" / "+lb.list.length;
+    $("lbCap").textContent=(p.kind?(KIND[p.kind]||"写真"):(p.at?fmtDT(p.at):"案件の写真"))+"  "+(lb.i+1)+" / "+lb.list.length;
     $("lb").querySelector(".pv").hidden=lb.list.length<2; $("lb").querySelector(".nx").hidden=lb.list.length<2;
   }
   function openLb(group,i){
     var list=[];
     if(group==="form")list=rf?rf.photos:[];
     else if(group==="detail")list=detailPhotos;
+    else if(group==="site")list=sitePh;
     else if(group.indexOf("rep:")===0){var r=reports.filter(function(x){return x.id===group.slice(4)})[0];list=r?(r.photos||[]):[]}
     list=list.filter(function(p){return okId(p.id)});
     if(!list.length)return;

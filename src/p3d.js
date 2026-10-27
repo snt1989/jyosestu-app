@@ -104,6 +104,11 @@
       renderRfPhotos();
     }
     else if(act==="photo"){openLb(d.g,+d.i)}
+    else if(act==="spadd"){spSite=id;$("spFile").click()}
+    else if(act==="spdel"){
+      if(!arm("spdel:"+id,t,"×"))return;
+      try{await db.doc("sphotos/"+id).delete();try{await assets.delete(id)}catch(e1){}toast("写真を削除しました。")}catch(err){toast("削除できませんでした。")}
+    }
     else if(act==="lbclose"){$("lb").hidden=true}
     else if(act==="lbprev"){lb.i=(lb.i+lb.list.length-1)%lb.list.length;lbShow()}
     else if(act==="lbnext"){lb.i=(lb.i+1)%lb.list.length;lbShow()}
@@ -262,6 +267,24 @@
       toast("取り込みが終わりました。"); render();
     });
   }
+  var spSite="";
+  document.addEventListener("change",function(e){var t=e.target;if(t&&t.dataset&&t.dataset.pq){try{localStorage.setItem("josetsu.pq",t.value)}catch(e1){}}});
+  $("spFile").addEventListener("change",async function(e){
+    var files=Array.prototype.slice.call(e.target.files||[]); e.target.value="";
+    var sid=spSite; if(!sid||!assets||!db||!files.length)return;
+    var msg=function(t){var m=$("spMsg");if(m)m.textContent=t}, ok=0, fails=0, before=0, after=0;
+    for(var i=0;i<files.length;i++){
+      msg("写真を保存しています…("+(i+1)+"/"+files.length+")");
+      try{
+        var sh=await shrink(files[i]); before+=files[i].size;
+        var res=await assets.upload(sh.blob,{type:sh.type}); after+=res.sizeBytes||0;
+        await db.doc("sphotos/"+res.id).set({siteId:sid,at:Date.now(),by:myId||""});
+        ok++;
+      }catch(err){fails++}
+    }
+    var mb=function(n){return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.round(n/1024)+"KB"};
+    msg(ok?(ok+"枚を保存しました(元 "+mb(before)+" → 約 "+mb(after*0.75)+")"+(fails?("。"+fails+"枚は保存できませんでした。"):"")):"写真を保存できませんでした。");
+  });
   var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)またはメールアドレスを入力してください。","auth/email-already-exists":"そのIDは、すでにほかの人が使っています。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
   $("mbCredGo").addEventListener("click",async function(){
     var id=$("mbCredId").value.trim(), pw=$("mbCredPw").value;
@@ -869,6 +892,10 @@
       db.collection("notes").orderBy("at","desc").limit(300).onSnapshot(function(snap){
         notes=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
         render(); resolveNames();
+      },function(){});
+      db.collection("sphotos").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
+        sphotos=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        render();
       },function(){});
       db.collection("announcements").orderBy("at","desc").limit(100).onSnapshot(function(snap){
         if(!annFirst&&snap.docChanges){snap.docChanges().forEach(function(c){var o=c.doc.data();if(c.type==="added"&&o.by!==myId)toast("新しいお知らせ:"+o.title)})}

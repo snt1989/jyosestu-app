@@ -18,7 +18,7 @@ service cloud.firestore {
       allow read: if isMember() && col in ['sites', 'settings', 'masters', 'announcements', 'access'];
       allow write: if isAdmin() && col in ['sites', 'settings', 'masters', 'announcements', 'access'];
       // 作業状況・日報・連絡: メンバーなら読み書きできる
-      allow read, write: if isMember() && col in ['ops', 'reports', 'notes', 'photos'];
+      allow read, write: if isMember() && col in ['ops', 'reports', 'notes', 'photos', 'sphotos'];
       // 単価・メンバー名簿(電話番号): 管理者だけ
       allow read, write: if isAdmin() && col in ['prices', 'members'];
     }

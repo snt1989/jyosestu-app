@@ -140,7 +140,7 @@
     if(!list||!list.length)return "";
     return '<div class="ph">'+list.map(function(p,i){
       if(!okId(p.id))return "";
-      return '<button type="button" data-act="photo" data-g="'+esc(group)+'" data-i="'+i+'" aria-label="写真を大きく表示"><img src="/_blob/'+esc(p.id)+'" alt="'+esc(KIND[p.kind]||"写真")+'" loading="lazy"><span class="pk">'+esc(KIND[p.kind]||"その他")+'</span></button>';
+      return '<button type="button" data-act="photo" data-g="'+esc(group)+'" data-i="'+i+'" aria-label="写真を大きく表示"><img src="'+esc(blobUrl(p.id))+'" alt="'+esc(KIND[p.kind]||"写真")+'" loading="lazy"><span class="pk">'+esc(KIND[p.kind]||"その他")+'</span></button>';
     }).join("")+'</div>';
   }
   var KIND={before:"作業前",after:"作業後",other:"その他"};
@@ -248,18 +248,34 @@
     if(canAdmin)h+='<dt>単価'+admBadge()+'</dt><dd>'+(unitText(s)?'<span class="num">'+esc(unitText(s))+'</span>':'未登録')+'</dd>';
     h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
     h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(s.note?esc(s.note):'なし')+'</dd></dl></div>';
+    h+=sitePhotoSec(s);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
     h+='<div class="sec"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
     h+=reps.length?'<div class="stack">'+reps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>この現場の日報はまだありません</b></div>';
     var phs=[]; reps.forEach(function(r){(r.photos||[]).forEach(function(p){phs.push({id:p.id,kind:p.kind,cap:(r.date||"")})})});
     detailPhotos=phs.slice(0,18);
-    if(detailPhotos.length)h+='<div class="sec"><h2>写真<span class="gc num">'+phs.length+'枚</span></h2></div>'+photoGrid(detailPhotos,"detail");
+    if(detailPhotos.length)h+='<div class="sec"><h2>日報の写真<span class="gc num">'+phs.length+'枚</span></h2></div>'+photoGrid(detailPhotos,"detail");
     var nts=notes.filter(function(x){return x.siteId===s.id});
     h+='<div class="sec"><h2>この現場への連絡</h2></div>';
     h+=nts.length?'<div class="stack">'+nts.slice(0,5).map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はありません</b></div>';
     return h;
   }
-  var detailPhotos=[];
+  var detailPhotos=[], sitePh=[];
+  var PQL={light:{n:"軽量",side:1000,q:0.6,limit:150000},std:{n:"標準",side:1600,q:0.78,limit:350000},high:{n:"高画質",side:2000,q:0.85,limit:700000}};
+  function pqKey(){var k="std";try{k=localStorage.getItem("josetsu.pq")||"std"}catch(e){}return PQL[k]?k:"std"}
+  window.__PQ=function(){return PQL[pqKey()]};
+  function sitePhotoSec(s){
+    sitePh=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)});
+    var can=canPhoto&&assets, h='<div class="sec"><h2>案件の写真<span class="gc num">'+sitePh.length+'枚</span></h2></div>';
+    if(can){
+      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><label>画質(保存時に軽くします)<select data-pq="1">'+Object.keys(PQL).map(function(k){return '<option value="'+k+'"'+(k===pqKey()?' selected':'')+'>'+PQL[k].n+'</option>'}).join("")+'</select></label>'+
+        '<button class="btn primary" type="button" data-act="spadd" data-id="'+esc(s.id)+'">写真を追加</button></div><div class="help" id="spMsg" role="status" style="margin-top:6px">軽量は容量が小さく、標準は文字も読める画質、高画質は細部まで残ります。</div></div>';
+    }
+    if(!sitePh.length)return h+'<div class="empty"><b>この案件の写真はまだありません</b></div>';
+    return h+'<div class="ph">'+sitePh.map(function(p,i){
+      return '<div class="phb"><button type="button" data-act="photo" data-g="site" data-i="'+i+'" style="border:0;padding:0;background:none;width:100%;height:100%;cursor:pointer" aria-label="写真を大きく表示"><img src="'+esc(blobUrl(p.id))+'" alt="案件の写真" loading="lazy"></button><span class="pk">'+esc(p.at?fmtDT(p.at).split(" ")[0]:"")+'</span>'+(can?'<button class="px" type="button" data-act="spdel" data-id="'+esc(p.id)+'" aria-label="この写真を削除">×</button>':'')+'</div>';
+    }).join("")+'</div>';
+  }
   function renderDetail(){
     if(!detailId||$("detail").hidden)return;
     var s=siteById(detailId);

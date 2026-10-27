@@ -9,7 +9,7 @@
   var access={}, accessLoaded=false, myName="";
   function blobUrl(id){return window.__blobUrl?window.__blobUrl(id):"/_blob/"+id}
   var DEFMACH=["手作業","自走式","軽トラ","ローダ"];
-  var sites=[], wx={}, ops={}, reports=[], notes=[], settings=Object.assign({},DEF), sel={};
+  var sites=[], wx={}, ops={}, reports=[], notes=[], sphotos=[], settings=Object.assign({},DEF), sel={};
   var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
   var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
   var dbState="loading", busy={}, lastAt=0, mcpState="loading", lastAreaKey="";

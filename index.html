@@ -772,6 +772,7 @@ tbody tr:last-child td{border-bottom:0}
   </form>
 </div>
 
+<input type="file" id="spFile" accept="image/*" multiple hidden>
 <div class="lb" id="lb" hidden>
   <button class="lbb x" type="button" data-act="lbclose" aria-label="閉じる">×</button>
   <button class="lbb pv" type="button" data-act="lbprev" aria-label="前の写真">‹</button>
@@ -791,7 +792,7 @@ tbody tr:last-child td{border-bottom:0}
   var access={}, accessLoaded=false, myName="";
   function blobUrl(id){return window.__blobUrl?window.__blobUrl(id):"/_blob/"+id}
   var DEFMACH=["手作業","自走式","軽トラ","ローダ"];
-  var sites=[], wx={}, ops={}, reports=[], notes=[], settings=Object.assign({},DEF), sel={};
+  var sites=[], wx={}, ops={}, reports=[], notes=[], sphotos=[], settings=Object.assign({},DEF), sel={};
   var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
   var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
   var dbState="loading", busy={}, lastAt=0, mcpState="loading", lastAreaKey="";
@@ -1082,7 +1083,7 @@ tbody tr:last-child td{border-bottom:0}
     if(!list||!list.length)return "";
     return '<div class="ph">'+list.map(function(p,i){
       if(!okId(p.id))return "";
-      return '<button type="button" data-act="photo" data-g="'+esc(group)+'" data-i="'+i+'" aria-label="写真を大きく表示"><img src="/_blob/'+esc(p.id)+'" alt="'+esc(KIND[p.kind]||"写真")+'" loading="lazy"><span class="pk">'+esc(KIND[p.kind]||"その他")+'</span></button>';
+      return '<button type="button" data-act="photo" data-g="'+esc(group)+'" data-i="'+i+'" aria-label="写真を大きく表示"><img src="'+esc(blobUrl(p.id))+'" alt="'+esc(KIND[p.kind]||"写真")+'" loading="lazy"><span class="pk">'+esc(KIND[p.kind]||"その他")+'</span></button>';
     }).join("")+'</div>';
   }
   var KIND={before:"作業前",after:"作業後",other:"その他"};
@@ -1190,18 +1191,34 @@ tbody tr:last-child td{border-bottom:0}
     if(canAdmin)h+='<dt>単価'+admBadge()+'</dt><dd>'+(unitText(s)?'<span class="num">'+esc(unitText(s))+'</span>':'未登録')+'</dd>';
     h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
     h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(s.note?esc(s.note):'なし')+'</dd></dl></div>';
+    h+=sitePhotoSec(s);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
     h+='<div class="sec"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
     h+=reps.length?'<div class="stack">'+reps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>この現場の日報はまだありません</b></div>';
     var phs=[]; reps.forEach(function(r){(r.photos||[]).forEach(function(p){phs.push({id:p.id,kind:p.kind,cap:(r.date||"")})})});
     detailPhotos=phs.slice(0,18);
-    if(detailPhotos.length)h+='<div class="sec"><h2>写真<span class="gc num">'+phs.length+'枚</span></h2></div>'+photoGrid(detailPhotos,"detail");
+    if(detailPhotos.length)h+='<div class="sec"><h2>日報の写真<span class="gc num">'+phs.length+'枚</span></h2></div>'+photoGrid(detailPhotos,"detail");
     var nts=notes.filter(function(x){return x.siteId===s.id});
     h+='<div class="sec"><h2>この現場への連絡</h2></div>';
     h+=nts.length?'<div class="stack">'+nts.slice(0,5).map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はありません</b></div>';
     return h;
   }
-  var detailPhotos=[];
+  var detailPhotos=[], sitePh=[];
+  var PQL={light:{n:"軽量",side:1000,q:0.6,limit:150000},std:{n:"標準",side:1600,q:0.78,limit:350000},high:{n:"高画質",side:2000,q:0.85,limit:700000}};
+  function pqKey(){var k="std";try{k=localStorage.getItem("josetsu.pq")||"std"}catch(e){}return PQL[k]?k:"std"}
+  window.__PQ=function(){return PQL[pqKey()]};
+  function sitePhotoSec(s){
+    sitePh=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)});
+    var can=canPhoto&&assets, h='<div class="sec"><h2>案件の写真<span class="gc num">'+sitePh.length+'枚</span></h2></div>';
+    if(can){
+      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><label>画質(保存時に軽くします)<select data-pq="1">'+Object.keys(PQL).map(function(k){return '<option value="'+k+'"'+(k===pqKey()?' selected':'')+'>'+PQL[k].n+'</option>'}).join("")+'</select></label>'+
+        '<button class="btn primary" type="button" data-act="spadd" data-id="'+esc(s.id)+'">写真を追加</button></div><div class="help" id="spMsg" role="status" style="margin-top:6px">軽量は容量が小さく、標準は文字も読める画質、高画質は細部まで残ります。</div></div>';
+    }
+    if(!sitePh.length)return h+'<div class="empty"><b>この案件の写真はまだありません</b></div>';
+    return h+'<div class="ph">'+sitePh.map(function(p,i){
+      return '<div class="phb"><button type="button" data-act="photo" data-g="site" data-i="'+i+'" style="border:0;padding:0;background:none;width:100%;height:100%;cursor:pointer" aria-label="写真を大きく表示"><img src="'+esc(blobUrl(p.id))+'" alt="案件の写真" loading="lazy"></button><span class="pk">'+esc(p.at?fmtDT(p.at).split(" ")[0]:"")+'</span>'+(can?'<button class="px" type="button" data-act="spdel" data-id="'+esc(p.id)+'" aria-label="この写真を削除">×</button>':'')+'</div>';
+    }).join("")+'</div>';
+  }
   function renderDetail(){
     if(!detailId||$("detail").hidden)return;
     var s=siteById(detailId);
@@ -1308,11 +1325,11 @@ tbody tr:last-child td{border-bottom:0}
       };
       if(!window.createImageBitmap)return fallback();
       createImageBitmap(file,{imageOrientation:"from-image"}).then(function(bm){
-        var sc=Math.min(1,1600/Math.max(bm.width,bm.height));
+        var PQ=(window.__PQ?window.__PQ():{side:1600,q:0.82}), sc=Math.min(1,PQ.side/Math.max(bm.width,bm.height));
         var c=document.createElement("canvas"); c.width=Math.max(1,Math.round(bm.width*sc)); c.height=Math.max(1,Math.round(bm.height*sc));
         c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
         if(bm.close)bm.close();
-        c.toBlob(function(b){if(b)resolve({blob:b,type:"image/jpeg"});else fallback()},"image/jpeg",0.82);
+        c.toBlob(function(b){if(b)resolve({blob:b,type:"image/jpeg"});else fallback()},"image/jpeg",PQ.q);
       },fallback);
     });
   }
@@ -1445,13 +1462,14 @@ tbody tr:last-child td{border-bottom:0}
   function lbShow(){
     var p=lb.list[lb.i]; if(!p)return;
     $("lbImg").dataset.pid=p.id; $("lbImg").src=blobUrl(p.id);
-    $("lbCap").textContent=(KIND[p.kind]||"写真")+"  "+(lb.i+1)+" / "+lb.list.length;
+    $("lbCap").textContent=(p.kind?(KIND[p.kind]||"写真"):(p.at?fmtDT(p.at):"案件の写真"))+"  "+(lb.i+1)+" / "+lb.list.length;
     $("lb").querySelector(".pv").hidden=lb.list.length<2; $("lb").querySelector(".nx").hidden=lb.list.length<2;
   }
   function openLb(group,i){
     var list=[];
     if(group==="form")list=rf?rf.photos:[];
     else if(group==="detail")list=detailPhotos;
+    else if(group==="site")list=sitePh;
     else if(group.indexOf("rep:")===0){var r=reports.filter(function(x){return x.id===group.slice(4)})[0];list=r?(r.photos||[]):[]}
     list=list.filter(function(p){return okId(p.id)});
     if(!list.length)return;
@@ -1659,6 +1677,11 @@ tbody tr:last-child td{border-bottom:0}
       renderRfPhotos();
     }
     else if(act==="photo"){openLb(d.g,+d.i)}
+    else if(act==="spadd"){spSite=id;$("spFile").click()}
+    else if(act==="spdel"){
+      if(!arm("spdel:"+id,t,"×"))return;
+      try{await db.doc("sphotos/"+id).delete();try{await assets.delete(id)}catch(e1){}toast("写真を削除しました。")}catch(err){toast("削除できませんでした。")}
+    }
     else if(act==="lbclose"){$("lb").hidden=true}
     else if(act==="lbprev"){lb.i=(lb.i+lb.list.length-1)%lb.list.length;lbShow()}
     else if(act==="lbnext"){lb.i=(lb.i+1)%lb.list.length;lbShow()}
@@ -1817,6 +1840,24 @@ tbody tr:last-child td{border-bottom:0}
       toast("取り込みが終わりました。"); render();
     });
   }
+  var spSite="";
+  document.addEventListener("change",function(e){var t=e.target;if(t&&t.dataset&&t.dataset.pq){try{localStorage.setItem("josetsu.pq",t.value)}catch(e1){}}});
+  $("spFile").addEventListener("change",async function(e){
+    var files=Array.prototype.slice.call(e.target.files||[]); e.target.value="";
+    var sid=spSite; if(!sid||!assets||!db||!files.length)return;
+    var msg=function(t){var m=$("spMsg");if(m)m.textContent=t}, ok=0, fails=0, before=0, after=0;
+    for(var i=0;i<files.length;i++){
+      msg("写真を保存しています…("+(i+1)+"/"+files.length+")");
+      try{
+        var sh=await shrink(files[i]); before+=files[i].size;
+        var res=await assets.upload(sh.blob,{type:sh.type}); after+=res.sizeBytes||0;
+        await db.doc("sphotos/"+res.id).set({siteId:sid,at:Date.now(),by:myId||""});
+        ok++;
+      }catch(err){fails++}
+    }
+    var mb=function(n){return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.round(n/1024)+"KB"};
+    msg(ok?(ok+"枚を保存しました(元 "+mb(before)+" → 約 "+mb(after*0.75)+")"+(fails?("。"+fails+"枚は保存できませんでした。"):"")):"写真を保存できませんでした。");
+  });
   var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)またはメールアドレスを入力してください。","auth/email-already-exists":"そのIDは、すでにほかの人が使っています。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
   $("mbCredGo").addEventListener("click",async function(){
     var id=$("mbCredId").value.trim(), pw=$("mbCredPw").value;
@@ -2424,6 +2465,10 @@ tbody tr:last-child td{border-bottom:0}
       db.collection("notes").orderBy("at","desc").limit(300).onSnapshot(function(snap){
         notes=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
         render(); resolveNames();
+      },function(){});
+      db.collection("sphotos").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
+        sphotos=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        render();
       },function(){});
       db.collection("announcements").orderBy("at","desc").limit(100).onSnapshot(function(snap){
         if(!annFirst&&snap.docChanges){snap.docChanges().forEach(function(c){var o=c.doc.data();if(c.type==="added"&&o.by!==myId)toast("新しいお知らせ:"+o.title)})}

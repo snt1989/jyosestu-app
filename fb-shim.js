@@ -43,14 +43,14 @@
       var img=new Image(), u=URL.createObjectURL(blob);
       img.onload=function(){
         URL.revokeObjectURL(u);
-        var side=1200, q=0.78;
+        var P=(window.__PQ?window.__PQ():{side:1200,q:0.78}), side=P.side, q=P.q;
         for(var i=0;i<8;i++){
           var k=Math.min(1,side/Math.max(img.width,img.height)), c=document.createElement("canvas");
           c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k));
           c.getContext("2d").drawImage(img,0,0,c.width,c.height);
           var url=c.toDataURL("image/jpeg",q);
           if(url.length<=limit)return resolve(url);
-          side=Math.round(side*0.8); q=Math.max(0.5,q-0.06);
+          side=Math.round(side*0.8); q=Math.max(0.4,q-0.06);
         }
         reject(new Error("too_large"));
       };
@@ -193,7 +193,7 @@
       return {
         upload:async function(blob,o){
           var id=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,""):String(Date.now())+Math.random().toString(36).slice(2));
-          var url=await shrinkTo(blob,700000);
+          var url=await shrinkTo(blob,(window.__PQ?window.__PQ().limit:700000));
           await fs.doc("photos/"+id).set({data:url,type:"image/jpeg",at:Date.now(),by:s0.u.uid});
           pcache[id]=url;
           return {id:id,url:url,sizeBytes:url.length,contentType:"image/jpeg"};
