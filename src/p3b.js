@@ -261,15 +261,18 @@
     return h;
   }
   var detailPhotos=[], sitePh=[];
-  var PQL={light:{n:"軽量",side:1000,q:0.6,limit:150000},std:{n:"標準",side:1600,q:0.78,limit:350000},high:{n:"高画質",side:2000,q:0.85,limit:700000}};
-  function pqKey(){var k="std";try{k=localStorage.getItem("josetsu.pq")||"std"}catch(e){}return PQL[k]?k:"std"}
-  window.__PQ=function(){return PQL[pqKey()]};
+  var PQD={light:{n:"軽量",side:1000,q:60,kb:110},std:{n:"標準",side:1600,q:78,kb:260},high:{n:"高画質",side:2000,q:85,kb:520}};
+  function pql(k){var d=PQD[k]||PQD.std, o=(settings.photo&&settings.photo[k])||{};
+    var side=Math.min(4000,Math.max(300,+o.side||d.side)), q=Math.min(95,Math.max(30,+o.q||d.q)), kb=Math.min(700,Math.max(30,+o.kb||d.kb));
+    return {n:d.n,side:side,q:q/100,limit:Math.round(kb*1365)}}
+  function pqKey(){var k=settings.photo&&settings.photo.level;return PQD[k]?k:"std"}
+  window.__PQ=function(){return pql(pqKey())};
   function sitePhotoSec(s){
     sitePh=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)});
     var can=canPhoto&&assets, h='<div class="sec"><h2>案件の写真<span class="gc num">'+sitePh.length+'枚</span></h2></div>';
     if(can){
-      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><label>画質(保存時に軽くします)<select data-pq="1">'+Object.keys(PQL).map(function(k){return '<option value="'+k+'"'+(k===pqKey()?' selected':'')+'>'+PQL[k].n+'</option>'}).join("")+'</select></label>'+
-        '<button class="btn primary" type="button" data-act="spadd" data-id="'+esc(s.id)+'">写真を追加</button></div><div class="help" id="spMsg" role="status" style="margin-top:6px">軽量は容量が小さく、標準は文字も読める画質、高画質は細部まで残ります。</div></div>';
+      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><div class="help">保存時の画質:<b>'+esc(PQD[pqKey()].n)+'</b>(管理者が設定で決めています)</div>'+
+        '<button class="btn primary" type="button" data-act="spadd" data-id="'+esc(s.id)+'">写真を追加</button></div><div class="help" id="spMsg" role="status" style="margin-top:6px">保存するときに、自動で軽くします。</div></div>';
     }
     if(!sitePh.length)return h+'<div class="empty"><b>この案件の写真はまだありません</b></div>';
     return h+'<div class="ph">'+sitePh.map(function(p,i){

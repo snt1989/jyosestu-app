@@ -671,6 +671,11 @@ tbody tr:last-child td{border-bottom:0}
         <div class="form-row"><label for="sMult">降雪量の換算倍率</label><div><input id="sMult" type="number" min="0.3" max="3" step="0.1" value="1"><span class="help">標準は1.0。予報より積もりやすい地域は大きくします。</span></div></div>
         <div class="form-row"><label for="sReq">ログインの制限</label><div><select id="sReq"><option value="0">しない(共有された人は誰でも使える)</option><option value="1">する(連携したメンバーだけ使える)</option></select><span class="help">「する」にすると、ログインアカウントを連携していない人には、利用できない画面を表示します。管理者は常に使えます。連携したメンバーが1人もいないあいだは制限されません。</span></div></div>
         <div class="form-row"><label for="sRefresh">天気の自動更新</label><div><select id="sRefresh"><option value="5">5分ごと</option><option value="10">10分ごと</option><option value="30">30分ごと</option><option value="60">60分ごと</option></select><span class="help">画面を開いている間だけ更新します。</span></div></div>
+        <h2 class="ah" style="margin-top:18px">写真の画質</h2>
+        <div class="form-row"><label for="pqLevel">保存時の画質</label><div><select id="pqLevel"><option value="light">軽量</option><option value="std">標準</option><option value="high">高画質</option></select><span class="help">写真を保存するとき、ここで選んだ画質で自動的に軽くします。メンバーは変更できません。変えても、すでに保存した写真はそのままです(「写真の管理」で軽量化できます)。</span></div></div>
+        <div class="form-row"><label>軽量</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_light_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_light_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_light_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
+        <div class="form-row"><label>標準</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_std_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_std_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_std_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
+        <div class="form-row"><label>高画質</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_high_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_high_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_high_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
         <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="sSave">設定を保存</button><span class="muted" id="sMsg" role="status"></span></div></div>
       </form>
       </div>
@@ -1225,15 +1230,18 @@ tbody tr:last-child td{border-bottom:0}
     return h;
   }
   var detailPhotos=[], sitePh=[];
-  var PQL={light:{n:"軽量",side:1000,q:0.6,limit:150000},std:{n:"標準",side:1600,q:0.78,limit:350000},high:{n:"高画質",side:2000,q:0.85,limit:700000}};
-  function pqKey(){var k="std";try{k=localStorage.getItem("josetsu.pq")||"std"}catch(e){}return PQL[k]?k:"std"}
-  window.__PQ=function(){return PQL[pqKey()]};
+  var PQD={light:{n:"軽量",side:1000,q:60,kb:110},std:{n:"標準",side:1600,q:78,kb:260},high:{n:"高画質",side:2000,q:85,kb:520}};
+  function pql(k){var d=PQD[k]||PQD.std, o=(settings.photo&&settings.photo[k])||{};
+    var side=Math.min(4000,Math.max(300,+o.side||d.side)), q=Math.min(95,Math.max(30,+o.q||d.q)), kb=Math.min(700,Math.max(30,+o.kb||d.kb));
+    return {n:d.n,side:side,q:q/100,limit:Math.round(kb*1365)}}
+  function pqKey(){var k=settings.photo&&settings.photo.level;return PQD[k]?k:"std"}
+  window.__PQ=function(){return pql(pqKey())};
   function sitePhotoSec(s){
     sitePh=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)});
     var can=canPhoto&&assets, h='<div class="sec"><h2>案件の写真<span class="gc num">'+sitePh.length+'枚</span></h2></div>';
     if(can){
-      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><label>画質(保存時に軽くします)<select data-pq="1">'+Object.keys(PQL).map(function(k){return '<option value="'+k+'"'+(k===pqKey()?' selected':'')+'>'+PQL[k].n+'</option>'}).join("")+'</select></label>'+
-        '<button class="btn primary" type="button" data-act="spadd" data-id="'+esc(s.id)+'">写真を追加</button></div><div class="help" id="spMsg" role="status" style="margin-top:6px">軽量は容量が小さく、標準は文字も読める画質、高画質は細部まで残ります。</div></div>';
+      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><div class="help">保存時の画質:<b>'+esc(PQD[pqKey()].n)+'</b>(管理者が設定で決めています)</div>'+
+        '<button class="btn primary" type="button" data-act="spadd" data-id="'+esc(s.id)+'">写真を追加</button></div><div class="help" id="spMsg" role="status" style="margin-top:6px">保存するときに、自動で軽くします。</div></div>';
     }
     if(!sitePh.length)return h+'<div class="empty"><b>この案件の写真はまだありません</b></div>';
     return h+'<div class="ph">'+sitePh.map(function(p,i){
@@ -1806,6 +1814,7 @@ tbody tr:last-child td{border-bottom:0}
   function fillSettings(){
     if($("setForm").contains(document.activeElement))return;
     $("sDefTh").value=settings.defaultTh; $("sIce").value=settings.iceTemp; $("sMult").value=settings.mult; $("sRefresh").value=String(settings.refreshMin); $("sReq").value=settings.requireLogin?"1":"0";
+    $("pqLevel").value=pqKey(); ["light","std","high"].forEach(function(k){var p=pql(k);$("pq_"+k+"_s").value=p.side;$("pq_"+k+"_q").value=Math.round(p.q*100);$("pq_"+k+"_k").value=Math.round(p.limit/1365)});
   }
   var members=[], mbEdit=null, mbDel=null;
   function mbVisible(){
@@ -1910,7 +1919,7 @@ tbody tr:last-child td{border-bottom:0}
       var u=window.__blobUrl?window.__blobUrl(id):""; if(!u||u.indexOf("data:image")!==0)return reject(new Error("notloaded"));
       var img=new Image();
       img.onload=function(){
-        var P=PQL[lv]||PQL.light, side=P.side, q=P.q, url="";
+        var P=pql(lv), side=P.side, q=P.q, url="";
         for(var i=0;i<8;i++){
           var k=Math.min(1,side/Math.max(img.width,img.height)), c=document.createElement("canvas");
           c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k));
@@ -2298,7 +2307,8 @@ tbody tr:last-child td{border-bottom:0}
       iceTemp:isFinite(ice)?ice:0,
       mult:Math.min(3,Math.max(0.3,isFinite(mult)&&mult>0?mult:1)),
       refreshMin:parseInt($("sRefresh").value,10)||10,
-      requireLogin:$("sReq").value==="1"
+      requireLogin:$("sReq").value==="1",
+      photo:(function(){var o={level:$("pqLevel").value};["light","std","high"].forEach(function(k){o[k]={side:+$("pq_"+k+"_s").value||0,q:+$("pq_"+k+"_q").value||0,kb:+$("pq_"+k+"_k").value||0}});return o})()
     };
     $("sSave").disabled=true;
     try{await db.doc("settings/main").set(d);flash("sMsg","保存しました。")}

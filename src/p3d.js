@@ -212,6 +212,7 @@
   function fillSettings(){
     if($("setForm").contains(document.activeElement))return;
     $("sDefTh").value=settings.defaultTh; $("sIce").value=settings.iceTemp; $("sMult").value=settings.mult; $("sRefresh").value=String(settings.refreshMin); $("sReq").value=settings.requireLogin?"1":"0";
+    $("pqLevel").value=pqKey(); ["light","std","high"].forEach(function(k){var p=pql(k);$("pq_"+k+"_s").value=p.side;$("pq_"+k+"_q").value=Math.round(p.q*100);$("pq_"+k+"_k").value=Math.round(p.limit/1365)});
   }
   var members=[], mbEdit=null, mbDel=null;
   function mbVisible(){
@@ -316,7 +317,7 @@
       var u=window.__blobUrl?window.__blobUrl(id):""; if(!u||u.indexOf("data:image")!==0)return reject(new Error("notloaded"));
       var img=new Image();
       img.onload=function(){
-        var P=PQL[lv]||PQL.light, side=P.side, q=P.q, url="";
+        var P=pql(lv), side=P.side, q=P.q, url="";
         for(var i=0;i<8;i++){
           var k=Math.min(1,side/Math.max(img.width,img.height)), c=document.createElement("canvas");
           c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k));
@@ -704,7 +705,8 @@
       iceTemp:isFinite(ice)?ice:0,
       mult:Math.min(3,Math.max(0.3,isFinite(mult)&&mult>0?mult:1)),
       refreshMin:parseInt($("sRefresh").value,10)||10,
-      requireLogin:$("sReq").value==="1"
+      requireLogin:$("sReq").value==="1",
+      photo:(function(){var o={level:$("pqLevel").value};["light","std","high"].forEach(function(k){o[k]={side:+$("pq_"+k+"_s").value||0,q:+$("pq_"+k+"_q").value||0,kb:+$("pq_"+k+"_k").value||0}});return o})()
     };
     $("sSave").disabled=true;
     try{await db.doc("settings/main").set(d);flash("sMsg","保存しました。")}
