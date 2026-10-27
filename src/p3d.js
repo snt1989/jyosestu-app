@@ -245,7 +245,19 @@
     $("mbAcctClr").hidden=!mbUid; var t="未連携";
     if(mbUid){t="連携済";try{var ps=user&&user.profiles?await user.profiles([mbUid]):null;if(ps&&ps[mbUid]&&ps[mbUid].name)t="連携済:"+ps[mbUid].name}catch(e){}}
     $("mbAcctNow").textContent=t;
+    var cr=$("mbCred"); cr.hidden=!(mbUid&&window.__FB&&window.__FB.updateAccount&&canAdmin);
+    $("mbCredMsg").textContent=""; $("mbCredPw").value=""; $("mbCredId").value="";
+    if(!cr.hidden){try{var cid=await window.__FB.accountId(mbUid);$("mbCredId").placeholder="現在のID:"+(cid||"不明")+"(変える場合だけ入力)"}catch(e){}}
   }
+  var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)またはメールアドレスを入力してください。","auth/email-already-exists":"そのIDは、すでにほかの人が使っています。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
+  $("mbCredGo").addEventListener("click",async function(){
+    var id=$("mbCredId").value.trim(), pw=$("mbCredPw").value;
+    if(!id&&!pw){$("mbCredMsg").textContent=CERR.nothing;return}
+    var b=$("mbCredGo"); b.disabled=true; $("mbCredMsg").textContent="更新しています…";
+    try{await window.__FB.updateAccount(mbUid,{id:id,password:pw});$("mbCredMsg").textContent="更新しました。本人には新しい情報を伝えてください。";$("mbCredPw").value="";$("mbCredId").value="";try{var cid=await window.__FB.accountId(mbUid);$("mbCredId").placeholder="現在のID:"+(cid||"不明")+"(変える場合だけ入力)"}catch(e){}}
+    catch(err){$("mbCredMsg").textContent=CERR[err.message]||("更新できませんでした("+err.message+")")}
+    b.disabled=false;
+  });
   $("mbAcctMe").addEventListener("click",function(){if(myId){mbUid=myId;mbAcctShow()}else $("mbMsg").textContent="自分のアカウントを取得できませんでした。"});
   $("mbAcctClr").addEventListener("click",function(){mbUid="";mbAcctShow()});
   var mbSt;

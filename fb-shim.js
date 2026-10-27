@@ -63,6 +63,15 @@
     setRole:function(uid,role){
       if(!cur||!cur.isAdm)return Promise.reject(new Error("admin only"));
       return fs.doc("users/"+uid).update({role:role});
+    },
+    accountId:async function(uid){var d=await fs.doc("users/"+uid).get();return d.exists?disp((d.data()||{}).email):""},
+    updateAccount:async function(uid,o){
+      var u=auth.currentUser; if(!u)throw new Error("login");
+      var tok=await u.getIdToken();
+      var r=await fetch("/api/account",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify({uid:uid,id:o.id||"",password:o.password||""})});
+      var j={};try{j=await r.json()}catch(e){}
+      if(!r.ok)throw new Error(j.error||("http"+r.status));
+      return true;
     }
   };
 

@@ -30,3 +30,6 @@ Firebase(ログイン・保存・写真)と Vercel(公開・天気API)で動き�
 - 天気の元データは [Open-Meteo](https://open-meteo.com/) の無料枠です。**無料枠は非商用向けです。** 事業で使うときは有料プランか、別の天気APIへの切り替えが必要です(`api/weather.js` だけを直せば済みます)。警報・注意報は取得しません。
 - 写真は縮小(長辺1200px程度・約0.5MB以下)して Firestore に保存します。Storage は有料プランが必要なため使いません。写真が多いと Firestore の無料枠(1日5万回の読み取り)を使うため、増えたら Blaze プランと Storage への切り替えを検討してください。メンバーだけが読み書きできます。
 - 今回のルールは、実際のFirebaseでは未検証です。公開前に、管理者・メンバー・承認待ちの3種類でログインして確認してください。
+
+## メンバーのパスワード・ID変更(管理者用)
+`/api/account` が Firebase Admin SDK で変更します。Vercel の環境変数 `FIREBASE_SERVICE_ACCOUNT` に、サービスアカウントの鍵(JSON 全体)を登録してください(Production)。鍵は GitHub や画面に出さないでください。管理者メールを増やす場合は `ADMIN_EMAILS`(カンマ区切り)も設定します。

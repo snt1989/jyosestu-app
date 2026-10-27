@@ -191,7 +191,13 @@
         <div class="form-row"><label for="mbAcctQ">ログインアカウント</label><div>
           <div class="mbacct"><span id="mbAcctNow" class="mbacct-now">未連携</span><button class="btn sm" type="button" id="mbAcctMe">自分を連携</button><button class="btn sm" type="button" id="mbAcctClr" hidden>解除</button></div>
           <input id="mbAcctQ" type="search" maxlength="40" placeholder="名前で探して連携" autocomplete="off"><div id="mbAcctRes" class="mbres"></div>
-          <span class="help">連携した人がこのアプリにログインすると、このメンバーとして表示されます。</span></div></div>
+          <span class="help">連携した人がこのアプリにログインすると、このメンバーとして表示されます。</span>
+          <div id="mbCred" hidden style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
+            <div class="help" style="margin-bottom:6px">ログイン情報の変更(管理者のみ)。変えたい項目だけ入力して「更新」を押します。</div>
+            <input id="mbCredId" type="text" maxlength="80" placeholder="新しい電話番号またはメールアドレス" autocomplete="off" style="margin-bottom:6px">
+            <input id="mbCredPw" type="text" maxlength="60" placeholder="新しいパスワード(6文字以上)" autocomplete="off" style="margin-bottom:6px">
+            <div class="row2"><button class="btn sm" type="button" id="mbCredGo">ログイン情報を更新</button><span class="muted" id="mbCredMsg" role="status"></span></div>
+          </div></div></div>
         <div class="form-row"><label for="mbActive">状態</label><div><select id="mbActive"><option value="1">在籍</option><option value="0">休止中</option></select></div></div>
         <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="mbSave">保存</button><button class="btn" type="button" id="mbCancel">キャンセル</button><span class="muted" id="mbMsg" role="status"></span></div></div>
       </form>

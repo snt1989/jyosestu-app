@@ -621,7 +621,13 @@ tbody tr:last-child td{border-bottom:0}
         <div class="form-row"><label for="mbAcctQ">ログインアカウント</label><div>
           <div class="mbacct"><span id="mbAcctNow" class="mbacct-now">未連携</span><button class="btn sm" type="button" id="mbAcctMe">自分を連携</button><button class="btn sm" type="button" id="mbAcctClr" hidden>解除</button></div>
           <input id="mbAcctQ" type="search" maxlength="40" placeholder="名前で探して連携" autocomplete="off"><div id="mbAcctRes" class="mbres"></div>
-          <span class="help">連携した人がこのアプリにログインすると、このメンバーとして表示されます。</span></div></div>
+          <span class="help">連携した人がこのアプリにログインすると、このメンバーとして表示されます。</span>
+          <div id="mbCred" hidden style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
+            <div class="help" style="margin-bottom:6px">ログイン情報の変更(管理者のみ)。変えたい項目だけ入力して「更新」を押します。</div>
+            <input id="mbCredId" type="text" maxlength="80" placeholder="新しい電話番号またはメールアドレス" autocomplete="off" style="margin-bottom:6px">
+            <input id="mbCredPw" type="text" maxlength="60" placeholder="新しいパスワード(6文字以上)" autocomplete="off" style="margin-bottom:6px">
+            <div class="row2"><button class="btn sm" type="button" id="mbCredGo">ログイン情報を更新</button><span class="muted" id="mbCredMsg" role="status"></span></div>
+          </div></div></div>
         <div class="form-row"><label for="mbActive">状態</label><div><select id="mbActive"><option value="1">在籍</option><option value="0">休止中</option></select></div></div>
         <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="mbSave">保存</button><button class="btn" type="button" id="mbCancel">キャンセル</button><span class="muted" id="mbMsg" role="status"></span></div></div>
       </form>
@@ -1789,7 +1795,19 @@ tbody tr:last-child td{border-bottom:0}
     $("mbAcctClr").hidden=!mbUid; var t="未連携";
     if(mbUid){t="連携済";try{var ps=user&&user.profiles?await user.profiles([mbUid]):null;if(ps&&ps[mbUid]&&ps[mbUid].name)t="連携済:"+ps[mbUid].name}catch(e){}}
     $("mbAcctNow").textContent=t;
+    var cr=$("mbCred"); cr.hidden=!(mbUid&&window.__FB&&window.__FB.updateAccount&&canAdmin);
+    $("mbCredMsg").textContent=""; $("mbCredPw").value=""; $("mbCredId").value="";
+    if(!cr.hidden){try{var cid=await window.__FB.accountId(mbUid);$("mbCredId").placeholder="現在のID:"+(cid||"不明")+"(変える場合だけ入力)"}catch(e){}}
   }
+  var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)またはメールアドレスを入力してください。","auth/email-already-exists":"そのIDは、すでにほかの人が使っています。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
+  $("mbCredGo").addEventListener("click",async function(){
+    var id=$("mbCredId").value.trim(), pw=$("mbCredPw").value;
+    if(!id&&!pw){$("mbCredMsg").textContent=CERR.nothing;return}
+    var b=$("mbCredGo"); b.disabled=true; $("mbCredMsg").textContent="更新しています…";
+    try{await window.__FB.updateAccount(mbUid,{id:id,password:pw});$("mbCredMsg").textContent="更新しました。本人には新しい情報を伝えてください。";$("mbCredPw").value="";$("mbCredId").value="";try{var cid=await window.__FB.accountId(mbUid);$("mbCredId").placeholder="現在のID:"+(cid||"不明")+"(変える場合だけ入力)"}catch(e){}}
+    catch(err){$("mbCredMsg").textContent=CERR[err.message]||("更新できませんでした("+err.message+")")}
+    b.disabled=false;
+  });
   $("mbAcctMe").addEventListener("click",function(){if(myId){mbUid=myId;mbAcctShow()}else $("mbMsg").textContent="自分のアカウントを取得できませんでした。"});
   $("mbAcctClr").addEventListener("click",function(){mbUid="";mbAcctShow()});
   var mbSt;
