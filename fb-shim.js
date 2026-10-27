@@ -64,6 +64,7 @@
       if(!cur||!cur.isAdm)return Promise.reject(new Error("admin only"));
       return fs.doc("users/"+uid).update({role:role});
     },
+    setPhotoCache:function(id,u){pcache[id]=u},
     accountId:async function(uid){var d=await fs.doc("users/"+uid).get();return d.exists?disp((d.data()||{}).email):""},
     updateAccount:async function(uid,o){
       var u=auth.currentUser; if(!u)throw new Error("login");
