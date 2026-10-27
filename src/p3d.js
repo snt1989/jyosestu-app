@@ -6,20 +6,26 @@
     reports:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
     notes:'<path d="M4 5h16v11H9l-5 4z"/>',
     stats:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    members:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.2c2.7 0 4.5 2 4.5 4.8"/>',
     admin:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'
   };
   var TABS=[["home","ホーム"],["sites","現場一覧"],["reports","日報"],["notes","連絡"],["stats","集計"],["admin","設定"]];
   function goto(v,f){
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
-    view=v; render(); window.scrollTo(0,0);
+    if(v==="members"){view="admin";sub="members"}
+    else{view=v;if(v==="admin"&&sub==="members")sub="sites"}
+    render(); window.scrollTo(0,0);
   }
   window.addEventListener("blobloaded",function(){render();var lb=$("lbImg");if(lb&&lb.dataset.pid){var u=blobUrl(lb.dataset.pid);if(u)lb.src=u}});
   var rqT=0;
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
   function doRender(){
     if(!canAdmin&&view==="admin")view="home";
-    $("tabbar").innerHTML=TABS.filter(function(t){return t[0]!=="admin"||canAdmin}).map(function(t){
-      return '<button type="button" data-nav="'+t[0]+'"'+(view===t[0]?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg>'+t[1]+'</button>';
+    var NAV=TABS.slice(0,5);
+    if(canAdmin){NAV.push(["members","メンバー管理"]);NAV.push(["admin","設定"])}
+    $("tabbar").innerHTML=NAV.map(function(t){
+      var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):view===t[0];
+      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg>'+t[1]+'</button>';
     }).join("");
     TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
@@ -422,6 +428,8 @@
     Array.prototype.forEach.call($("subtabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.sub===sub))});
     var DESC={members:"社内メンバーの名簿を管理します。担当班は、マスタの担当班から選べます。",sites:"現場の登録・編集と、出動基準・担当班のまとめ変更、作業状況のリセットができます。",master:"地区・担当班・使用機械の選択肢を管理します。現場や日報の入力欄の候補になります。",set:"出動目安の判定に使う基準と、天気の自動更新の間隔を設定します。"};
     $("admDesc").textContent=DESC[sub]||"";
+    $("subtabs").hidden=(sub==="members");
+    var h1=document.querySelector(".admh1"); if(h1)h1.textContent=(sub==="members"?"メンバー管理":"設定");
     Array.prototype.forEach.call($("siteTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.st===stab))});
     Array.prototype.forEach.call($("mTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.mt===mtab))});
     $("adm-s-list").hidden=stab!=="list"; $("adm-s-csv").hidden=stab!=="csv";
