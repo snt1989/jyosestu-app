@@ -123,6 +123,11 @@
 
       </div>
       <div id="adm-s-csv" hidden>
+      <div class="panel" id="impPanel" style="max-width:760px;margin-bottom:12px" hidden>
+        <h3 class="mbft">以前のデータの取り込み(JSON)</h3>
+        <p class="help" style="margin:4px 0 8px">引き継ぎ用のファイル(josetsu-data.json)を選ぶと、現場・マスタ・単価・作業状況を取り込みます。同じ番号のデータは上書きされます。</p>
+        <div class="row2"><input type="file" id="impFile" accept="application/json,.json"><button class="btn primary" type="button" id="impGo">取り込む</button><span class="muted" id="impMsg" role="status"></span></div>
+      </div>
       <div class="panel" style="max-width:760px">
         <div class="row2">
           <button class="btn" type="button" id="csvOut">CSVで書き出す</button>

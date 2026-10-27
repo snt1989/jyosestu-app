@@ -249,6 +249,19 @@
     $("mbCredMsg").textContent=""; $("mbCredPw").value=""; $("mbCredId").value="";
     if(!cr.hidden){try{var cid=await window.__FB.accountId(mbUid);$("mbCredId").placeholder="現在のID:"+(cid||"不明")+"(変える場合だけ入力)"}catch(e){}}
   }
+  if(window.__FB&&$("impPanel")){
+    $("impPanel").hidden=false;
+    $("impGo").addEventListener("click",async function(){
+      var f=$("impFile").files[0], m=$("impMsg"); if(!f){m.textContent="ファイルを選んでください。";return}
+      var j; try{j=JSON.parse(await f.text())}catch(e){m.textContent="ファイルを読めませんでした。";return}
+      if(!j||j.format!=="josetsu-export-v1"||!j.collections){m.textContent="引き継ぎ用のファイルではありません。";return}
+      var ALLOW=["sites","masters","ops","prices"], n=0, bad=0; $("impGo").disabled=true; m.textContent="取り込み中…";
+      for(var ci=0;ci<ALLOW.length;ci++){var c=ALLOW[ci],o=j.collections[c]||{},ids=Object.keys(o);
+        for(var k=0;k<ids.length;k++){try{await db.doc(c+"/"+ids[k]).set(o[ids[k]]);n++}catch(e){bad++}}}
+      $("impGo").disabled=false; m.textContent=n+"件を取り込みました"+(bad?("(失敗 "+bad+"件)"):"。");
+      toast("取り込みが終わりました。"); render();
+    });
+  }
   var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)またはメールアドレスを入力してください。","auth/email-already-exists":"そのIDは、すでにほかの人が使っています。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
   $("mbCredGo").addEventListener("click",async function(){
     var id=$("mbCredId").value.trim(), pw=$("mbCredPw").value;
