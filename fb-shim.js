@@ -15,7 +15,7 @@
   function title(t){return '<div style="text-align:center;margin-bottom:14px"><div style="font-size:1.25rem;font-weight:700;color:#175C40">除雪管理アプリ</div><div style="color:#5C6459;font-size:.9rem;margin-top:2px">'+t+'</div></div>'}
   function never(){return new Promise(function(){})}
   function failScreen(msg){overlay(title("設定が必要です")+'<p style="line-height:1.7;font-size:.92rem">'+msg+'</p>');return never()}
-  var ERR={"auth/invalid-email":"メールアドレスの形式が正しくありません。","auth/user-not-found":"メールアドレスかパスワードが違います。","auth/wrong-password":"メールアドレスかパスワードが違います。","auth/invalid-credential":"メールアドレスかパスワードが違います。","auth/email-already-in-use":"このメールアドレスは、すでに登録されています。","auth/weak-password":"パスワードは6文字以上にしてください。","auth/too-many-requests":"試行が多すぎます。しばらくしてからお試しください。","auth/network-request-failed":"通信できませんでした。"};
+  var ERR={"auth/invalid-email":"電話番号またはメールアドレスの形式が正しくありません。","auth/user-not-found":"電話番号(メール)かパスワードが違います。","auth/wrong-password":"電話番号(メール)かパスワードが違います。","auth/invalid-credential":"電話番号(メール)かパスワードが違います。","auth/email-already-in-use":"この電話番号(メール)は、すでに登録されています。","auth/weak-password":"パスワードは6文字以上にしてください。","auth/too-many-requests":"試行が多すぎます。しばらくしてからお試しください。","auth/network-request-failed":"通信できませんでした。"};
 
   if(!cfg.apiKey||!window.firebase){
     window.claude={use:async function(){return failScreen("Firebase の設定が未入力です。<code>firebase-config.js</code> に設定値を入れて、もう一度デプロイしてください。")}};
@@ -66,12 +66,19 @@
     }
   };
 
+  var PD="@phone.josetsu-app.example";
+  function toId(v){
+    v=String(v||"").trim(); if(v.indexOf("@")>=0)return v;
+    var d=v.replace(/[\s\-－ー‐()（）+]/g,"").replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248)});
+    return /^\d{9,15}$/.test(d)?d+PD:"";
+  }
+  function disp(e){e=String(e||"");return e.slice(-PD.length)===PD?e.slice(0,-PD.length):e}
   function showLogin(){
     var mode="in";
     function draw(msg,ok){
       var el=overlay(title(mode==="in"?"ログイン":"新規登録")+
         (mode==="up"?'<label style="font-size:.85rem;font-weight:700">お名前<input id="fbName" autocomplete="name" style="'+INPUT+'"></label>':'')+
-        '<label style="font-size:.85rem;font-weight:700">メールアドレス<input id="fbMail" type="email" autocomplete="username" style="'+INPUT+'"></label>'+
+        '<label style="font-size:.85rem;font-weight:700">電話番号(またはメールアドレス)<input id="fbMail" type="text" inputmode="tel" autocomplete="username" placeholder="09012345678" style="'+INPUT+'"></label>'+
         '<label style="font-size:.85rem;font-weight:700">パスワード<input id="fbPw" type="password" autocomplete="'+(mode==="in"?"current-password":"new-password")+'" style="'+INPUT+'"></label>'+
         '<div id="fbMsg" role="status" style="min-height:1.4em;font-size:.85rem;color:'+(ok?"#1E6B45":"#C1443C")+';margin-bottom:8px">'+esc(msg||"")+'</div>'+
         '<button id="fbGo" type="button" style="'+BTN+'">'+(mode==="in"?"ログイン":"登録する")+'</button>'+
@@ -80,17 +87,17 @@
       var mail=el.querySelector("#fbMail"), pw=el.querySelector("#fbPw");
       el.querySelector("#fbSw").onclick=function(){mode=mode==="in"?"up":"in";draw()};
       var rs=el.querySelector("#fbRs"); if(rs)rs.onclick=function(){
-        var m=mail.value.trim(); if(!m){draw("メールアドレスを入力してください。");return}
+        var m=toId(mail.value); if(!m||m.slice(-PD.length)===PD){draw(m?"電話番号のパスワード再設定は、管理者に依頼してください。":"メールアドレスを入力してください。");return}
         auth.sendPasswordResetEmail(m).then(function(){draw("再設定のメールを送りました。",true)},function(e){draw(ERR[e.code]||"送信できませんでした。")});
       };
       function go(){
-        var m=mail.value.trim(), p=pw.value; if(!m||!p){draw("メールアドレスとパスワードを入力してください。");return}
+        var m=toId(mail.value), p=pw.value; if(!mail.value.trim()||!p){draw("電話番号とパスワードを入力してください。");return} if(!m){draw("電話番号は数字9〜15桁で入力してください。");return}
         var b=el.querySelector("#fbGo"); b.disabled=true;
         if(mode==="in")auth.signInWithEmailAndPassword(m,p).then(function(){location.reload()},function(e){draw(ERR[e.code]||"ログインできませんでした。")});
         else{
           var nm=(el.querySelector("#fbName").value||"").trim();
           auth.createUserWithEmailAndPassword(m,p).then(function(c){
-            return c.user.updateProfile({displayName:nm||m.split("@")[0]}).catch(function(){});
+            return c.user.updateProfile({displayName:nm||disp(m)}).catch(function(){});
           }).then(function(){location.reload()},function(e){draw(ERR[e.code]||"登録できませんでした。")});
         }
       }
@@ -99,7 +106,7 @@
     draw();
   }
   function showPending(email,msg){
-    var el=overlay(title("承認待ち")+'<p style="line-height:1.7;font-size:.92rem">'+esc(msg||"登録ありがとうございます。管理者が承認すると、使えるようになります。")+'</p><p style="font-size:.85rem;color:#5C6459;word-break:break-all">'+esc(email||"")+'</p>'+
+    var el=overlay(title("承認待ち")+'<p style="line-height:1.7;font-size:.92rem">'+esc(msg||"登録ありがとうございます。管理者が承認すると、使えるようになります。")+'</p><p style="font-size:.85rem;color:#5C6459;word-break:break-all">'+esc(disp(email))+'</p>'+
       '<button id="fbRe" type="button" style="'+BTN+'">もう一度確認する</button><div style="text-align:center;margin-top:8px"><button id="fbOut" type="button" style="'+LINK+'">ログアウト</button></div>');
     el.querySelector("#fbRe").onclick=function(){location.reload()};
     el.querySelector("#fbOut").onclick=function(){window.__FB.signOut()};
@@ -112,13 +119,13 @@
       try{
         var ref=fs.doc("users/"+u.uid), snap=await ref.get();
         if(!snap.exists){
-          await ref.set({name:u.displayName||(u.email||"").split("@")[0],email:u.email||"",role:"pending",createdAt:Date.now()});
+          await ref.set({name:u.displayName||disp(u.email||""),email:u.email||"",role:"pending",createdAt:Date.now()});
           snap=await ref.get();
         }
         var d=snap.data()||{}, email=String(u.email||"").toLowerCase();
         var isAdm=ADMINS.indexOf(email)>=0||d.role==="admin";
         if(!(isAdm||d.role==="member")){showPending(u.email);return}
-        cur={u:u,d:d,isAdm:isAdm,name:d.name||u.displayName||email};
+        cur={u:u,d:d,isAdm:isAdm,name:d.name||u.displayName||disp(email)};
         resolve(cur);
       }catch(e){showPending(u.email,"確認できませんでした。通信状況と、Firestore のルールが公開されているかを確認してください。("+(e&&e.code||"error")+")")}
     });
@@ -128,7 +135,7 @@
   async function allUsers(){
     if(users)return users;
     var s=await fs.collection("users").get(); users={};
-    s.docs.forEach(function(x){var o=x.data();users[x.id]={id:x.id,name:o.name||o.email||"",email:o.email||"",role:o.role}});
+    s.docs.forEach(function(x){var o=x.data();users[x.id]={id:x.id,name:o.name||disp(o.email)||"",email:disp(o.email),role:o.role}});
     return users;
   }
   var wcache={};
