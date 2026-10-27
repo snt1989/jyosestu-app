@@ -2,7 +2,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700&family=JetBrains+Mono:wght@500;600&display=swap">
@@ -1434,7 +1433,7 @@ tbody tr:last-child td{border-bottom:0}
   /* ---------- 写真ビューア ---------- */
   function lbShow(){
     var p=lb.list[lb.i]; if(!p)return;
-    $("lbImg").src=blobUrl(p.id);
+    $("lbImg").dataset.pid=p.id; $("lbImg").src=blobUrl(p.id);
     $("lbCap").textContent=(KIND[p.kind]||"写真")+"  "+(lb.i+1)+" / "+lb.list.length;
     $("lb").querySelector(".pv").hidden=lb.list.length<2; $("lb").querySelector(".nx").hidden=lb.list.length<2;
   }
@@ -1558,6 +1557,7 @@ tbody tr:last-child td{border-bottom:0}
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
     view=v; render(); window.scrollTo(0,0);
   }
+  window.addEventListener("blobloaded",function(){render();var lb=$("lbImg");if(lb&&lb.dataset.pid){var u=blobUrl(lb.dataset.pid);if(u)lb.src=u}});
   var rqT=0;
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
   function doRender(){

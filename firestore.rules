@@ -1,9 +1,8 @@
 rules_version = '2';
-// 管理者のメールアドレス(firebase-config.js の ADMIN_EMAILS と同じにします)
-function adminEmails() { return ['admin@sanoh-ltd.jp']; }
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 管理者のメールアドレス(firebase-config.js の ADMIN_EMAILS と同じにします)
+    function adminEmails() { return ['admin@sanoh-ltd.jp']; }
     function signed() { return request.auth != null; }
     function udoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
     function hasUser() { return exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
@@ -19,7 +18,7 @@ service cloud.firestore {
       allow read: if isMember() && col in ['sites', 'settings', 'masters', 'announcements', 'access'];
       allow write: if isAdmin() && col in ['sites', 'settings', 'masters', 'announcements', 'access'];
       // 作業状況・日報・連絡: メンバーなら読み書きできる
-      allow read, write: if isMember() && col in ['ops', 'reports', 'notes'];
+      allow read, write: if isMember() && col in ['ops', 'reports', 'notes', 'photos'];
       // 単価・メンバー名簿(電話番号): 管理者だけ
       allow read, write: if isAdmin() && col in ['prices', 'members'];
     }

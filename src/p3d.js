@@ -13,6 +13,7 @@
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
     view=v; render(); window.scrollTo(0,0);
   }
+  window.addEventListener("blobloaded",function(){render();var lb=$("lbImg");if(lb&&lb.dataset.pid){var u=blobUrl(lb.dataset.pid);if(u)lb.src=u}});
   var rqT=0;
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
   function doRender(){

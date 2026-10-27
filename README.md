@@ -10,13 +10,13 @@ Firebase(ログイン・保存・写真)と Vercel(公開・天気API)で動き�
 | `fb-shim.js` | Firebase とアプリをつなぐ層(ログイン・保存・写真・天気の呼び出し) |
 | `firebase-config.js` | **Firebase の設定値と管理者メールを入れるファイル** |
 | `api/weather.js` | 天気API(Open-Meteo を、アプリが読む形に変換) |
-| `firestore.rules` / `storage.rules` | データと写真のアクセスルール |
+| `firestore.rules` | データと写真のアクセスルール |
 | `build.sh` | `src/` から `index.html` を作る(Vercel のビルドで自動実行) |
 
 ## セットアップ
-1. **Firebase**: プロジェクトを作り、Authentication(メール/パスワード)、Firestore(東京)、Storage(東京)を有効にします。
+1. **Firebase**: プロジェクトを作り、Authentication(メール/パスワード)と Firestore(東京)を有効にします。写真も Firestore に保存するため、無料の Spark プランで使えます。
 2. `firebase-config.js` に、ウェブアプリの設定値と管理者のメールを入れます。
-3. **ルールの反映**: Firebase コンソールの Firestore「ルール」に `firestore.rules`、Storage「ルール」に `storage.rules` の中身を貼って公開します。
+3. **ルールの反映**: Firebase コンソールの Firestore「ルール」に `firestore.rules` の中身を貼って公開します。
    管理者のメール(`firestore.rules` 冒頭の `adminEmails` と `firebase-config.js` の `ADMIN_EMAILS`)は、同じものにします。
 4. **管理者の登録**: Authentication の「ユーザー」で、管理者のメールとパスワードのアカウントを先に作ります。
 5. **Vercel**: このリポジトリを取り込めば、そのまま公開されます(ビルドは `sh build.sh`)。
@@ -28,5 +28,5 @@ Firebase(ログイン・保存・写真)と Vercel(公開・天気API)で動き�
 
 ## 注意
 - 天気の元データは [Open-Meteo](https://open-meteo.com/) の無料枠です。**無料枠は非商用向けです。** 事業で使うときは有料プランか、別の天気APIへの切り替えが必要です(`api/weather.js` だけを直せば済みます)。警報・注意報は取得しません。
-- 写真は、推測できない長いIDのリンクを知っている人なら見られる設定です。
+- 写真は縮小(長辺1200px程度・約0.5MB以下)して Firestore に保存します。Storage は有料プランが必要なため使いません。写真が多いと Firestore の無料枠(1日5万回の読み取り)を使うため、増えたら Blaze プランと Storage への切り替えを検討してください。メンバーだけが読み書きできます。
 - 今回のルールは、実際のFirebaseでは未検証です。公開前に、管理者・メンバー・承認待ちの3種類でログインして確認してください。

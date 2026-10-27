@@ -221,7 +221,7 @@
   /* ---------- 写真ビューア ---------- */
   function lbShow(){
     var p=lb.list[lb.i]; if(!p)return;
-    $("lbImg").src=blobUrl(p.id);
+    $("lbImg").dataset.pid=p.id; $("lbImg").src=blobUrl(p.id);
     $("lbCap").textContent=(KIND[p.kind]||"写真")+"  "+(lb.i+1)+" / "+lb.list.length;
     $("lb").querySelector(".pv").hidden=lb.list.length<2; $("lb").querySelector(".nx").hidden=lb.list.length<2;
   }

@@ -7,7 +7,6 @@ cd "$(dirname "$0")"
   echo '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>'
   echo '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>'
   echo '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>'
-  echo '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>'
   echo '<script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>'
   cat src/p1.html
   echo '</head><body>'

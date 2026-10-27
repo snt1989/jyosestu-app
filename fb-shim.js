@@ -1,5 +1,5 @@
 /* claude.ai の実行環境(window.claude)を Firebase で置き換える互換層。
-   db → Firestore / user → Firebase Auth + users コレクション / assets → Storage / mcp(天気) → /api/weather */
+   db → Firestore / user → Firebase Auth + users コレクション / assets → Firestore(photos) / mcp(天気) → /api/weather */
 (function(){
   var cfg=window.FIREBASE_CONFIG||{}, ADMINS=(window.ADMIN_EMAILS||[]).map(function(x){return String(x).toLowerCase()});
   var CSS='position:fixed;inset:0;z-index:200;background:#F8F9F8;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;color:#20241F';
@@ -22,9 +22,42 @@
     return;
   }
   firebase.initializeApp(cfg);
-  var auth=firebase.auth(), fs=firebase.firestore(), st=firebase.storage();
+  var auth=firebase.auth(), fs=firebase.firestore();
   var cur=null;
-  window.__blobUrl=function(id){return "https://firebasestorage.googleapis.com/v0/b/"+cfg.storageBucket+"/o/"+encodeURIComponent("photos/"+id)+"?alt=media"};
+  // 写真は Firestore(photos コレクション)に、縮小した画像として保存する(Storage は有料プランが必要なため)
+  var pcache={}, pwait={};
+  window.__blobUrl=function(id){
+    if(pcache[id])return pcache[id];
+    if(!pwait[id]){
+      pwait[id]=1;
+      fs.doc("photos/"+id).get().then(function(s){
+        var d=s.exists?s.data():null;
+        pcache[id]=d&&d.data||"data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+        window.dispatchEvent(new CustomEvent("blobloaded",{detail:id}));
+      },function(){delete pwait[id]});
+    }
+    return "";
+  };
+  function shrinkTo(blob,limit){
+    return new Promise(function(resolve,reject){
+      var img=new Image(), u=URL.createObjectURL(blob);
+      img.onload=function(){
+        URL.revokeObjectURL(u);
+        var side=1200, q=0.78;
+        for(var i=0;i<8;i++){
+          var k=Math.min(1,side/Math.max(img.width,img.height)), c=document.createElement("canvas");
+          c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k));
+          c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+          var url=c.toDataURL("image/jpeg",q);
+          if(url.length<=limit)return resolve(url);
+          side=Math.round(side*0.8); q=Math.max(0.5,q-0.06);
+        }
+        reject(new Error("too_large"));
+      };
+      img.onerror=function(){URL.revokeObjectURL(u);reject(new Error("bad_image"))};
+      img.src=u;
+    });
+  }
   window.__FB={
     signOut:function(){return auth.signOut().then(function(){location.reload()})},
     setRole:function(uid,role){
@@ -140,15 +173,16 @@
       }};
     },
     assets:async function(){
-      await sessP;
+      var s0=await sessP;
       return {
         upload:async function(blob,o){
           var id=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,""):String(Date.now())+Math.random().toString(36).slice(2));
-          var type=(o&&o.type)||blob.type||"image/jpeg";
-          await st.ref("photos/"+id).put(blob,{contentType:type});
-          return {id:id,url:window.__blobUrl(id),sizeBytes:blob.size,contentType:type};
+          var url=await shrinkTo(blob,700000);
+          await fs.doc("photos/"+id).set({data:url,type:"image/jpeg",at:Date.now(),by:s0.u.uid});
+          pcache[id]=url;
+          return {id:id,url:url,sizeBytes:url.length,contentType:"image/jpeg"};
         },
-        delete:function(id){return st.ref("photos/"+id).delete()}
+        delete:function(id){delete pcache[id];return fs.doc("photos/"+id).delete()}
       };
     },
     downloads:async function(){
