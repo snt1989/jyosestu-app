@@ -460,6 +460,13 @@ tbody tr:last-child td{border-bottom:0}
     <div class="bar"><div class="r r21">
       <input type="search" id="query" placeholder="現場名・地区・担当班で探す" aria-label="現場を探す" autocomplete="off">
       <select id="areaSel" aria-label="地区で絞り込み"><option value="">すべての地区</option></select>
+    </div>
+    <div class="r" style="margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+      <select id="crewSel" aria-label="担当班で絞り込み"><option value="">すべての担当班</option></select>
+      <select id="stSel" aria-label="作業状況で絞り込み"><option value="">すべての作業状況</option><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done">完了</option></select>
+      <select id="sortSel" aria-label="並べ替え"><option value="prio">並び順:優先度</option><option value="name">現場名</option><option value="area">地区</option><option value="crew">担当班</option><option value="snow">降雪量の目安</option><option value="th">出動基準</option><option value="count">今シーズンの出動回数</option><option value="created">登録順</option></select>
+      <button type="button" class="btn sm" id="sortDir" aria-label="昇順・降順の切り替え">昇順 ↑</button>
+      <button type="button" class="btn sm" id="siteReset">条件をクリア</button>
     </div></div>
     <div class="row2" style="justify-content:space-between;margin-bottom:6px"><span class="muted" id="siteCount"></span><div class="vt vt-sm" id="layoutT" role="group" aria-label="表示の切り替え"><button type="button" data-layout="row" aria-pressed="true">一覧表示</button><button type="button" data-layout="card" aria-pressed="false">カード表示</button></div></div>
     <div class="chips" id="siteChips" role="group" aria-label="状態で絞り込み"></div>
@@ -1161,6 +1168,34 @@ tbody tr:last-child td{border-bottom:0}
   }
 
   /* ---------- 現場一覧 ---------- */
+  var crewF="", stF="", sortK="prio", sortDir=1, lastCrewKey="";
+  function syncCrewSel(){
+    var set={}; sites.forEach(function(s){if(s.crew)set[s.crew]=1}); (masters.crews||[]).forEach(function(c){if(c)set[c]=1});
+    var list=Object.keys(set).sort(function(a,b){return a.localeCompare(b,"ja")}), key=list.join("|");
+    if(key!==lastCrewKey){
+      lastCrewKey=key; if(crewF&&!set[crewF])crewF="";
+      $("crewSel").innerHTML='<option value="">すべての担当班</option>'+list.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join("");
+    }
+  }
+  function flatSort(items){
+    var tx=function(v){return String(v||"")}, ja=function(a,b){return a.localeCompare(b,"ja")};
+    var get={
+      name:function(x){return tx(x.s.name)}, area:function(x){return tx(x.s.area)}, crew:function(x){return tx(x.s.crew)},
+      snow:function(x){return x.a.snow2||0}, th:function(x){return +x.s.threshold||0},
+      count:function(x){return siteSeasonCount(x.s.id)}, created:function(x){return +x.s.createdAt||0}
+    }[sortK]||function(x){return tx(x.s.name)};
+    var isText=(sortK==="name"||sortK==="area"||sortK==="crew");
+    items.sort(function(p,r){
+      var a=get(p), b=get(r), c;
+      if(isText){
+        if(!a&&b)return 1; if(a&&!b)return -1;
+        c=ja(a,b);
+      }else c=a-b;
+      if(c)return c*sortDir;
+      return ja(tx(p.s.name),tx(r.s.name));
+    });
+    return items;
+  }
   function syncAreaSel(){
     var set={}; sites.forEach(function(s){if(s.area)set[s.area]=1});
     var list=Object.keys(set).sort(function(a,b){return a.localeCompare(b,"ja")});
@@ -1180,15 +1215,20 @@ tbody tr:last-child td{border-bottom:0}
     $("siteChips").innerHTML=defs.map(function(d){return '<button type="button" data-filter="'+d[0]+'" aria-pressed="'+(filter===d[0])+'">'+d[1]+'<span class="num">'+cnt[d[0]]+'</span></button>'}).join("");
     syncAreaSel();
     Array.prototype.forEach.call($("layoutT").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.layout===layout))});
+    syncCrewSel();
+    $("sortDir").hidden=(sortK==="prio"); $("sortDir").textContent=sortDir>0?"昇順 ↑":"降順 ↓";
+    $("sortSel").value=sortK; $("stSel").value=stF; $("crewSel").value=crewF;
     var qs=query.trim().toLowerCase();
     var shown=items.filter(function(x){
       if(areaF&&(x.s.area||"")!==areaF)return false;
+      if(crewF&&(x.s.crew||"")!==crewF)return false;
+      if(stF&&stOf(x.s)!==stF)return false;
       if(qs&&[x.s.name,x.s.area,x.s.crew,x.s.address].join(" ").toLowerCase().indexOf(qs)<0)return false;
       if(filter==="all")return true;
       if(filter==="out")return stOf(x.s)==="out";
       return x.a.lv===({l3:3,l2:2,l1:1})[filter];
     });
-    prioritySort(shown);
+    if(sortK==="prio")prioritySort(shown); else flatSort(shown);
     $("siteCount").textContent=shown.length+"件を表示";
     $("banner").innerHTML=banners();
     if(!sites.length){
@@ -1197,6 +1237,10 @@ tbody tr:last-child td{border-bottom:0}
       $("siteList").innerHTML='<div class="empty"><b>該当する現場はありません</b>絞り込みを「全現場」に戻してください。</div>';
     }else{
       var GN={3:"出動目安",2:"警戒",1:"平常",0:"天気を取得できていない現場"}, out="";
+      if(sortK!=="prio"){
+        out='<div class="stack'+(layout==="row"?" rows":"")+'">'+shown.map(function(x){return layout==="row"?siteRow(x.s):siteCard(x.s)}).join("")+'</div>';
+        $("siteList").innerHTML=out; return;
+      }
       [3,2,1,0].forEach(function(lv){
         var g=shown.filter(function(x){return x.a.lv===lv}); if(!g.length)return;
         out+='<div class="grp-h l'+lv+'">'+GN[lv]+'<span class="gc num">'+g.length+'件</span></div><div class="stack'+(layout==="row"?" rows":"")+'">'+g.map(function(x){return layout==="row"?siteRow(x.s):siteCard(x.s)}).join("")+'</div>';
@@ -1661,6 +1705,11 @@ tbody tr:last-child td{border-bottom:0}
   }
   $("query").addEventListener("input",function(e){query=e.target.value;render()});
   $("areaSel").addEventListener("change",function(e){areaF=e.target.value;render()});
+  $("crewSel").addEventListener("change",function(e){crewF=e.target.value;render()});
+  $("stSel").addEventListener("change",function(e){stF=e.target.value;render()});
+  $("sortSel").addEventListener("change",function(e){sortK=e.target.value;sortDir=(sortK==="snow"||sortK==="count"||sortK==="created")?-1:1;render()});
+  $("sortDir").addEventListener("click",function(){sortDir=-sortDir;render()});
+  $("siteReset").addEventListener("click",function(){query="";$("query").value="";areaF="";crewF="";stF="";filter="all";sortK="prio";sortDir=1;render()});
   $("repPeriod").addEventListener("change",function(e){repFilter.period=e.target.value;render()});
   $("repSiteSel").addEventListener("change",function(e){repFilter.site=e.target.value;render()});
   $("btnRefresh").addEventListener("click",function(){refreshAll(true)});

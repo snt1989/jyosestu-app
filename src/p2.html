@@ -28,6 +28,13 @@
     <div class="bar"><div class="r r21">
       <input type="search" id="query" placeholder="現場名・地区・担当班で探す" aria-label="現場を探す" autocomplete="off">
       <select id="areaSel" aria-label="地区で絞り込み"><option value="">すべての地区</option></select>
+    </div>
+    <div class="r" style="margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+      <select id="crewSel" aria-label="担当班で絞り込み"><option value="">すべての担当班</option></select>
+      <select id="stSel" aria-label="作業状況で絞り込み"><option value="">すべての作業状況</option><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done">完了</option></select>
+      <select id="sortSel" aria-label="並べ替え"><option value="prio">並び順:優先度</option><option value="name">現場名</option><option value="area">地区</option><option value="crew">担当班</option><option value="snow">降雪量の目安</option><option value="th">出動基準</option><option value="count">今シーズンの出動回数</option><option value="created">登録順</option></select>
+      <button type="button" class="btn sm" id="sortDir" aria-label="昇順・降順の切り替え">昇順 ↑</button>
+      <button type="button" class="btn sm" id="siteReset">条件をクリア</button>
     </div></div>
     <div class="row2" style="justify-content:space-between;margin-bottom:6px"><span class="muted" id="siteCount"></span><div class="vt vt-sm" id="layoutT" role="group" aria-label="表示の切り替え"><button type="button" data-layout="row" aria-pressed="true">一覧表示</button><button type="button" data-layout="card" aria-pressed="false">カード表示</button></div></div>
     <div class="chips" id="siteChips" role="group" aria-label="状態で絞り込み"></div>

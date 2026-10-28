@@ -174,6 +174,34 @@
   }
 
   /* ---------- 現場一覧 ---------- */
+  var crewF="", stF="", sortK="prio", sortDir=1, lastCrewKey="";
+  function syncCrewSel(){
+    var set={}; sites.forEach(function(s){if(s.crew)set[s.crew]=1}); (masters.crews||[]).forEach(function(c){if(c)set[c]=1});
+    var list=Object.keys(set).sort(function(a,b){return a.localeCompare(b,"ja")}), key=list.join("|");
+    if(key!==lastCrewKey){
+      lastCrewKey=key; if(crewF&&!set[crewF])crewF="";
+      $("crewSel").innerHTML='<option value="">すべての担当班</option>'+list.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join("");
+    }
+  }
+  function flatSort(items){
+    var tx=function(v){return String(v||"")}, ja=function(a,b){return a.localeCompare(b,"ja")};
+    var get={
+      name:function(x){return tx(x.s.name)}, area:function(x){return tx(x.s.area)}, crew:function(x){return tx(x.s.crew)},
+      snow:function(x){return x.a.snow2||0}, th:function(x){return +x.s.threshold||0},
+      count:function(x){return siteSeasonCount(x.s.id)}, created:function(x){return +x.s.createdAt||0}
+    }[sortK]||function(x){return tx(x.s.name)};
+    var isText=(sortK==="name"||sortK==="area"||sortK==="crew");
+    items.sort(function(p,r){
+      var a=get(p), b=get(r), c;
+      if(isText){
+        if(!a&&b)return 1; if(a&&!b)return -1;
+        c=ja(a,b);
+      }else c=a-b;
+      if(c)return c*sortDir;
+      return ja(tx(p.s.name),tx(r.s.name));
+    });
+    return items;
+  }
   function syncAreaSel(){
     var set={}; sites.forEach(function(s){if(s.area)set[s.area]=1});
     var list=Object.keys(set).sort(function(a,b){return a.localeCompare(b,"ja")});
@@ -193,15 +221,20 @@
     $("siteChips").innerHTML=defs.map(function(d){return '<button type="button" data-filter="'+d[0]+'" aria-pressed="'+(filter===d[0])+'">'+d[1]+'<span class="num">'+cnt[d[0]]+'</span></button>'}).join("");
     syncAreaSel();
     Array.prototype.forEach.call($("layoutT").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.layout===layout))});
+    syncCrewSel();
+    $("sortDir").hidden=(sortK==="prio"); $("sortDir").textContent=sortDir>0?"昇順 ↑":"降順 ↓";
+    $("sortSel").value=sortK; $("stSel").value=stF; $("crewSel").value=crewF;
     var qs=query.trim().toLowerCase();
     var shown=items.filter(function(x){
       if(areaF&&(x.s.area||"")!==areaF)return false;
+      if(crewF&&(x.s.crew||"")!==crewF)return false;
+      if(stF&&stOf(x.s)!==stF)return false;
       if(qs&&[x.s.name,x.s.area,x.s.crew,x.s.address].join(" ").toLowerCase().indexOf(qs)<0)return false;
       if(filter==="all")return true;
       if(filter==="out")return stOf(x.s)==="out";
       return x.a.lv===({l3:3,l2:2,l1:1})[filter];
     });
-    prioritySort(shown);
+    if(sortK==="prio")prioritySort(shown); else flatSort(shown);
     $("siteCount").textContent=shown.length+"件を表示";
     $("banner").innerHTML=banners();
     if(!sites.length){
@@ -210,6 +243,10 @@
       $("siteList").innerHTML='<div class="empty"><b>該当する現場はありません</b>絞り込みを「全現場」に戻してください。</div>';
     }else{
       var GN={3:"出動目安",2:"警戒",1:"平常",0:"天気を取得できていない現場"}, out="";
+      if(sortK!=="prio"){
+        out='<div class="stack'+(layout==="row"?" rows":"")+'">'+shown.map(function(x){return layout==="row"?siteRow(x.s):siteCard(x.s)}).join("")+'</div>';
+        $("siteList").innerHTML=out; return;
+      }
       [3,2,1,0].forEach(function(lv){
         var g=shown.filter(function(x){return x.a.lv===lv}); if(!g.length)return;
         out+='<div class="grp-h l'+lv+'">'+GN[lv]+'<span class="gc num">'+g.length+'件</span></div><div class="stack'+(layout==="row"?" rows":"")+'">'+g.map(function(x){return layout==="row"?siteRow(x.s):siteCard(x.s)}).join("")+'</div>';
