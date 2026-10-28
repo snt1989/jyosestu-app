@@ -12,7 +12,27 @@
   var INPUT='width:100%;min-height:46px;border:1px solid #E3E7E5;border-radius:10px;padding:8px 12px;font:inherit;box-sizing:border-box;margin:4px 0 12px';
   var BTN='width:100%;min-height:48px;border:0;border-radius:999px;background:#1E8449;color:#fff;font:inherit;font-weight:700;cursor:pointer';
   var LINK='background:none;border:0;color:#2F6FA8;font:inherit;text-decoration:underline;cursor:pointer;padding:6px';
-  function title(t){return '<div style="text-align:center;margin-bottom:14px"><div style="font-size:1.25rem;font-weight:700;color:#175C40">除雪管理アプリ</div><div style="color:#5C6459;font-size:.9rem;margin-top:2px">'+t+'</div></div>'}
+  var BR0={name:"除雪管理アプリ"};
+  window.__applyBrand=function(b,save){
+    b=b||{}; window.__brand=b; var name=b.name||BR0.name;
+    try{document.title=name}catch(e){}
+    var head=document.head;
+    Array.prototype.slice.call(head.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]')).forEach(function(l){l.remove()});
+    if(b.icon){["icon","apple-touch-icon"].forEach(function(rel){var l=document.createElement("link");l.rel=rel;l.href=b.icon;head.appendChild(l)})}
+    var r=document.documentElement;
+    r.style.setProperty("--bname",JSON.stringify(name));
+    if(b.logo){r.style.setProperty("--blogo","url("+b.logo+")");r.classList.add("has-logo")}else{r.style.removeProperty("--blogo");r.classList.remove("has-logo")}
+    var im=document.getElementById("hdLogo"), nm=document.getElementById("hdName");
+    if(im){im.hidden=!b.logo; if(b.logo)im.src=b.logo; else im.removeAttribute("src")}
+    if(nm)nm.textContent=name;
+    if(save){try{localStorage.setItem("josetsu.brand",JSON.stringify({name:b.name||"",logo:b.logo||"",icon:b.icon||""}))}catch(e){}}
+  };
+  (function(){var c=null;try{c=JSON.parse(localStorage.getItem("josetsu.brand")||"null")}catch(e){}
+    window.__brand=c||{};
+    if(c)window.__applyBrand(c);
+    document.addEventListener("DOMContentLoaded",function(){window.__applyBrand(window.__brand)});
+  })();
+  function title(t){var bb=window.__brand||{};return '<div style="text-align:center;margin-bottom:14px">'+(bb.logo?'<img src="'+bb.logo+'" alt="" style="max-height:56px;max-width:220px;margin-bottom:6px">':'')+'<div style="font-size:1.25rem;font-weight:700;color:#175C40">'+esc(bb.name||"除雪管理アプリ")+'</div><div style="color:#5C6459;font-size:.9rem;margin-top:2px">'+t+'</div></div>'}
   function never(){return new Promise(function(){})}
   function failScreen(msg){overlay(title("設定が必要です")+'<p style="line-height:1.7;font-size:.92rem">'+msg+'</p>');return never()}
   var ERR={"auth/invalid-email":"電話番号またはメールアドレスの形式が正しくありません。","auth/user-not-found":"電話番号(メール)かパスワードが違います。","auth/wrong-password":"電話番号(メール)かパスワードが違います。","auth/invalid-credential":"電話番号(メール)かパスワードが違います。","auth/email-already-in-use":"この電話番号(メール)は、すでに登録されています。","auth/weak-password":"パスワードは6文字以上にしてください。","auth/too-many-requests":"試行が多すぎます。しばらくしてからお試しください。","auth/network-request-failed":"通信できませんでした。"};

@@ -1,7 +1,7 @@
 
 <header class="appbar">
   <div>
-    <h1>除雪管理アプリ</h1>
+    <h1><img id="hdLogo" alt="" hidden><span id="hdName">除雪管理アプリ</span></h1>
     <div class="sub"><span id="today"></span> ・ 天気更新 <span id="upd" class="num">--:--</span></div>
     <div class="sub meline" id="meLine" hidden></div>
   </div>
@@ -234,7 +234,7 @@
     </div>
     <div id="adm-set" hidden>
       <div class="admbody">
-      <div class="subtabs sm" id="setTabs" style="margin-bottom:12px" role="group" aria-label="全体設定の項目"><button type="button" class="admtab" data-sg="jd" aria-pressed="true">出動の判定</button><button type="button" class="admtab" data-sg="lg" aria-pressed="false">天気・ログイン</button><button type="button" class="admtab" data-sg="ph" aria-pressed="false">写真の画質</button></div>
+      <div class="subtabs sm" id="setTabs" style="margin-bottom:12px" role="group" aria-label="全体設定の項目"><button type="button" class="admtab" data-sg="jd" aria-pressed="true">出動の判定</button><button type="button" class="admtab" data-sg="lg" aria-pressed="false">天気・ログイン</button><button type="button" class="admtab" data-sg="ph" aria-pressed="false">写真の画質</button><button type="button" class="admtab" data-sg="br" aria-pressed="false">ロゴ・アイコン</button></div>
       <form class="card2 f" id="setForm" style="padding:0;max-width:760px">
         <div data-sg-box="jd">
         <div class="form-row"><label for="sDefTh">新規現場の出動基準(降雪 cm)</label><div><input id="sDefTh" type="number" min="1" max="200" step="1" value="10"><span class="help">現場を追加するときの初期値です。現場ごとに変更できます。</span></div></div>
@@ -250,6 +250,17 @@
         <div class="form-row"><label>軽量</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_light_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_light_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_light_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
         <div class="form-row"><label>標準</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_std_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_std_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_std_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
         <div class="form-row"><label>高画質</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_high_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_high_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_high_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
+        </div>
+        <div data-sg-box="br" hidden>
+        <div class="form-row"><label for="brName">アプリの名前</label><div><input id="brName" maxlength="30" placeholder="除雪管理アプリ"><span class="help">画面の上部・左メニュー・ログイン画面・ブラウザのタブに表示されます。空にすると「除雪管理アプリ」になります。</span></div></div>
+        <div class="form-row"><label>ロゴ</label><div>
+          <div class="row2" style="align-items:center"><div id="brLogoPv" style="min-width:120px;height:56px;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:4px;background:var(--surface2)"><span class="muted">未設定</span></div></div>
+          <div class="row2" style="margin-top:6px"><input type="file" id="brLogoFile" accept="image/*"><button class="btn sm" type="button" id="brLogoClr">ロゴを外す</button></div>
+          <span class="help">画面の上部と左メニュー、ログイン画面に表示します。横長でも正方形でも使えます。背景が透明なPNGがおすすめです。</span></div></div>
+        <div class="form-row"><label>アイコン</label><div>
+          <div class="row2" style="align-items:center"><div id="brIconPv" style="width:72px;height:72px;border:1px dashed var(--line);border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface2)"><span class="muted">未設定</span></div></div>
+          <div class="row2" style="margin-top:6px"><input type="file" id="brIconFile" accept="image/*"><button class="btn sm" type="button" id="brIconClr">アイコンを外す</button></div>
+          <span class="help">ブラウザのタブや、スマホのホーム画面に追加したときのアイコンです。正方形に切り抜いて使います。ホーム画面のアイコンは、追加し直すと変わります。</span></div></div>
         </div>
         <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="sSave">設定を保存</button><span class="muted" id="sMsg" role="status"></span></div></div>
       </form>

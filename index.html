@@ -32,7 +32,8 @@ h1,h2,h3{margin:0;font-family:var(--font-head);font-weight:700;text-wrap:balance
 
 /* app bar */
 .appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px}
-.appbar h1{font-size:1.1rem;line-height:1.2;color:var(--brand)}
+.appbar h1{font-size:1.1rem;line-height:1.2;color:var(--brand);display:flex;align-items:center;gap:8px}
+.appbar h1 img{height:30px;width:auto;max-width:120px;object-fit:contain;display:block}
 .appbar .sub{font-size:.8rem;color:var(--muted)}
 .ab-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;min-height:44px;padding:6px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem}
 .ab-btn:hover{background:var(--surface2)}
@@ -417,7 +418,8 @@ tbody tr:last-child td{border-bottom:0}
 @media (min-width:900px){
   body{padding:0 0 24px 212px}
   .tabbar{top:0;right:auto;width:212px;flex-direction:column;justify-content:flex-start;gap:2px;padding:64px 10px 12px;background:var(--brand);border-top:0;box-shadow:none}
-  .tabbar::before{content:"除雪管理アプリ";position:absolute;top:0;left:0;right:0;padding:18px;font-family:var(--font-head);font-weight:700;font-size:1.05rem;color:#fff}
+  .tabbar::before{content:var(--bname,"除雪管理アプリ");position:absolute;top:0;left:0;right:0;padding:18px;font-family:var(--font-head);font-weight:700;font-size:1.05rem;color:#fff}
+  html.has-logo .tabbar::before{padding:15px 14px 15px 58px;background:var(--blogo) 14px 50%/36px 36px no-repeat;min-height:36px}
   .tabbar button{flex:none;flex-direction:row;justify-content:flex-start;gap:11px;min-height:46px;padding:0 12px;font-size:.92rem;font-weight:500;color:#8FB9A2;border-radius:8px}
   .tabbar button:hover{background:rgba(255,255,255,.07);color:#fff}
   .tabbar button[aria-current="page"]{background:var(--brand-active);color:#fff;font-weight:700}
@@ -431,7 +433,7 @@ tbody tr:last-child td{border-bottom:0}
 
 <header class="appbar">
   <div>
-    <h1>除雪管理アプリ</h1>
+    <h1><img id="hdLogo" alt="" hidden><span id="hdName">除雪管理アプリ</span></h1>
     <div class="sub"><span id="today"></span> ・ 天気更新 <span id="upd" class="num">--:--</span></div>
     <div class="sub meline" id="meLine" hidden></div>
   </div>
@@ -664,7 +666,7 @@ tbody tr:last-child td{border-bottom:0}
     </div>
     <div id="adm-set" hidden>
       <div class="admbody">
-      <div class="subtabs sm" id="setTabs" style="margin-bottom:12px" role="group" aria-label="全体設定の項目"><button type="button" class="admtab" data-sg="jd" aria-pressed="true">出動の判定</button><button type="button" class="admtab" data-sg="lg" aria-pressed="false">天気・ログイン</button><button type="button" class="admtab" data-sg="ph" aria-pressed="false">写真の画質</button></div>
+      <div class="subtabs sm" id="setTabs" style="margin-bottom:12px" role="group" aria-label="全体設定の項目"><button type="button" class="admtab" data-sg="jd" aria-pressed="true">出動の判定</button><button type="button" class="admtab" data-sg="lg" aria-pressed="false">天気・ログイン</button><button type="button" class="admtab" data-sg="ph" aria-pressed="false">写真の画質</button><button type="button" class="admtab" data-sg="br" aria-pressed="false">ロゴ・アイコン</button></div>
       <form class="card2 f" id="setForm" style="padding:0;max-width:760px">
         <div data-sg-box="jd">
         <div class="form-row"><label for="sDefTh">新規現場の出動基準(降雪 cm)</label><div><input id="sDefTh" type="number" min="1" max="200" step="1" value="10"><span class="help">現場を追加するときの初期値です。現場ごとに変更できます。</span></div></div>
@@ -680,6 +682,17 @@ tbody tr:last-child td{border-bottom:0}
         <div class="form-row"><label>軽量</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_light_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_light_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_light_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
         <div class="form-row"><label>標準</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_std_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_std_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_std_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
         <div class="form-row"><label>高画質</label><div class="row2"><label style="font-size:.8rem">長辺(px)<input id="pq_high_s" type="number" min="300" max="4000" step="100" style="width:90px"></label><label style="font-size:.8rem">画質(%)<input id="pq_high_q" type="number" min="30" max="95" step="1" style="width:80px"></label><label style="font-size:.8rem">上限(KB)<input id="pq_high_k" type="number" min="30" max="700" step="10" style="width:90px"></label></div></div>
+        </div>
+        <div data-sg-box="br" hidden>
+        <div class="form-row"><label for="brName">アプリの名前</label><div><input id="brName" maxlength="30" placeholder="除雪管理アプリ"><span class="help">画面の上部・左メニュー・ログイン画面・ブラウザのタブに表示されます。空にすると「除雪管理アプリ」になります。</span></div></div>
+        <div class="form-row"><label>ロゴ</label><div>
+          <div class="row2" style="align-items:center"><div id="brLogoPv" style="min-width:120px;height:56px;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:4px;background:var(--surface2)"><span class="muted">未設定</span></div></div>
+          <div class="row2" style="margin-top:6px"><input type="file" id="brLogoFile" accept="image/*"><button class="btn sm" type="button" id="brLogoClr">ロゴを外す</button></div>
+          <span class="help">画面の上部と左メニュー、ログイン画面に表示します。横長でも正方形でも使えます。背景が透明なPNGがおすすめです。</span></div></div>
+        <div class="form-row"><label>アイコン</label><div>
+          <div class="row2" style="align-items:center"><div id="brIconPv" style="width:72px;height:72px;border:1px dashed var(--line);border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface2)"><span class="muted">未設定</span></div></div>
+          <div class="row2" style="margin-top:6px"><input type="file" id="brIconFile" accept="image/*"><button class="btn sm" type="button" id="brIconClr">アイコンを外す</button></div>
+          <span class="help">ブラウザのタブや、スマホのホーム画面に追加したときのアイコンです。正方形に切り抜いて使います。ホーム画面のアイコンは、追加し直すと変わります。</span></div></div>
         </div>
         <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="sSave">設定を保存</button><span class="muted" id="sMsg" role="status"></span></div></div>
       </form>
@@ -1819,6 +1832,7 @@ tbody tr:last-child td{border-bottom:0}
   function fillSettings(){
     if($("setForm").contains(document.activeElement))return;
     $("sDefTh").value=settings.defaultTh; $("sIce").value=settings.iceTemp; $("sMult").value=settings.mult; $("sRefresh").value=String(settings.refreshMin); $("sReq").value=settings.requireLogin?"1":"0";
+    var bb=settings.brand||{}; $("brName").value=bb.name||""; brDraft={logo:bb.logo||"",icon:bb.icon||""}; brPreview();
     $("pqLevel").value=pqKey(); ["light","std","high"].forEach(function(k){var p=pql(k);$("pq_"+k+"_s").value=p.side;$("pq_"+k+"_q").value=Math.round(p.q*100);$("pq_"+k+"_k").value=Math.round(p.limit/1365)});
   }
   var members=[], mbEdit=null, mbDel=null;
@@ -1956,6 +1970,48 @@ tbody tr:last-child td{border-bottom:0}
       }catch(e){fail++}
     }
     phBusy=false; $("phMsg").textContent=ok+"枚を軽量化しました(約 "+Math.round(saved*0.75/1024)+"KB 削減)"+(fail?("。"+fail+"枚は失敗しました。写真が読み込まれてから再度お試しください。"):"。"); renderPhotos();
+  });
+  var brDraft={logo:"",icon:""};
+  function brPreview(){
+    $("brLogoPv").innerHTML=brDraft.logo?'<img src="'+brDraft.logo+'" alt="" style="max-height:48px;max-width:200px">':'<span class="muted">未設定</span>';
+    $("brIconPv").innerHTML=brDraft.icon?'<img src="'+brDraft.icon+'" alt="" style="width:100%;height:100%;object-fit:cover">':'<span class="muted">未設定</span>';
+  }
+  function brImage(file,mode){
+    return new Promise(function(resolve,reject){
+      var u=URL.createObjectURL(file), img=new Image();
+      img.onload=function(){
+        URL.revokeObjectURL(u);
+        var out="", maxChars=mode==="icon"?60000:90000, scale=1;
+        for(var i=0;i<6;i++){
+          var c=document.createElement("canvas"), g;
+          if(mode==="icon"){
+            var sz=Math.round(192*scale), s0=Math.min(img.width,img.height);
+            c.width=c.height=sz; g=c.getContext("2d");
+            g.drawImage(img,(img.width-s0)/2,(img.height-s0)/2,s0,s0,0,0,sz,sz);
+          }else{
+            var k=Math.min(1,(360*scale)/img.width,(120*scale)/img.height);
+            c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k)); g=c.getContext("2d");
+            g.drawImage(img,0,0,c.width,c.height);
+          }
+          out=c.toDataURL("image/png");
+          if(out.length<=maxChars)return resolve(out);
+          out=c.toDataURL("image/jpeg",0.85); if(mode==="icon"&&out.length<=maxChars)return resolve(out);
+          scale*=0.75;
+        }
+        reject(new Error("too_large"));
+      };
+      img.onerror=function(){URL.revokeObjectURL(u);reject(new Error("bad"))};
+      img.src=u;
+    });
+  }
+  ["Logo","Icon"].forEach(function(K){
+    var key=K.toLowerCase();
+    $("br"+K+"File").addEventListener("change",async function(e){
+      var f=e.target.files[0]; e.target.value=""; if(!f)return;
+      try{brDraft[key]=await brImage(f,key);brPreview();flash("sMsg","画像を読み込みました。「設定を保存」を押すと反映されます。")}
+      catch(err){flash("sMsg","この画像は使えませんでした。別の画像をお試しください。")}
+    });
+    $("br"+K+"Clr").addEventListener("click",function(){brDraft[key]="";brPreview();flash("sMsg","「設定を保存」を押すと反映されます。")});
   });
   var setTab="jd";
   function showSetTab(){
@@ -2319,6 +2375,7 @@ tbody tr:last-child td{border-bottom:0}
       mult:Math.min(3,Math.max(0.3,isFinite(mult)&&mult>0?mult:1)),
       refreshMin:parseInt($("sRefresh").value,10)||10,
       requireLogin:$("sReq").value==="1",
+      brand:{name:$("brName").value.trim().slice(0,30),logo:brDraft.logo||"",icon:brDraft.icon||""},
       photo:(function(){var o={level:$("pqLevel").value};["light","std","high"].forEach(function(k){o[k]={side:+$("pq_"+k+"_s").value||0,q:+$("pq_"+k+"_q").value||0,kb:+$("pq_"+k+"_k").value||0}});return o})()
     };
     $("sSave").disabled=true;
@@ -2619,6 +2676,7 @@ tbody tr:last-child td{border-bottom:0}
       },function(){});
       db.doc("settings/main").onSnapshot(function(snap){
         settings=Object.assign({},DEF,snap.exists?snap.data():{});
+        if(window.__applyBrand)window.__applyBrand(settings.brand||{},true);
         fillSettings(); schedule(); render(); checkGate();
       },function(){});
       var first=true;

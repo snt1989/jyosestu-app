@@ -212,6 +212,7 @@
   function fillSettings(){
     if($("setForm").contains(document.activeElement))return;
     $("sDefTh").value=settings.defaultTh; $("sIce").value=settings.iceTemp; $("sMult").value=settings.mult; $("sRefresh").value=String(settings.refreshMin); $("sReq").value=settings.requireLogin?"1":"0";
+    var bb=settings.brand||{}; $("brName").value=bb.name||""; brDraft={logo:bb.logo||"",icon:bb.icon||""}; brPreview();
     $("pqLevel").value=pqKey(); ["light","std","high"].forEach(function(k){var p=pql(k);$("pq_"+k+"_s").value=p.side;$("pq_"+k+"_q").value=Math.round(p.q*100);$("pq_"+k+"_k").value=Math.round(p.limit/1365)});
   }
   var members=[], mbEdit=null, mbDel=null;
@@ -349,6 +350,48 @@
       }catch(e){fail++}
     }
     phBusy=false; $("phMsg").textContent=ok+"枚を軽量化しました(約 "+Math.round(saved*0.75/1024)+"KB 削減)"+(fail?("。"+fail+"枚は失敗しました。写真が読み込まれてから再度お試しください。"):"。"); renderPhotos();
+  });
+  var brDraft={logo:"",icon:""};
+  function brPreview(){
+    $("brLogoPv").innerHTML=brDraft.logo?'<img src="'+brDraft.logo+'" alt="" style="max-height:48px;max-width:200px">':'<span class="muted">未設定</span>';
+    $("brIconPv").innerHTML=brDraft.icon?'<img src="'+brDraft.icon+'" alt="" style="width:100%;height:100%;object-fit:cover">':'<span class="muted">未設定</span>';
+  }
+  function brImage(file,mode){
+    return new Promise(function(resolve,reject){
+      var u=URL.createObjectURL(file), img=new Image();
+      img.onload=function(){
+        URL.revokeObjectURL(u);
+        var out="", maxChars=mode==="icon"?60000:90000, scale=1;
+        for(var i=0;i<6;i++){
+          var c=document.createElement("canvas"), g;
+          if(mode==="icon"){
+            var sz=Math.round(192*scale), s0=Math.min(img.width,img.height);
+            c.width=c.height=sz; g=c.getContext("2d");
+            g.drawImage(img,(img.width-s0)/2,(img.height-s0)/2,s0,s0,0,0,sz,sz);
+          }else{
+            var k=Math.min(1,(360*scale)/img.width,(120*scale)/img.height);
+            c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k)); g=c.getContext("2d");
+            g.drawImage(img,0,0,c.width,c.height);
+          }
+          out=c.toDataURL("image/png");
+          if(out.length<=maxChars)return resolve(out);
+          out=c.toDataURL("image/jpeg",0.85); if(mode==="icon"&&out.length<=maxChars)return resolve(out);
+          scale*=0.75;
+        }
+        reject(new Error("too_large"));
+      };
+      img.onerror=function(){URL.revokeObjectURL(u);reject(new Error("bad"))};
+      img.src=u;
+    });
+  }
+  ["Logo","Icon"].forEach(function(K){
+    var key=K.toLowerCase();
+    $("br"+K+"File").addEventListener("change",async function(e){
+      var f=e.target.files[0]; e.target.value=""; if(!f)return;
+      try{brDraft[key]=await brImage(f,key);brPreview();flash("sMsg","画像を読み込みました。「設定を保存」を押すと反映されます。")}
+      catch(err){flash("sMsg","この画像は使えませんでした。別の画像をお試しください。")}
+    });
+    $("br"+K+"Clr").addEventListener("click",function(){brDraft[key]="";brPreview();flash("sMsg","「設定を保存」を押すと反映されます。")});
   });
   var setTab="jd";
   function showSetTab(){
@@ -712,6 +755,7 @@
       mult:Math.min(3,Math.max(0.3,isFinite(mult)&&mult>0?mult:1)),
       refreshMin:parseInt($("sRefresh").value,10)||10,
       requireLogin:$("sReq").value==="1",
+      brand:{name:$("brName").value.trim().slice(0,30),logo:brDraft.logo||"",icon:brDraft.icon||""},
       photo:(function(){var o={level:$("pqLevel").value};["light","std","high"].forEach(function(k){o[k]={side:+$("pq_"+k+"_s").value||0,q:+$("pq_"+k+"_q").value||0,kb:+$("pq_"+k+"_k").value||0}});return o})()
     };
     $("sSave").disabled=true;
@@ -1012,6 +1056,7 @@
       },function(){});
       db.doc("settings/main").onSnapshot(function(snap){
         settings=Object.assign({},DEF,snap.exists?snap.data():{});
+        if(window.__applyBrand)window.__applyBrand(settings.brand||{},true);
         fillSettings(); schedule(); render(); checkGate();
       },function(){});
       var first=true;

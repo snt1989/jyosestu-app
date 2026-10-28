@@ -27,7 +27,8 @@ h1,h2,h3{margin:0;font-family:var(--font-head);font-weight:700;text-wrap:balance
 
 /* app bar */
 .appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px}
-.appbar h1{font-size:1.1rem;line-height:1.2;color:var(--brand)}
+.appbar h1{font-size:1.1rem;line-height:1.2;color:var(--brand);display:flex;align-items:center;gap:8px}
+.appbar h1 img{height:30px;width:auto;max-width:120px;object-fit:contain;display:block}
 .appbar .sub{font-size:.8rem;color:var(--muted)}
 .ab-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;min-height:44px;padding:6px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem}
 .ab-btn:hover{background:var(--surface2)}
@@ -412,7 +413,8 @@ tbody tr:last-child td{border-bottom:0}
 @media (min-width:900px){
   body{padding:0 0 24px 212px}
   .tabbar{top:0;right:auto;width:212px;flex-direction:column;justify-content:flex-start;gap:2px;padding:64px 10px 12px;background:var(--brand);border-top:0;box-shadow:none}
-  .tabbar::before{content:"除雪管理アプリ";position:absolute;top:0;left:0;right:0;padding:18px;font-family:var(--font-head);font-weight:700;font-size:1.05rem;color:#fff}
+  .tabbar::before{content:var(--bname,"除雪管理アプリ");position:absolute;top:0;left:0;right:0;padding:18px;font-family:var(--font-head);font-weight:700;font-size:1.05rem;color:#fff}
+  html.has-logo .tabbar::before{padding:15px 14px 15px 58px;background:var(--blogo) 14px 50%/36px 36px no-repeat;min-height:36px}
   .tabbar button{flex:none;flex-direction:row;justify-content:flex-start;gap:11px;min-height:46px;padding:0 12px;font-size:.92rem;font-weight:500;color:#8FB9A2;border-radius:8px}
   .tabbar button:hover{background:rgba(255,255,255,.07);color:#fff}
   .tabbar button[aria-current="page"]{background:var(--brand-active);color:#fff;font-weight:700}
