@@ -281,8 +281,8 @@
   /* ---------- 写真ビューア ---------- */
   function lbShow(){
     var p=lb.list[lb.i]; if(!p)return;
-    $("lbImg").dataset.pid=p.id; $("lbImg").src=blobUrl(p.id);
-    $("lbCap").textContent=(p.kind?(KIND[p.kind]||"写真"):(p.at?fmtDT(p.at):"案件の写真"))+"  "+(lb.i+1)+" / "+lb.list.length;
+    $("lbImg").dataset.pid=p.src?"":p.id; $("lbImg").src=p.src||blobUrl(p.id);
+    $("lbCap").textContent=(p.cap||(p.kind?(KIND[p.kind]||"写真"):(p.at?fmtDT(p.at):"案件の写真")))+"  "+(lb.i+1)+" / "+lb.list.length;
     $("lb").querySelector(".pv").hidden=lb.list.length<2; $("lb").querySelector(".nx").hidden=lb.list.length<2;
   }
   function openLb(group,i){
@@ -290,6 +290,7 @@
     if(group==="form")list=rf?rf.photos:[];
     else if(group==="detail")list=detailPhotos;
     else if(group==="site")list=sitePh;
+    else if(group==="draw")list=drawCur;
     else if(group.indexOf("rep:")===0){var r=reports.filter(function(x){return x.id===group.slice(4)})[0];list=r?(r.photos||[]):[]}
     list=list.filter(function(p){return okId(p.id)});
     if(!list.length)return;

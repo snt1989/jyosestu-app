@@ -393,15 +393,52 @@
   function pqKey(){var k=settings.photo&&settings.photo.level;return PQD[k]?k:"std"}
   window.__PQ=function(){return pql(pqKey())};
   function fmtSize(n){n=+n||0;return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.max(1,Math.round(n/1024))+"KB"}
+  /* 図面は画像で見せる。画像はそのまま、PDFは1ページ目を画像にして表示する */
+  var PDFJS="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/", pdfjsP=null, pdfImg={}, pdfSt={}, pdfPg={}, drawCur=[];
+  function loadPdfJs(){
+    if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
+    if(pdfjsP)return pdfjsP;
+    pdfjsP=new Promise(function(res,rej){
+      var sc=document.createElement("script"); sc.src=PDFJS+"pdf.min.js";
+      sc.onload=function(){try{window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS+"pdf.worker.min.js";res(window.pdfjsLib)}catch(e){rej(e)}};
+      sc.onerror=function(){pdfjsP=null;rej(new Error("load"))};
+      document.head.appendChild(sc);
+    });
+    return pdfjsP;
+  }
+  async function pdfRender(id){
+    if(pdfImg[id]||pdfSt[id])return;
+    pdfSt[id]=1;
+    var u="";
+    try{
+      var lib=await loadPdfJs();
+      u=window.__fileUrl?await window.__fileUrl(id):("/_blob/"+id);
+      var doc=await lib.getDocument(u).promise, pg=await doc.getPage(1), v0=pg.getViewport({scale:1});
+      var sc=Math.min(4,2000/Math.max(v0.width,v0.height)), vp=pg.getViewport({scale:sc}), c=document.createElement("canvas");
+      c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+      await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+      pdfImg[id]=c.toDataURL("image/jpeg",0.88); pdfPg[id]=doc.numPages; pdfSt[id]=0;
+    }catch(e){pdfSt[id]=2}
+    try{if(u&&u.indexOf("blob:")===0)URL.revokeObjectURL(u)}catch(e2){}
+    render();
+  }
   function siteDrawSec(s){
     var ds=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)&&x.kind==="drawing"}).sort(function(a,b){return (b.at||0)-(a.at||0)});
     var can=canPhoto&&assets, h='<div class="sec" id="dvDw"><h2>図面<span class="gc num">'+ds.length+'件</span></h2>'+(can?'<button class="btn sm primary" type="button" data-act="dwadd" data-id="'+esc(s.id)+'">＋ 図面を追加</button>':'')+'</div>';
     if(can)h+='<div class="help dvhelp" id="dwMsg" role="status">PDFまたは画像(PDFは4MBまで。画像は自動で軽くします)</div>';
+    drawCur=[];
     if(!ds.length)return h+'<div class="empty"><b>この案件の図面はまだありません</b></div>';
     return h+'<div class="stack">'+ds.map(function(p){
-      var pdf=p.type==="application/pdf";
-      return '<div class="card2 dvd"><span class="fi '+(pdf?'pdf':'img')+'" aria-hidden="true">'+(pdf?'PDF':'画像')+'</span><div class="fn"><b>'+esc(p.name||"図面")+'</b><div class="muted">'+(p.size?fmtSize(p.size):"")+(p.at?" ・ "+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
-        '<button class="btn sm" type="button" data-act="dwopen" data-id="'+esc(p.id)+'">開く</button>'+(can?'<button class="btn sm" type="button" data-act="dwdel" data-id="'+esc(p.id)+'" aria-label="この図面を削除">削除</button>':'')+'</div>';
+      var pdf=p.type==="application/pdf", src=pdf?(pdfImg[p.id]||""):blobUrl(p.id), idx=-1, body;
+      if(pdf&&!src&&!pdfSt[p.id])pdfRender(p.id);
+      if(src){
+        idx=drawCur.length; drawCur.push({id:p.id,src:src,cap:p.name||"図面"});
+        body='<button type="button" class="dwimg" data-act="photo" data-g="draw" data-i="'+idx+'" aria-label="'+esc(p.name||"図面")+'を大きく表示"><img src="'+esc(src)+'" alt="'+esc(p.name||"図面")+'" loading="lazy"></button>';
+      }else{
+        body='<div class="dwimg ph0">'+(pdf?(pdfSt[p.id]===2?'PDFの画像表示ができませんでした。「PDFを開く」から見てください。':'PDFを画像にしています…'):'画像を読み込み中…')+'</div>';
+      }
+      return '<div class="card2 dwc">'+body+'<div class="dwf"><div class="fn"><b>'+esc(p.name||"図面")+'</b><div class="muted">'+(pdf?"PDF"+(pdfPg[p.id]>1?"(1/"+pdfPg[p.id]+"ページ目を表示)":""):"画像")+(p.size?" ・ "+fmtSize(p.size):"")+(p.at?" ・ "+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
+        (pdf?'<button class="btn sm" type="button" data-act="dwopen" data-id="'+esc(p.id)+'">PDFを開く</button>':'')+(can?'<button class="btn sm" type="button" data-act="dwdel" data-id="'+esc(p.id)+'" aria-label="この図面を削除">削除</button>':'')+'</div></div>';
     }).join("")+'</div>';
   }
   function sitePhotoSec(s){
