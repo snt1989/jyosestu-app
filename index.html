@@ -113,7 +113,11 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
 .banner{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.92rem}
 
 /* site card */
-.sc{box-shadow:var(--shadow);background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mvb{display:flex;gap:6px;justify-content:flex-end;grid-column:1/-1}
+.sc>.mvb{padding:0 10px 10px}
+.mvb button{width:36px;height:36px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}
+.mvb button:disabled{opacity:.35;cursor:default}
+.sc{position:relative;box-shadow:var(--shadow);background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .sc.l3{border-color:var(--crit);box-shadow:inset 6px 0 0 var(--crit)}
 .sc.l2{box-shadow:inset 6px 0 0 var(--warn)}
 .sc-main{padding:12px 14px 8px 18px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
@@ -465,7 +469,7 @@ tbody tr:last-child td{border-bottom:0}
     <div class="r" style="margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
       <select id="crewSel" aria-label="担当班で絞り込み"><option value="">すべての担当班</option></select>
       <select id="stSel" aria-label="作業状況で絞り込み"><option value="">すべての作業状況</option><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done">完了</option></select>
-      <select id="sortSel" aria-label="並べ替え"><option value="prio">並び順:優先度</option><option value="name">現場名</option><option value="area">地区</option><option value="crew">担当班</option><option value="snow">降雪量の目安</option><option value="th">出動基準</option><option value="count">今シーズンの出動回数</option><option value="created">登録順</option></select>
+      <select id="sortSel" aria-label="並べ替え"><option value="prio">並び順:優先度</option><option value="name">現場名</option><option value="area">地区</option><option value="crew">担当班</option><option value="snow">降雪量の目安</option><option value="th">出動基準</option><option value="count">今シーズンの出動回数</option><option value="created">登録順</option><option value="manual">手動(管理者が並べ替え)</option></select>
       <button type="button" class="btn sm" id="sortDir" aria-label="昇順・降順の切り替え">昇順 ↑</button>
       <button type="button" class="btn sm" id="siteReset">条件をクリア</button>
     </div></div>
@@ -1179,12 +1183,41 @@ tbody tr:last-child td{border-bottom:0}
       $("crewSel").innerHTML='<option value="">すべての担当班</option>'+list.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join("");
     }
   }
+  function manKey(s){return typeof s.order==="number"?s.order:1e12+(+s.createdAt||0)}
+  function manualList(){return sites.slice().sort(function(a,b){return manKey(a)-manKey(b)||String(a.name).localeCompare(String(b.name),"ja")})}
+  var mvBusy=false;
+  async function moveSite(id,dir,shownIds){
+    if(!canAdmin||mvBusy)return;
+    var i=shownIds.indexOf(id), j=i+dir; if(i<0||j<0||j>=shownIds.length)return;
+    var full=manualList().map(function(s){return s.id}), a=full.indexOf(id), b=full.indexOf(shownIds[j]);
+    if(a<0||b<0)return;
+    full[a]=shownIds[j]; full[b]=id;
+    mvBusy=true;
+    try{
+      var ws=[];
+      full.forEach(function(sid,k){var s=sites.filter(function(x){return x.id===sid})[0]; if(s&&s.order!==k){s.order=k; ws.push(db.doc("sites/"+sid).update({order:k}))}});
+      render();
+      await Promise.all(ws);
+    }catch(e){toast("並べ替えを保存できませんでした。")}
+    mvBusy=false;
+  }
+  function addMoveBtns(shown){
+    if(!canAdmin)return;
+    var ids=shown.map(function(x){return x.s.id});
+    Array.prototype.forEach.call($("siteList").querySelectorAll("article"),function(el){
+      var o=el.querySelector("[data-act=open]")||el, id=o.getAttribute("data-id"), i=ids.indexOf(id); if(i<0)return;
+      var d=document.createElement("span"); d.className="mvb";
+      d.innerHTML='<button type="button" data-act="mv" data-d="-1" data-id="'+esc(id)+'" aria-label="上へ"'+(i===0?" disabled":"")+'>↑</button><button type="button" data-act="mv" data-d="1" data-id="'+esc(id)+'" aria-label="下へ"'+(i===ids.length-1?" disabled":"")+'>↓</button>';
+      el.appendChild(d);
+    });
+    $("siteList").__ids=ids;
+  }
   function flatSort(items){
     var tx=function(v){return String(v||"")}, ja=function(a,b){return a.localeCompare(b,"ja")};
     var get={
       name:function(x){return tx(x.s.name)}, area:function(x){return tx(x.s.area)}, crew:function(x){return tx(x.s.crew)},
       snow:function(x){return x.a.snow2||0}, th:function(x){return +x.s.threshold||0},
-      count:function(x){return siteSeasonCount(x.s.id)}, created:function(x){return +x.s.createdAt||0}
+      count:function(x){return siteSeasonCount(x.s.id)}, created:function(x){return +x.s.createdAt||0}, manual:function(x){return manKey(x.s)}
     }[sortK]||function(x){return tx(x.s.name)};
     var isText=(sortK==="name"||sortK==="area"||sortK==="crew");
     items.sort(function(p,r){
@@ -1218,7 +1251,7 @@ tbody tr:last-child td{border-bottom:0}
     syncAreaSel();
     Array.prototype.forEach.call($("layoutT").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.layout===layout))});
     syncCrewSel();
-    $("sortDir").hidden=(sortK==="prio"); $("sortDir").textContent=sortDir>0?"昇順 ↑":"降順 ↓";
+    $("sortDir").hidden=(sortK==="prio"||sortK==="manual"); $("sortDir").textContent=sortDir>0?"昇順 ↑":"降順 ↓";
     $("sortSel").value=sortK; $("stSel").value=stF; $("crewSel").value=crewF;
     var qs=query.trim().toLowerCase();
     var shown=items.filter(function(x){
@@ -1241,7 +1274,7 @@ tbody tr:last-child td{border-bottom:0}
       var GN={3:"出動目安",2:"警戒",1:"平常",0:"天気を取得できていない現場"}, out="";
       if(sortK!=="prio"){
         out='<div class="stack'+(layout==="row"?" rows":"")+'">'+shown.map(function(x){return layout==="row"?siteRow(x.s):siteCard(x.s)}).join("")+'</div>';
-        $("siteList").innerHTML=out; return;
+        $("siteList").innerHTML=out; if(sortK==="manual")addMoveBtns(shown); return;
       }
       [3,2,1,0].forEach(function(lv){
         var g=shown.filter(function(x){return x.a.lv===lv}); if(!g.length)return;
@@ -1732,7 +1765,8 @@ tbody tr:last-child td{border-bottom:0}
     if(d.nav){goto(d.nav,d.f);return}
     if(d.filter){filter=d.filter;render();return}
     var act=d.act, id=d.id, s=id?siteById(id):null;
-    if(act==="open"){if(s)openDetail(id)}
+    if(act==="mv"){moveSite(id,+d.d,$("siteList").__ids||[])}
+    else if(act==="open"){if(s)openDetail(id)}
     else if(act==="open2"){closeSheet("rview");if(s)openDetail(id)}
     else if(act==="close"){closeSheet(d.sheet)}
     else if(act==="logout"){if(window.__FB)window.__FB.signOut()}

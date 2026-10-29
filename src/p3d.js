@@ -66,7 +66,8 @@
     if(d.nav){goto(d.nav,d.f);return}
     if(d.filter){filter=d.filter;render();return}
     var act=d.act, id=d.id, s=id?siteById(id):null;
-    if(act==="open"){if(s)openDetail(id)}
+    if(act==="mv"){moveSite(id,+d.d,$("siteList").__ids||[])}
+    else if(act==="open"){if(s)openDetail(id)}
     else if(act==="open2"){closeSheet("rview");if(s)openDetail(id)}
     else if(act==="close"){closeSheet(d.sheet)}
     else if(act==="logout"){if(window.__FB)window.__FB.signOut()}
