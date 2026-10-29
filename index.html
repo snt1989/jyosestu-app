@@ -219,6 +219,12 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
 .whl.done{opacity:.85}
 .whl.soon .mt{color:var(--warn);font-weight:700}
 .whl.late{border-color:var(--crit)} .whl.late .mt{color:var(--crit);font-weight:700}
+.dvt .tl b.hd{display:flex;flex-direction:column;gap:2px;font-size:1.15rem}
+.fh{margin-top:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.fh-t{font-weight:600;display:flex;flex-direction:column;gap:2px;font-size:.95rem}
+.fh-t .help{font-weight:400}
+#fHands{display:flex;flex-direction:column;gap:8px;width:100%}
+.hr{display:grid;grid-template-columns:minmax(0,1fr) 8.5em auto;gap:8px;align-items:center}
 .whi{margin:8px 2px 0;font-size:.9rem}
 .mvb{display:flex;gap:6px;justify-content:flex-end;grid-column:1/-1}
 .sc>.mvb{padding:0 10px 10px}
@@ -957,9 +963,9 @@ tbody tr:last-child td{border-bottom:0}
     <h2 class="ah" id="fs3">出動基準・状況</h2>
     <div class="panel"><div class="grp">
       <label for="fTh">出動基準(降雪量 cm)<input id="fTh" type="number" min="1" max="200" step="1" value="10"></label>
-      <label for="fHand">引渡時間(作業を終えて引き渡す時刻)<input id="fHand" type="time"></label>
       <label for="fStatus">作業状況<select id="fStatus"><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done">完了</option></select></label>
-    </div></div>
+    </div>
+    <div class="fh"><div class="fh-t">引渡時間<span class="help">作業を終えて引き渡す時刻です。朝・夕など複数設定できます。</span></div><div id="fHands"></div><button type="button" class="btn sm" id="fHandAdd">＋ 引渡時間を追加</button></div></div>
     <h2 class="ah" id="fs4">契約・金額</h2>
     <div class="panel"><div class="grp">
       <p class="help" style="margin:0 0 8px">作業内容ごとに行を分けて登録できます(例:除雪・排雪)。「集計の対象」で、どの日報を数えるかを決めます。</p>
@@ -1020,6 +1026,13 @@ tbody tr:last-child td{border-bottom:0}
     var ct=+s.contractCount||0, up=pz&&pz.unitPrice>0?+pz.unitPrice:0;
     return (ct>0||up>0)?[{work:"",kind:"all",count:ct,unitPrice:up,unit:pz&&pz.unit==="時間"?"時間":"回"}]:[];
   }
+  // 引渡時間(複数)。旧データ(handover 1件)も読めるようにする
+  function siteHands(s){
+    var a=Array.isArray(s.handovers)?s.handovers:(s.handover?[{label:"",time:s.handover}]:[]);
+    return a.filter(function(h){return h&&/^\d{1,2}:\d{2}$/.test(h.time||"")}).map(function(h){return {label:String(h.label||""),time:("0"+h.time).slice(-5)}})
+      .sort(function(x,y){return x.time.localeCompare(y.time)});
+  }
+  function handText(s,short){return siteHands(s).map(function(h){return (h.label&&!short?h.label+" ":"")+h.time}).join(" ・ ")}
   function lineLabel(l){return l.work||LSHORT[l.kind]||""}
   function lineMatch(kind,r){return kind==="all"?true:kind==="joset"?!r.haisetsu:kind==="hai"?!!r.haisetsu:false}
   // 行の一覧から、保存用のデータ(現場側・単価側)を作る
@@ -1245,7 +1258,7 @@ tbody tr:last-child td{border-bottom:0}
   }
   function siteCard(s){
     var a=assess(s), st=stOf(s), id=esc(s.id);
-    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定',s.handover?('引渡 '+s.handover):''].filter(Boolean).join(' ・ '))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
+    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定',siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join(' ・ '))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
   }
   function stSelHtml(s){
     var st=stOf(s);
@@ -1352,8 +1365,13 @@ tbody tr:last-child td{border-bottom:0}
           var tm=x.at?(today?timeStr(x.at)+'から':fmtDT(x.at).split(" ")[0]+'から'):'';
           var dur=today&&x.at?(el>=60?Math.floor(el/60)+'時間'+(el%60?el%60+'分':''):el+'分'):'';
           var hd="", hc="";
-          if(x.s.handover){var hm=/^(\d+):(\d+)/.exec(x.s.handover), tgt=new Date();tgt.setHours(+hm[1],+hm[2],0,0);var rem=Math.round((tgt.getTime()-now)/60000);
-            hd="引渡 "+x.s.handover+(rem<0?"(過ぎています)":rem<=60?"(あと"+rem+"分)":""); hc=rem<0?" late":rem<=60?" soon":"";}
+          var hs=siteHands(x.s);
+          if(hs.length){
+            var pick=null,rem=0;
+            hs.forEach(function(h){var m=/^(\d+):(\d+)/.exec(h.time),tg=new Date();tg.setHours(+m[1],+m[2],0,0);var r=Math.round((tg.getTime()-now)/60000);if(!pick&&r>=0){pick=h;rem=r}});
+            var lastH=hs[hs.length-1];
+            if(!pick){var m2=/^(\d+):(\d+)/.exec(lastH.time),tg2=new Date();tg2.setHours(+m2[1],+m2[2],0,0);pick=lastH;rem=Math.round((tg2.getTime()-now)/60000)}
+            hd="引渡 "+(pick.label?pick.label+" ":"")+pick.time+(rem<0?"(過ぎています)":rem<=60?"(あと"+rem+"分)":"")+(hs.length>1?" ほか"+(hs.length-1)+"件":""); hc=rem<0?" late":rem<=60?" soon":"";}
           return '<button type="button" class="whl '+x.st+hc+'" data-act="open" data-id="'+esc(x.s.id)+'"><span class="sp">'+esc(ST[x.st])+'</span><span class="nm">'+esc(x.s.name)+'</span><span class="mt">'+[x.by,tm,dur&&'経過 '+dur,hd].filter(Boolean).map(esc).join(' ・ ')+'</span></button>';
         }).join("")+
         g.done.map(function(x){return '<button type="button" class="whl done" data-act="open" data-id="'+esc(x.id)+'"><span class="sp">完了</span><span class="nm">'+esc(x.name)+'</span><span class="mt">'+[x.by,x.time].filter(Boolean).map(esc).join(' ・ ')+'</span></button>'}).join("")+'</article>';
@@ -1532,7 +1550,7 @@ tbody tr:last-child td{border-bottom:0}
     h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
     var n=siteSeasonCount(s.id), sl=siteLines(s);
     h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
-    h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>引渡時間</span><b class="num">'+(s.handover?esc(s.handover):'<small>未設定</small>')+'</b></div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
+    h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>引渡時間</span>'+(siteHands(s).length?'<b class="num hd">'+siteHands(s).map(function(h){return '<span>'+(h.label?'<small>'+esc(h.label)+' </small>':'')+esc(h.time)+'</span>'}).join("")+'</b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
     h+='<div class="dvr"><span class="k">住所</span><div class="v">'+(s.address?esc(s.address)+'<a class="btn sm" style="margin-left:8px" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図を開く</a>':'<span class="muted">未登録</span>')+'</div></div>';
     h+='<div class="dvr"><span class="k">メモ</span><div class="v" style="white-space:pre-wrap">'+(s.note?esc(s.note):'<span class="muted">なし</span>')+'</div></div></div>';
     h+='<div class="sec" id="dvCt"><h2>契約・単価'+(canAdmin?admBadge():'')+'</h2></div><div class="card2 dvc">'+sl.map(function(l){
@@ -2174,7 +2192,7 @@ tbody tr:last-child td{border-bottom:0}
     var s=id?siteById(id):null, isNew=!s||copy;
     $("dlgTitle").textContent=copy?"現場をコピーして追加":s?"現場を編集":"現場を追加";
     $("fName").value=s?s.name+(copy?"(コピー)":""):""; $("fArea").value=s&&s.area||""; $("fLoc").value=s?s.loc:"";
-    $("fTh").value=s&&s.threshold||settings.defaultTh||10; $("fCrew").value=s&&s.crew||""; $("fHand").value=s&&s.handover||""; $("fNote").value=s&&s.note||"";
+    $("fTh").value=s&&s.threshold||settings.defaultTh||10; $("fCrew").value=s&&s.crew||""; fHands=s?siteHands(s).map(function(h){return Object.assign({},h)}):[]; drawHands(); $("fNote").value=s&&s.note||"";
     fLines=s?siteLines(s).map(function(l){return Object.assign({},l)}):[]; if(!fLines.length)fLines=[{work:"",kind:"all",count:0,unitPrice:0,unit:"回"}]; drawLines();
     $("fStatus").value=(s&&!copy)?stOf(s):"standby";
     var w0=(s&&!copy)?wx[s.id]:null; $("fWxState").textContent=isNew?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
@@ -2185,7 +2203,18 @@ tbody tr:last-child td{border-bottom:0}
   }
   function closeDlg(){$("sform").hidden=true;editingId=null;lockBody()}
   /* ---------- 契約・金額(作業内容ごとの行) ---------- */
-  var fLines=[];
+  var fLines=[], fHands=[];
+  function drawHands(){
+    $("fHands").innerHTML=fHands.map(function(h,i){
+      return '<div class="hr" data-i="'+i+'"><input data-h="label" maxlength="10" placeholder="名前(例:朝)" aria-label="引渡時間の名前" value="'+esc(h.label)+'"><input data-h="time" type="time" aria-label="引渡時間" value="'+esc(h.time)+'"><button type="button" class="btn sm" data-hrm="'+i+'" aria-label="この引渡時間を削除">削除</button></div>';
+    }).join("")||'<div class="help">未設定</div>';
+  }
+  function readHands(){
+    Array.prototype.forEach.call($("fHands").querySelectorAll(".hr"),function(r){var i=+r.dataset.i;if(!fHands[i])return;
+      fHands[i].label=r.querySelector('[data-h="label"]').value.trim(); fHands[i].time=r.querySelector('[data-h="time"]').value||""});
+  }
+  $("fHandAdd").addEventListener("click",function(){readHands();if(fHands.length>=6)return;fHands.push({label:"",time:""});drawHands();var l=$("fHands").querySelectorAll('[data-h="time"]');if(l.length)l[l.length-1].focus()});
+  $("fHands").addEventListener("click",function(e){var b=e.target.closest("[data-hrm]");if(!b)return;readHands();fHands.splice(+b.dataset.hrm,1);drawHands()});
   function drawLines(){
     $("fLines").innerHTML=fLines.map(function(l,i){
       return '<div class="cl" data-i="'+i+'"><label class="wide">作業内容<input data-f="work" data-combo="dlWork" maxlength="30" placeholder="例:除雪" value="'+esc(l.work)+'"></label>'+
@@ -2226,7 +2255,7 @@ tbody tr:last-child td{border-bottom:0}
     if(!db)return;
     var th=parseInt($("fTh").value,10); if(!(th>0))th=10;
     readLines(); var kept=fLines.filter(function(l){return l.work||l.count>0||l.unitPrice>0}), ls=lineSave(kept);
-    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,handover:$("fHand").value||"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
+    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
       lines:ls.site.lines,contractCount:ls.site.contractCount};
     var priceData=ls.price;
     data.locSrc=data.loc?(data.loc===geoLoc?"city":"manual"):"";
@@ -2772,7 +2801,7 @@ tbody tr:last-child td{border-bottom:0}
         '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div>'+
         '<span class="ed edb">'+(mv?'<button class="btn sm" type="button" data-act="mv" data-d="-1" data-id="'+id+'" aria-label="上へ"'+(aids.indexOf(s.id)===0?' disabled':'')+'>↑</button><button class="btn sm" type="button" data-act="mv" data-d="1" data-id="'+id+'" aria-label="下へ"'+(aids.indexOf(s.id)===aids.length-1?' disabled':'')+'>↓</button>':'')+'<button class="btn sm" type="button" data-act="copy" data-id="'+id+'" aria-label="'+esc(s.name)+'をコピー">コピー</button><button class="btn sm" type="button" data-act="edit" data-id="'+id+'">編集</button></span>'+
         '<div class="kvs"><span class="k"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></span>'+
-        '<span class="k'+(s.handover?'':' emp')+'"><small>引渡時間</small><span class="num">'+esc(s.handover||"–")+'</span></span>'+
+        '<span class="k'+(siteHands(s).length?'':' emp')+'"><small>引渡時間</small><span class="num">'+esc(handText(s)||"–")+'</span></span>'+
         '<span class="k'+(s.loc?'':' emp')+'"><small>位置</small><span>'+(s.loc?'設定済':'未設定')+'</span></span>'+
         '<span class="k wide'+(s.address?'':' emp')+'"><small>住所</small><span class="tx">'+esc(s.address||"–")+'</span></span>'+
         '<span class="k wide'+(s.note?'':' emp')+'"><small>備考</small><span class="tx">'+esc(s.note||"–")+'</span></span></div>'+
@@ -3193,7 +3222,7 @@ tbody tr:last-child td{border-bottom:0}
     var lines=[CSVH.map(csvCell2).join(",")];
     adminRows().forEach(function(s){
       var p=canAdmin?priceOf(s.id):null;
-      lines.push([s.name,s.area||"",s.address||"",s.loc||"",s.crew||"",s.threshold||"",s.contractCount||"",p&&p.unitPrice>0?p.unitPrice:"",p&&p.unitPrice>0?p.unit:"",s.note||"",s.handover||""].map(csvCell2).join(","));
+      lines.push([s.name,s.area||"",s.address||"",s.loc||"",s.crew||"",s.threshold||"",s.contractCount||"",p&&p.unitPrice>0?p.unitPrice:"",p&&p.unitPrice>0?p.unit:"",s.note||"",siteHands(s).map(function(h){return (h.label?h.label+" ":"")+h.time}).join(" / ")].map(csvCell2).join(","));
     });
     csvSave("現場一覧_"+todayStr()+".csv",lines,"csvMsg");
   });
@@ -3220,7 +3249,8 @@ tbody tr:last-child td{border-bottom:0}
       if(g("地区"))d.area=g("地区"); if(g("住所"))d.address=g("住所"); if(g("担当班"))d.crew=g("担当班"); if(g("メモ"))d.note=g("メモ");
       if(g("天気を調べる場所")){d.loc=g("天気を調べる場所");d.locSrc="manual"}
       var th=parseInt(g("出動基準(cm)"),10); if(th>0)d.threshold=th;
-      var hv=/^(\d{1,2})[:：](\d{2})$/.exec(g("引渡時間").normalize("NFKC")); if(hv&&+hv[1]<24&&+hv[2]<60)d.handover=("0"+hv[1]).slice(-2)+":"+hv[2];
+      var hv=[]; String(g("引渡時間")).normalize("NFKC").split(/[\/,、;]+/).forEach(function(tok){var m=/^(.*?)(\d{1,2}):(\d{2})\s*$/.exec(tok.trim()); if(m&&+m[2]<24&&+m[3]<60)hv.push({label:m[1].trim(),time:("0"+m[2]).slice(-2)+":"+m[3]})});
+      if(hv.length){d.handovers=hv.sort(function(x,y){return x.time.localeCompare(y.time)});d.handover=""}
       var ct=parseInt(g("契約回数"),10); if(ct>=0)d.contractCount=ct;
       var pr=parseInt(g("単価(円)"),10), un=g("単価の単位")==="時間"?"時間":(g("単価の単位")==="回"?"回":"");
       try{

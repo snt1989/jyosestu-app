@@ -412,9 +412,9 @@
     <h2 class="ah" id="fs3">出動基準・状況</h2>
     <div class="panel"><div class="grp">
       <label for="fTh">出動基準(降雪量 cm)<input id="fTh" type="number" min="1" max="200" step="1" value="10"></label>
-      <label for="fHand">引渡時間(作業を終えて引き渡す時刻)<input id="fHand" type="time"></label>
       <label for="fStatus">作業状況<select id="fStatus"><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done">完了</option></select></label>
-    </div></div>
+    </div>
+    <div class="fh"><div class="fh-t">引渡時間<span class="help">作業を終えて引き渡す時刻です。朝・夕など複数設定できます。</span></div><div id="fHands"></div><button type="button" class="btn sm" id="fHandAdd">＋ 引渡時間を追加</button></div></div>
     <h2 class="ah" id="fs4">契約・金額</h2>
     <div class="panel"><div class="grp">
       <p class="help" style="margin:0 0 8px">作業内容ごとに行を分けて登録できます(例:除雪・排雪)。「集計の対象」で、どの日報を数えるかを決めます。</p>

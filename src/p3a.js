@@ -33,6 +33,13 @@
     var ct=+s.contractCount||0, up=pz&&pz.unitPrice>0?+pz.unitPrice:0;
     return (ct>0||up>0)?[{work:"",kind:"all",count:ct,unitPrice:up,unit:pz&&pz.unit==="時間"?"時間":"回"}]:[];
   }
+  // 引渡時間(複数)。旧データ(handover 1件)も読めるようにする
+  function siteHands(s){
+    var a=Array.isArray(s.handovers)?s.handovers:(s.handover?[{label:"",time:s.handover}]:[]);
+    return a.filter(function(h){return h&&/^\d{1,2}:\d{2}$/.test(h.time||"")}).map(function(h){return {label:String(h.label||""),time:("0"+h.time).slice(-5)}})
+      .sort(function(x,y){return x.time.localeCompare(y.time)});
+  }
+  function handText(s,short){return siteHands(s).map(function(h){return (h.label&&!short?h.label+" ":"")+h.time}).join(" ・ ")}
   function lineLabel(l){return l.work||LSHORT[l.kind]||""}
   function lineMatch(kind,r){return kind==="all"?true:kind==="joset"?!r.haisetsu:kind==="hai"?!!r.haisetsu:false}
   // 行の一覧から、保存用のデータ(現場側・単価側)を作る
