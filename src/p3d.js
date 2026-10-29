@@ -178,7 +178,7 @@
     var s=id?siteById(id):null, isNew=!s||copy;
     $("dlgTitle").textContent=copy?"現場をコピーして追加":s?"現場を編集":"現場を追加";
     $("fName").value=s?s.name+(copy?"(コピー)":""):""; $("fArea").value=s&&s.area||""; $("fLoc").value=s?s.loc:"";
-    $("fTh").value=s&&s.threshold||settings.defaultTh||10; $("fCrew").value=s&&s.crew||""; $("fNote").value=s&&s.note||"";
+    $("fTh").value=s&&s.threshold||settings.defaultTh||10; $("fCrew").value=s&&s.crew||""; $("fHand").value=s&&s.handover||""; $("fNote").value=s&&s.note||"";
     fLines=s?siteLines(s).map(function(l){return Object.assign({},l)}):[]; if(!fLines.length)fLines=[{work:"",kind:"all",count:0,unitPrice:0,unit:"回"}]; drawLines();
     $("fStatus").value=(s&&!copy)?stOf(s):"standby";
     var w0=(s&&!copy)?wx[s.id]:null; $("fWxState").textContent=isNew?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
@@ -230,7 +230,7 @@
     if(!db)return;
     var th=parseInt($("fTh").value,10); if(!(th>0))th=10;
     readLines(); var kept=fLines.filter(function(l){return l.work||l.count>0||l.unitPrice>0}), ls=lineSave(kept);
-    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
+    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,handover:$("fHand").value||"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
       lines:ls.site.lines,contractCount:ls.site.contractCount};
     var priceData=ls.price;
     data.locSrc=data.loc?(data.loc===geoLoc?"city":"manual"):"";
@@ -776,6 +776,7 @@
         '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div>'+
         '<span class="ed edb">'+(mv?'<button class="btn sm" type="button" data-act="mv" data-d="-1" data-id="'+id+'" aria-label="上へ"'+(aids.indexOf(s.id)===0?' disabled':'')+'>↑</button><button class="btn sm" type="button" data-act="mv" data-d="1" data-id="'+id+'" aria-label="下へ"'+(aids.indexOf(s.id)===aids.length-1?' disabled':'')+'>↓</button>':'')+'<button class="btn sm" type="button" data-act="copy" data-id="'+id+'" aria-label="'+esc(s.name)+'をコピー">コピー</button><button class="btn sm" type="button" data-act="edit" data-id="'+id+'">編集</button></span>'+
         '<div class="kvs"><span class="k"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></span>'+
+        '<span class="k'+(s.handover?'':' emp')+'"><small>引渡時間</small><span class="num">'+esc(s.handover||"–")+'</span></span>'+
         '<span class="k'+(s.loc?'':' emp')+'"><small>位置</small><span>'+(s.loc?'設定済':'未設定')+'</span></span>'+
         '<span class="k wide'+(s.address?'':' emp')+'"><small>住所</small><span class="tx">'+esc(s.address||"–")+'</span></span>'+
         '<span class="k wide'+(s.note?'':' emp')+'"><small>備考</small><span class="tx">'+esc(s.note||"–")+'</span></span></div>'+
@@ -1172,7 +1173,7 @@
   });
 
   /* ---------- CSV ---------- */
-  var CSVH=["現場名","地区","住所","天気を調べる場所","担当班","出動基準(cm)","契約回数","単価(円)","単価の単位","メモ"];
+  var CSVH=["現場名","地区","住所","天気を調べる場所","担当班","出動基準(cm)","契約回数","単価(円)","単価の単位","メモ","引渡時間"];
   function csvCell2(v){v=String(v==null?"":v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
   function parseCsv(t){
     t=String(t||"").replace(/^\uFEFF/,"");
@@ -1196,7 +1197,7 @@
     var lines=[CSVH.map(csvCell2).join(",")];
     adminRows().forEach(function(s){
       var p=canAdmin?priceOf(s.id):null;
-      lines.push([s.name,s.area||"",s.address||"",s.loc||"",s.crew||"",s.threshold||"",s.contractCount||"",p&&p.unitPrice>0?p.unitPrice:"",p&&p.unitPrice>0?p.unit:"",s.note||""].map(csvCell2).join(","));
+      lines.push([s.name,s.area||"",s.address||"",s.loc||"",s.crew||"",s.threshold||"",s.contractCount||"",p&&p.unitPrice>0?p.unitPrice:"",p&&p.unitPrice>0?p.unit:"",s.note||"",s.handover||""].map(csvCell2).join(","));
     });
     csvSave("現場一覧_"+todayStr()+".csv",lines,"csvMsg");
   });
@@ -1223,6 +1224,7 @@
       if(g("地区"))d.area=g("地区"); if(g("住所"))d.address=g("住所"); if(g("担当班"))d.crew=g("担当班"); if(g("メモ"))d.note=g("メモ");
       if(g("天気を調べる場所")){d.loc=g("天気を調べる場所");d.locSrc="manual"}
       var th=parseInt(g("出動基準(cm)"),10); if(th>0)d.threshold=th;
+      var hv=/^(\d{1,2})[:：](\d{2})$/.exec(g("引渡時間").normalize("NFKC")); if(hv&&+hv[1]<24&&+hv[2]<60)d.handover=("0"+hv[1]).slice(-2)+":"+hv[2];
       var ct=parseInt(g("契約回数"),10); if(ct>=0)d.contractCount=ct;
       var pr=parseInt(g("単価(円)"),10), un=g("単価の単位")==="時間"?"時間":(g("単価の単位")==="回"?"回":"");
       try{

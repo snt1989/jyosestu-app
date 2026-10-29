@@ -72,7 +72,7 @@
   }
   function siteCard(s){
     var a=assess(s), st=stOf(s), id=esc(s.id);
-    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
+    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定',s.handover?('引渡 '+s.handover):''].filter(Boolean).join(' ・ '))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
   }
   function stSelHtml(s){
     var st=stOf(s);
@@ -178,7 +178,10 @@
           var today=x.at&&dstr(new Date(x.at))===td, el=x.at?Math.max(0,Math.round((now-x.at)/60000)):0;
           var tm=x.at?(today?timeStr(x.at)+'から':fmtDT(x.at).split(" ")[0]+'から'):'';
           var dur=today&&x.at?(el>=60?Math.floor(el/60)+'時間'+(el%60?el%60+'分':''):el+'分'):'';
-          return '<button type="button" class="whl '+x.st+'" data-act="open" data-id="'+esc(x.s.id)+'"><span class="sp">'+esc(ST[x.st])+'</span><span class="nm">'+esc(x.s.name)+'</span><span class="mt">'+[x.by,tm,dur&&'経過 '+dur].filter(Boolean).map(esc).join(' ・ ')+'</span></button>';
+          var hd="", hc="";
+          if(x.s.handover){var hm=/^(\d+):(\d+)/.exec(x.s.handover), tgt=new Date();tgt.setHours(+hm[1],+hm[2],0,0);var rem=Math.round((tgt.getTime()-now)/60000);
+            hd="引渡 "+x.s.handover+(rem<0?"(過ぎています)":rem<=60?"(あと"+rem+"分)":""); hc=rem<0?" late":rem<=60?" soon":"";}
+          return '<button type="button" class="whl '+x.st+hc+'" data-act="open" data-id="'+esc(x.s.id)+'"><span class="sp">'+esc(ST[x.st])+'</span><span class="nm">'+esc(x.s.name)+'</span><span class="mt">'+[x.by,tm,dur&&'経過 '+dur,hd].filter(Boolean).map(esc).join(' ・ ')+'</span></button>';
         }).join("")+
         g.done.map(function(x){return '<button type="button" class="whl done" data-act="open" data-id="'+esc(x.id)+'"><span class="sp">完了</span><span class="nm">'+esc(x.name)+'</span><span class="mt">'+[x.by,x.time].filter(Boolean).map(esc).join(' ・ ')+'</span></button>'}).join("")+'</article>';
     }).join("")+'</div>'+(idle.length?'<p class="muted whi">待機: '+idle.map(function(g){return esc(g.n)}).join("・")+'</p>':'');
@@ -356,7 +359,7 @@
     h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
     var n=siteSeasonCount(s.id), sl=siteLines(s);
     h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
-    h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
+    h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>引渡時間</span><b class="num">'+(s.handover?esc(s.handover):'<small>未設定</small>')+'</b></div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
     h+='<div class="dvr"><span class="k">住所</span><div class="v">'+(s.address?esc(s.address)+'<a class="btn sm" style="margin-left:8px" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図を開く</a>':'<span class="muted">未登録</span>')+'</div></div>';
     h+='<div class="dvr"><span class="k">メモ</span><div class="v" style="white-space:pre-wrap">'+(s.note?esc(s.note):'<span class="muted">なし</span>')+'</div></div></div>';
     h+='<div class="sec" id="dvCt"><h2>契約・単価'+(canAdmin?admBadge():'')+'</h2></div><div class="card2 dvc">'+sl.map(function(l){
