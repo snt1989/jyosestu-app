@@ -146,6 +146,44 @@
   var KIND={before:"作業前",after:"作業後",other:"その他"};
 
   /* ---------- ホーム ---------- */
+  /* ---------- 誰がどこに(ホーム) ---------- */
+  function whoHtml(){
+    var td=todayStr(), now=Date.now(), crews={}, order=[];
+    function C(n){n=n||"";if(!crews[n]){crews[n]={n:n,act:[],done:[]};order.push(n)}return crews[n]}
+    (masters.crews||[]).forEach(function(c){if(c)C(c)});
+    sites.forEach(function(s){
+      var st=stOf(s), at=stAt(s), o=ops[s.id]||{};
+      var isToday=at&&dstr(new Date(at))===td;
+      if(st==="out"||st==="prep")C(s.crew||"").act.push({s:s,st:st,at:at,by:o.statusBy||""});
+      else if(st==="done"&&isToday)C(s.crew||"").done.push({name:s.name,id:s.id,time:timeStr(at),by:o.statusBy||"",site:true});
+    });
+    // 本日の日報(完了した作業)を、日報の班名から班に振り分ける
+    var names=order.filter(Boolean);
+    reports.filter(function(r){return r.date===td}).forEach(function(r){
+      var cn="";names.forEach(function(n){if(!cn&&r.crew&&String(r.crew).indexOf(n)>=0)cn=n});
+      var g=C(cn);
+      if(g.done.some(function(d){return d.id===r.siteId}))return;
+      g.done.push({name:r.siteName||"(現場名なし)",id:r.siteId,time:(r.start||"--:--")+"〜"+(r.end||"--:--"),by:cn?String(r.crew).replace(cn,"").trim():(r.crew||""),site:true});
+    });
+    var list=order.map(function(n){return crews[n]});
+    var busy=list.filter(function(g){return g.act.length||g.done.length}), idle=list.filter(function(g){return g.n&&!g.act.length&&!g.done.length});
+    busy.sort(function(a,b){return (b.act.length>0)-(a.act.length>0)||(a.n?0:1)-(b.n?0:1)||a.n.localeCompare(b.n,"ja")});
+    var out=0;list.forEach(function(g){g.act.forEach(function(x){if(x.st==="out")out++})});
+    var h='<div class="sec"><h2>いま誰がどこに<span class="gc num">出動中 '+out+'件</span></h2></div>';
+    if(!busy.length)return h+'<div class="empty"><b>出動中・準備中の現場はありません</b>「現場一覧」や詳細で作業状況を「準備中」「出動中」にすると、ここに出ます。</div>'+(idle.length?'<p class="muted whi">待機: '+idle.map(function(g){return esc(g.n)}).join("・")+'</p>':'');
+    h+='<div class="whg">'+busy.map(function(g){
+      var run=g.act.some(function(x){return x.st==="out"});
+      return '<article class="card2 who'+(run?' run':'')+'"><div class="who-h"><b>'+esc(g.n||"担当班なし")+'</b><span class="who-p'+(run?' run':'')+'">'+(g.act.length?(run?'出動中':'準備中'):'本日完了')+'</span></div>'+
+        g.act.map(function(x){
+          var today=x.at&&dstr(new Date(x.at))===td, el=x.at?Math.max(0,Math.round((now-x.at)/60000)):0;
+          var tm=x.at?(today?timeStr(x.at)+'から':fmtDT(x.at).split(" ")[0]+'から'):'';
+          var dur=today&&x.at?(el>=60?Math.floor(el/60)+'時間'+(el%60?el%60+'分':''):el+'分'):'';
+          return '<button type="button" class="whl '+x.st+'" data-act="open" data-id="'+esc(x.s.id)+'"><span class="sp">'+esc(ST[x.st])+'</span><span class="nm">'+esc(x.s.name)+'</span><span class="mt">'+[x.by,tm,dur&&'経過 '+dur].filter(Boolean).map(esc).join(' ・ ')+'</span></button>';
+        }).join("")+
+        g.done.map(function(x){return '<button type="button" class="whl done" data-act="open" data-id="'+esc(x.id)+'"><span class="sp">完了</span><span class="nm">'+esc(x.name)+'</span><span class="mt">'+[x.by,x.time].filter(Boolean).map(esc).join(' ・ ')+'</span></button>'}).join("")+'</article>';
+    }).join("")+'</div>'+(idle.length?'<p class="muted whi">待機: '+idle.map(function(g){return esc(g.n)}).join("・")+'</p>':'');
+    return h;
+  }
   function renderHome(){
     var items=sites.map(function(s){return {s:s,a:assess(s)}});
     var c3=0,c2=0,out=0;
@@ -158,6 +196,7 @@
       '<button type="button" class="tile c2" data-nav="sites" data-f="l2"><span class="n">'+c2+'</span><span class="l">警戒</span></button>'+
       '<button type="button" class="tile" data-nav="sites" data-f="out"><span class="n">'+out+'</span><span class="l">出動中</span></button>'+
       '<button type="button" class="tile" data-nav="reports"><span class="n">'+todayReps.length+'</span><span class="l">本日の日報</span></button></div>';
+    h+=whoHtml();
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
     h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return siteCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';

@@ -83,7 +83,7 @@
     else if(act==="status"){
       if(!s||!canWrite()||busy[id]||stOf(s)===d.v)return;
       busy[id]=true;
-      try{await db.doc("ops/"+id).set({status:d.v,statusAt:Date.now()})}catch(err){toast("作業状況を保存できませんでした。")}
+      try{await db.doc("ops/"+id).set({status:d.v,statusAt:Date.now(),statusBy:myName||""})}catch(err){toast("作業状況を保存できませんでした。")}
       busy[id]=false;
     }
     else if(act==="newrep"){openReportForm(id||(detailId||""),null)}
@@ -141,7 +141,7 @@
     var id=sl.dataset.stsel, s=siteById(id);
     if(!s||!canWrite()||busy[id])return;
     busy[id]=true;
-    try{await db.doc("ops/"+id).set({status:sl.value,statusAt:Date.now()})}catch(err){toast("作業状況を保存できませんでした。");render()}
+    try{await db.doc("ops/"+id).set({status:sl.value,statusAt:Date.now(),statusBy:myName||""})}catch(err){toast("作業状況を保存できませんでした。");render()}
     busy[id]=false;
   });
   document.addEventListener("keydown",function(e){

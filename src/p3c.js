@@ -264,7 +264,7 @@
       else{
         data.by=myId||""; data.at=Date.now();
         await db.collection("reports").add(data);
-        if($("rfDone").checked&&s){try{await db.doc("ops/"+sid).set({status:"done",statusAt:Date.now()})}catch(e2){}}
+        if($("rfDone").checked&&s){try{await db.doc("ops/"+sid).set({status:"done",statusAt:Date.now(),statusBy:myName||""})}catch(e2){}}
       }
       var gone=rf.removed.slice(); rf.added=[]; rf.removed=[];
       rf=null; $("rform").hidden=true; lockBody();
