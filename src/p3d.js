@@ -191,7 +191,7 @@
       return '<div class="cl" data-i="'+i+'"><label class="wide">作業内容<input data-f="work" data-combo="dlWork" maxlength="30" placeholder="例:除雪" value="'+esc(l.work)+'"></label>'+
         '<label class="wide">集計の対象<select data-f="kind">'+Object.keys(LKIND).map(function(k){return '<option value="'+k+'"'+(l.kind===k?' selected':'')+'>'+esc(LKIND[k])+'</option>'}).join("")+'</select></label>'+
         '<label>契約回数<input data-f="count" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="例:10" value="'+(l.count>0?l.count:"")+'"></label>'+
-        (canAdmin?'<label>単価(円)'+admBadge()+'<input data-f="unitPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="例:20000" value="'+(l.unitPrice>0?l.unitPrice:"")+'"></label>'+
+        (canAdmin?'<label>単価(円)'+admBadge()+'<input data-f="unitPrice" type="number" min="0" step="1" inputmode="numeric" placeholder="例:20000" value="'+(l.unitPrice>0?l.unitPrice:"")+'"></label>'+
         '<label class="wide">単価の単位'+admBadge()+'<select data-f="unit"><option value="回"'+(l.unit==="時間"?'':' selected')+'>1回あたり</option><option value="時間"'+(l.unit==="時間"?' selected':'')+'>1時間あたり</option></select></label>':'')+
         (fLines.length>1?'<button type="button" class="btn sm cl-rm" data-lrm="'+i+'">この行を削除</button>':'')+'</div>';
     }).join("");
