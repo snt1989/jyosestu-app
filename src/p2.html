@@ -109,8 +109,8 @@
       <div class="panel" id="bulk" hidden>
         <div><b class="num" id="bulkN">0</b> 件を選択中。入力した項目だけを、選択した現場にまとめて反映します。</div>
         <div class="fields">
-          <label for="bArea">地区<input id="bArea" list="dlAreas" maxlength="40" placeholder="変更しない"></label>
-          <label for="bCrew">担当班<input id="bCrew" list="dlCrews" maxlength="40" placeholder="変更しない"></label>
+          <label for="bArea">地区<input id="bArea" data-combo="dlAreas" maxlength="40" placeholder="変更しない"></label>
+          <label for="bCrew">担当班<input id="bCrew" data-combo="dlCrews" maxlength="40" placeholder="変更しない"></label>
           <label for="bTh">出動基準(cm)<input id="bTh" type="number" min="1" max="200" step="1" placeholder="変更しない"></label>
           <label for="bContract">契約回数<input id="bContract" type="number" min="0" max="200" step="1" placeholder="変更しない"></label>
           <label for="bPrice">単価(円)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span><input id="bPrice" type="number" min="0" step="100" placeholder="変更しない"></label>
@@ -213,7 +213,7 @@
       <form class="card2 f" id="mbForm" hidden style="padding:0 0 4px;max-width:760px">
         <h3 class="mbft" id="mbFormTitle">メンバーを追加</h3>
         <div class="form-row"><label for="mbName">氏名<span class="req">必須</span></label><div><input id="mbName" maxlength="40" required placeholder="例:山田 太郎"></div></div>
-        <div class="form-row"><label for="mbCrew">担当班</label><div><input id="mbCrew" list="dlCrews" maxlength="40" placeholder="例:A班"></div></div>
+        <div class="form-row"><label for="mbCrew">担当班</label><div><input id="mbCrew" data-combo="dlCrews" maxlength="40" placeholder="例:A班"></div></div>
         <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option></select></div></div>
         <div class="form-row"><label for="mbTel" id="mbTelLab">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
         <div class="form-row"><label for="mbNote">備考</label><div><input id="mbNote" maxlength="100" placeholder="例:大型除雪機の資格あり"></div></div>
@@ -332,7 +332,7 @@
         <button type="button" class="btn sm" data-act="rfnow" data-t="start">開始を今にする</button>
         <button type="button" class="btn sm" data-act="rfnow" data-t="end">終了を今にする</button>
       </div>
-      <label for="rfCrew">担当班・作業者<input id="rfCrew" list="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
+      <label for="rfCrew">担当班・作業者<input id="rfCrew" data-combo="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
       <label for="rfSnow">積雪量(実測 cm)<input type="number" id="rfSnow" min="0" max="300" step="0.5" inputmode="decimal" placeholder="例:12"></label>
       <div><div class="lab2">使用機械</div><div class="tgs" id="rfMach"></div></div>
       <label class="chk" for="rfHai"><input type="checkbox" id="rfHai"> 排雪あり(雪を運び出した)</label>
@@ -368,12 +368,12 @@
     <h2 class="ah" id="fs1">基本情報</h2>
     <div class="panel"><div class="grp">
       <label for="fName">現場名<input id="fName" required maxlength="60" placeholder="例:○○団地 駐車場"></label>
-      <label for="fArea">地区・区分(任意)<input id="fArea" list="dlAreas" maxlength="40" placeholder="例:駅前"></label>
+      <label for="fArea">地区・区分(任意)<input id="fArea" data-combo="dlAreas" maxlength="40" placeholder="例:駅前"></label>
       <div>
         <label for="fAddr">住所(任意)<input id="fAddr" maxlength="120" placeholder="例:盛岡市盛岡駅前北通10-38"></label>
         <div class="help" id="fGeoMsg" role="status"></div>
       </div>
-      <label for="fCrew">担当班(任意)<input id="fCrew" list="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
+      <label for="fCrew">担当班(任意)<input id="fCrew" data-combo="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
       <label for="fNote">メモ(任意)<textarea id="fNote" maxlength="200" placeholder="例:除雪機は倉庫横。排雪場所は北側。"></textarea></label>
     </div></div>
     <h2 class="ah" id="fs2">天気・位置</h2>

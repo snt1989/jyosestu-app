@@ -113,6 +113,11 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
 .cl .wide{grid-column:1/-1}
 .cl input,.cl select{width:100%;margin-top:2px}
 .cl .cl-rm{grid-column:1/-1;justify-self:end}
+input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235C6459' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 14px center!important;padding-right:38px!important}
+#cbPanel{position:fixed;z-index:99999;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px -8px rgba(20,30,22,.35);max-height:260px;overflow:auto;padding:4px}
+#cbPanel button{display:block;width:100%;text-align:left;min-height:44px;padding:8px 12px;border:0;background:transparent;border-radius:8px;font:inherit;color:var(--ink);cursor:pointer}
+#cbPanel button:hover,#cbPanel button.on{background:var(--accent-soft)}
+#cbPanel .none{padding:10px 12px;color:var(--muted);font-size:.88rem}
 .mvb{display:flex;gap:6px;justify-content:flex-end;grid-column:1/-1}
 .sc>.mvb{padding:0 10px 10px}
 .mvb button{width:36px;height:36px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}

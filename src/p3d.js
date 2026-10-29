@@ -175,7 +175,7 @@
   var fLines=[];
   function drawLines(){
     $("fLines").innerHTML=fLines.map(function(l,i){
-      return '<div class="cl" data-i="'+i+'"><label class="wide">作業内容<input data-f="work" list="dlWork" maxlength="30" placeholder="例:除雪" value="'+esc(l.work)+'"></label>'+
+      return '<div class="cl" data-i="'+i+'"><label class="wide">作業内容<input data-f="work" data-combo="dlWork" maxlength="30" placeholder="例:除雪" value="'+esc(l.work)+'"></label>'+
         '<label class="wide">集計の対象<select data-f="kind">'+Object.keys(LKIND).map(function(k){return '<option value="'+k+'"'+(l.kind===k?' selected':'')+'>'+esc(LKIND[k])+'</option>'}).join("")+'</select></label>'+
         '<label>契約回数<input data-f="count" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="例:10" value="'+(l.count>0?l.count:"")+'"></label>'+
         (canAdmin?'<label>単価(円)'+admBadge()+'<input data-f="unitPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="例:20000" value="'+(l.unitPrice>0?l.unitPrice:"")+'"></label>'+
@@ -837,11 +837,65 @@
     finally{$("sSave").disabled=false}
   });
 
+
+  /* ---------- 候補つき入力欄(地区・担当班・作業内容):タップすると候補をすべて表示。自由に入力もできる ---------- */
+  var cbEl=null, cbIn=null, cbTyped=false, cbIdx=-1;
+  function cbOpts(inp){
+    var dl=document.getElementById(inp.getAttribute("data-combo")); if(!dl)return [];
+    return Array.prototype.map.call(dl.querySelectorAll("option"),function(o){return o.value}).filter(Boolean);
+  }
+  function cbClose(){if(cbEl){cbEl.remove();cbEl=null}cbIn=null;cbTyped=false;cbIdx=-1}
+  function cbPlace(){
+    if(!cbEl||!cbIn)return;
+    var r=cbIn.getBoundingClientRect(), below=window.innerHeight-r.bottom, h=Math.min(260,cbEl.scrollHeight+10);
+    cbEl.style.left=r.left+"px"; cbEl.style.width=r.width+"px";
+    if(below<h+8&&r.top>below){cbEl.style.top="auto";cbEl.style.bottom=(window.innerHeight-r.top+4)+"px";cbEl.style.maxHeight=Math.min(260,r.top-12)+"px"}
+    else{cbEl.style.bottom="auto";cbEl.style.top=(r.bottom+4)+"px";cbEl.style.maxHeight=Math.min(260,Math.max(120,below-12))+"px"}
+  }
+  function cbDraw(){
+    if(!cbIn)return;
+    var all=cbOpts(cbIn), q=cbTyped?cbIn.value.trim().toLowerCase():"";
+    var list=q?all.filter(function(v){return v.toLowerCase().indexOf(q)>=0}):all;
+    if(!cbEl){cbEl=document.createElement("div");cbEl.id="cbPanel";cbEl.setAttribute("role","listbox");document.body.appendChild(cbEl);
+      cbEl.addEventListener("mousedown",function(e){e.preventDefault()});
+      cbEl.addEventListener("click",function(e){var b=e.target.closest("button[data-v]");if(!b||!cbIn)return;var t=cbIn;t.value=b.dataset.v;t.dispatchEvent(new Event("input",{bubbles:true}));t.dispatchEvent(new Event("change",{bubbles:true}));cbClose()});
+    }
+    cbEl.innerHTML=list.length?list.map(function(v,i){return '<button type="button" role="option" data-v="'+esc(v)+'"'+(i===cbIdx?' class="on"':'')+'>'+esc(v)+'</button>'}).join(""):
+      '<div class="none">'+(all.length?'一致する候補がありません(そのまま入力もできます)。':'候補がまだありません。「設定」の「マスタ」で登録できます。')+'</div>';
+    cbPlace();
+  }
+  function cbOpen(inp){cbIn=inp;cbTyped=false;cbIdx=-1;cbDraw()}
+  document.addEventListener("focusin",function(e){var t=e.target;if(t&&t.matches&&t.matches("input[data-combo]"))cbOpen(t)});
+  document.addEventListener("click",function(e){
+    var t=e.target;
+    if(t&&t.matches&&t.matches("input[data-combo]")){if(!cbEl||cbIn!==t)cbOpen(t)}
+    else if(cbEl&&!e.target.closest("#cbPanel"))cbClose();
+  });
+  document.addEventListener("input",function(e){var t=e.target;if(t&&t.matches&&t.matches("input[data-combo]")){if(cbIn!==t)cbIn=t;cbTyped=true;cbIdx=-1;cbDraw()}});
+  document.addEventListener("keydown",function(e){
+    if(!cbEl||!cbIn)return;
+    var bs=cbEl.querySelectorAll("button[data-v]");
+    if(e.key==="Escape"){cbClose();return}
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+      e.preventDefault(); if(!bs.length)return;
+      cbIdx=e.key==="ArrowDown"?Math.min(bs.length-1,cbIdx+1):Math.max(0,cbIdx-1);
+      Array.prototype.forEach.call(bs,function(b,i){b.classList.toggle("on",i===cbIdx)}); bs[cbIdx].scrollIntoView({block:"nearest"});
+    }else if(e.key==="Enter"&&cbIdx>=0&&bs[cbIdx]){e.preventDefault();bs[cbIdx].click()}
+    else if(e.key==="Tab")cbClose();
+  });
+  window.addEventListener("resize",cbPlace);
+  document.addEventListener("scroll",cbPlace,true);
+
   /* ---------- 設定:マスタ ---------- */
   function mflash(txt){flash("mMsg",txt)}
   function fillLists(){
-    $("dlAreas").innerHTML=masters.areas.map(function(a){return '<option value="'+esc(a.name)+'"></option>'}).join("");
-    $("dlCrews").innerHTML=masters.crews.map(function(c){return '<option value="'+esc(c)+'"></option>'}).join("");
+    // 候補 = マスタ + すでに現場で使われている名前
+    var ja=function(x,y){return x.localeCompare(y,"ja")}, uniq=function(arr){var o={};return arr.filter(function(v){v=String(v||"").trim();if(!v||o[v])return false;o[v]=1;return true})};
+    var ar=masters.areas.map(function(a){return a.name}), cr=masters.crews.slice();
+    sites.forEach(function(s){if(s.area)ar.push(s.area); if(s.crew)cr.push(s.crew)});
+    var mo=function(l){return l.map(function(c){return '<option value="'+esc(c)+'"></option>'}).join("")};
+    $("dlAreas").innerHTML=mo(uniq(ar).sort(ja));
+    $("dlCrews").innerHTML=mo(uniq(cr).sort(ja));
   }
   function tagList(list,key,empty){
     return list.length?list.map(function(c,i){
@@ -1230,7 +1284,7 @@
       var first=true;
       db.collection("sites").onSnapshot(function(snap){
         sites=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        dbState="ready";
+        dbState="ready"; fillLists();
         render();
         if(mcp){
           var need=sites.filter(function(s){return !wx[s.id]||wx[s.id].loc!==effLoc(s)});
