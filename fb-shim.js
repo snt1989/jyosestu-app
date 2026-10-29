@@ -144,7 +144,19 @@
     el.querySelector("#fbOut").onclick=function(){window.__FB.signOut()};
   }
 
+  // 現場管理アプリから ?sso=チケット 付きで開かれたら、そのメンバーとして自動ログインする(失敗したら普通のログイン画面)
+  async function trySso(){
+    var m=/[?&]sso=([^&#]+)/.exec(location.search); if(!m)return;
+    try{history.replaceState(null,"",location.pathname+location.search.replace(/([?&])sso=[^&#]*&?/,"$1").replace(/[?&]$/,"")+location.hash)}catch(e){}
+    try{
+      var r=await fetch("/api/sso",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticket:decodeURIComponent(m[1])})});
+      var j=await r.json();
+      if(j&&j.ok&&j.token)await auth.signInWithCustomToken(j.token);
+    }catch(e){}
+  }
   var sessP=new Promise(function(resolve){
+    trySso().then(function(){ start(); });
+    function start(){
     var un=auth.onAuthStateChanged(async function(u){
       un();
       if(!u){showLogin();return}
@@ -161,6 +173,7 @@
         resolve(cur);
       }catch(e){showPending(u.email,"確認できませんでした。通信状況と、Firestore のルールが公開されているかを確認してください。("+(e&&e.code||"error")+")")}
     });
+    }
   });
 
   var users=null;
