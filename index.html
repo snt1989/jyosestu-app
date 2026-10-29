@@ -607,6 +607,55 @@ tbody tr:last-child td{border-bottom:0}
   #v-sites.fopen .bar .r:not(.r21){padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}
 }
 @media (max-width:360px){.tabbar button{font-size:.66rem}}
+
+/* ---- 報告書 ---- */
+.rpt-page{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.rpt-page>*{min-width:0}
+@media (min-width:900px){.rpt-page{grid-template-columns:320px minmax(0,1fr)}.rpt-ctl{position:sticky;top:70px}}
+.rpt-ctl .rc-cu{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rd{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:28px 26px;max-width:794px;margin:0 auto;box-shadow:var(--shadow);font-size:.92rem;line-height:1.6}
+.rd-h{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:3px solid #175C40;padding-bottom:8px}
+.rd-h h1{font-size:1.5rem;letter-spacing:.12em;color:#111}
+.rd-d{font-size:.85rem;color:#444;white-space:nowrap}
+.rd-to{margin-top:14px;font-size:1.1rem;font-weight:700;border-bottom:1px solid #111;display:inline-block;padding:0 8px 2px 0}
+.rd h2{font-size:1rem;margin:20px 0 8px;padding-left:8px;border-left:5px solid #175C40}
+.rd table{width:100%;min-width:0;border-collapse:collapse}
+.rd-i{margin-top:16px;table-layout:fixed}
+.rd-i td{overflow-wrap:anywhere}
+.rd-t td:nth-child(3){white-space:nowrap}
+.rd-i th,.rd-i td,.rd-t th,.rd-t td{border:1px solid #888;padding:6px 8px;text-align:left;vertical-align:top}
+.rd-i th{background:#EEF3EF;width:6.5em;white-space:nowrap;font-weight:700}
+.rd-s{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.rd-s>div{border:1px solid #888;padding:8px;text-align:center;display:flex;flex-direction:column}
+.rd-s span{font-size:.78rem;color:#444}
+.rd-s b{font-size:1.4rem;font-family:var(--font-num)}
+.rd-s small{font-size:.75rem;font-weight:400;margin-left:2px}
+.rd-tw{overflow-x:auto}
+.rd .rd-t{min-width:560px;font-size:.86rem}
+.rd-t thead th{background:#EEF3EF;white-space:nowrap}
+.rd-t .nw{white-space:nowrap}
+.rd-m{white-space:pre-wrap;overflow-wrap:anywhere}
+.rd-e,.rd-n{margin:6px 0;color:#444;font-size:.85rem}
+.rd-p{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rd-p figure{margin:0;break-inside:avoid}
+.rd-p .im{aspect-ratio:4/3;background:#f1f1f1;display:grid;place-items:center;overflow:hidden;border:1px solid #bbb}
+.rd-p img{width:100%;height:100%;object-fit:cover;display:block}
+.rd-p figcaption{font-size:.78rem;text-align:center;margin-top:2px}
+.rd-f{margin-top:24px;text-align:right;font-weight:700}
+@media (max-width:640px){.rd{padding:18px 14px}.rd-h h1{font-size:1.2rem}.rd-s{grid-template-columns:repeat(2,1fr)}.rd-p{grid-template-columns:repeat(2,1fr)}}
+@media print{
+  @page{size:A4;margin:12mm}
+  html,body{background:#fff!important;overflow:visible!important;height:auto!important}
+  body>*{display:none!important}
+  body>#rpt{display:block!important;position:static!important;overflow:visible!important;height:auto!important;background:#fff!important}
+  #rpt .sheet-bar,#rpt .rpt-ctl{display:none!important}
+  #rpt .page{max-width:none!important;padding:0!important;margin:0!important;display:block!important}
+  .rd{border:0;box-shadow:none;padding:0 2px;max-width:none;border-radius:0;font-size:10.5pt}
+  .rd-tw{overflow:visible}.rd .rd-t{min-width:0}
+  .rd-t tr{break-inside:avoid}
+  .rd-s{grid-template-columns:repeat(4,1fr)!important}
+  .rd-p{grid-template-columns:repeat(3,1fr)!important}
+}
 </style>
 </head><body>
 
@@ -671,6 +720,7 @@ tbody tr:last-child td{border-bottom:0}
         </select>
         <select id="repSiteSel" aria-label="現場で絞り込み"><option value="">すべての現場</option></select>
       </div>
+      <button class="btn" type="button" data-act="rptnew" data-id="">報告書を作る</button>
     </div>
     <div id="repList"></div>
   </section>
@@ -939,6 +989,15 @@ tbody tr:last-child td{border-bottom:0}
     <span id="detailEdit"></span>
   </div>
   <div class="page" id="detailBody"></div>
+</div>
+
+<div class="sheet" id="rpt" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" data-act="close" data-sheet="rpt">‹ 戻る</button>
+    <h2>報告書</h2>
+    <button class="ab-btn" type="button" data-act="rptprint">印刷・PDF</button>
+  </div>
+  <div class="page wide rpt-page"><div id="rptCtl" class="card2 rpt-ctl"></div><div id="rptDoc" class="rd-wrap"></div></div>
 </div>
 
 <div class="sheet s2" id="rview" hidden>
@@ -1611,7 +1670,7 @@ tbody tr:last-child td{border-bottom:0}
     if(mcp)h+='<div style="margin-top:6px"><button class="link" type="button" data-act="retry" data-id="'+id+'">この現場の天気を更新</button></div>';
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
-      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div></div>';
+      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div><button class="btn" type="button" data-act="rptnew" data-id="'+id+'" style="width:100%;margin-top:8px">報告書を作る</button></div>';
     h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
     var n=siteSeasonCount(s.id), sl=siteLines(s);
     h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
@@ -1714,7 +1773,7 @@ tbody tr:last-child td{border-bottom:0}
 
   /* ---------- シート ---------- */
   function lockBody(){
-    var any=["detail","rview","rform","sform"].some(function(id){return !$(id).hidden});
+    var any=["detail","rview","rform","sform","rpt"].some(function(id){return !$(id).hidden});
     document.body.style.overflow=any?"hidden":"";
   }
   function openSheet(id){$(id).hidden=false;$(id).scrollTop=0;lockBody()}
@@ -1815,6 +1874,94 @@ tbody tr:last-child td{border-bottom:0}
       },fallback);
     });
   }
+  /* ---------- 報告書(印刷・PDF) ---------- */
+  var rpt={site:"",period:"month",from:"",to:"",addr:"",by:"",photos:true,memo:true};
+  try{rpt.addr=localStorage.getItem("josetsu.rpt.addr")||"";rpt.by=localStorage.getItem("josetsu.rpt.by")||""}catch(e){}
+  function mRange(off){var n=new Date(), a=new Date(n.getFullYear(),n.getMonth()+off,1), b=new Date(n.getFullYear(),n.getMonth()+off+1,0);return [dstr(a),dstr(b)]}
+  function rptRange(){
+    if(rpt.period==="prev")return mRange(-1);
+    if(rpt.period==="season")return seasonRange(seasonOf(todayStr()));
+    if(rpt.period==="custom"){var f=rpt.from||todayStr(), t=rpt.to||f; return f<=t?[f,t]:[t,f]}
+    return mRange(0);
+  }
+  function mdw(ds){var d=String(ds||"").split("-"); if(d.length<3)return ds||""; var dt=new Date(+d[0],+d[1]-1,+d[2]); return (+d[1])+"/"+(+d[2])+"("+"日月火水木金土"[dt.getDay()]+")"}
+  function jdate(ds){var d=String(ds||"").split("-"); return d.length<3?ds:(+d[0])+"年"+(+d[1])+"月"+(+d[2])+"日"}
+  function rptRows(){
+    var r=rptRange();
+    return reports.filter(function(x){return x.siteId===rpt.site&&x.date>=r[0]&&x.date<=r[1]}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))||String(a.start||"").localeCompare(String(b.start||""))});
+  }
+  function openRpt(siteId){
+    var list=manualList();
+    rpt.site=siteId&&siteById(siteId)?siteId:(rpt.site&&siteById(rpt.site)?rpt.site:(list[0]?list[0].id:""));
+    if(!rpt.by)rpt.by=(window.__brand&&window.__brand.name)||($("hdName")&&$("hdName").textContent)||"";
+    openSheet("rpt"); renderRptCtl(); renderRptDoc();
+  }
+  function renderRptCtl(){
+    var o=manualList().map(function(s){return '<option value="'+esc(s.id)+'"'+(s.id===rpt.site?' selected':'')+'>'+esc(s.name)+'</option>'}).join("");
+    var P=[["month","今月"],["prev","先月"],["season","今シーズン"],["custom","期間を指定"]];
+    $("rptCtl").innerHTML=
+      '<label class="nt-field">現場<select id="rcSite">'+o+'</select></label>'+
+      '<label class="nt-field">対象期間<select id="rcPer">'+P.map(function(p){return '<option value="'+p[0]+'"'+(rpt.period===p[0]?' selected':'')+'>'+p[1]+'</option>'}).join("")+'</select></label>'+
+      '<div class="rc-cu" id="rcCu"'+(rpt.period==="custom"?'':' hidden')+'><label class="nt-field">開始日<input type="date" id="rcFrom" value="'+esc(rpt.from)+'"></label><label class="nt-field">終了日<input type="date" id="rcTo" value="'+esc(rpt.to)+'"></label></div>'+
+      '<label class="nt-field">提出先(宛名・任意)<input id="rcAddr" maxlength="40" placeholder="例:○○ビル管理事務所" value="'+esc(rpt.addr)+'"></label>'+
+      '<label class="nt-field">作成者(会社名・任意)<input id="rcBy" maxlength="40" value="'+esc(rpt.by)+'"></label>'+
+      '<label class="pw-ck"><input type="checkbox" id="rcPh"'+(rpt.photos?' checked':'')+'>作業写真をのせる</label>'+
+      '<label class="pw-ck" style="margin-top:6px"><input type="checkbox" id="rcMemo"'+(rpt.memo?' checked':'')+'>日報の備考をのせる</label>'+
+      '<div class="pw-bt" style="margin-top:12px"><button class="btn primary" type="button" data-act="rptprint">印刷・PDFにする</button><button class="btn" type="button" data-act="rptcsv">表をCSVで保存</button></div>'+
+      '<div class="help" id="rptMsg" role="status" style="margin-top:8px">「印刷・PDFにする」を押して、印刷先に「PDFに保存」を選ぶとPDFになります。</div>';
+  }
+  $("rptCtl").addEventListener("input",rptCtlChange);
+  $("rptCtl").addEventListener("change",rptCtlChange);
+  function rptCtlChange(e){
+    var t=e.target;
+    if(t.id==="rcSite")rpt.site=t.value;
+    else if(t.id==="rcPer"){rpt.period=t.value;$("rcCu").hidden=t.value!=="custom"}
+    else if(t.id==="rcFrom")rpt.from=t.value; else if(t.id==="rcTo")rpt.to=t.value;
+    else if(t.id==="rcAddr"){rpt.addr=t.value;try{localStorage.setItem("josetsu.rpt.addr",rpt.addr)}catch(e0){}}
+    else if(t.id==="rcBy"){rpt.by=t.value;try{localStorage.setItem("josetsu.rpt.by",rpt.by)}catch(e0){}}
+    else if(t.id==="rcPh")rpt.photos=t.checked; else if(t.id==="rcMemo")rpt.memo=t.checked; else return;
+    renderRptDoc();
+  }
+  function rptCsv(){
+    var s=siteById(rpt.site); if(!s)return;
+    var lines=[["日付","開始","終了","作業","使用機械","積雪(cm)","担当班","記入者","備考"].map(csvCell2).join(",")];
+    rptRows().forEach(function(r){lines.push([r.date,r.start||"",r.end||"",r.haisetsu?"排雪":"除雪",(r.machines||[]).join("・"),r.snowCm==null?"":r.snowCm,r.crew||"",who(r.by),r.note||""].map(csvCell2).join(","))});
+    var rg=rptRange();
+    csvSave("報告書_"+s.name+"_"+rg[0]+"_"+rg[1]+".csv",lines,"rptMsg");
+  }
+  function renderRptDoc(){
+    var el=$("rptDoc"), s=siteById(rpt.site);
+    if(!s){el.innerHTML='<div class="empty"><b>現場がありません</b></div>';return}
+    var rg=rptRange(), rows=rptRows(), tot=0, noT=0, hai=0, mx=null;
+    rows.forEach(function(r){var h=hoursOf(r); if(h==null)noT++; else tot+=h; if(r.haisetsu)hai++; var v=parseFloat(r.snowCm); if(isFinite(v)&&(mx==null||v>mx))mx=v});
+    var hs=siteHands(s), td=new Date();
+    var h='<article class="rd"><div class="rd-h"><h1>除雪作業報告書</h1><div class="rd-d">作成日 '+esc(jdate(todayStr()))+'</div></div>';
+    if(rpt.addr)h+='<div class="rd-to">'+esc(rpt.addr)+' 御中</div>';
+    h+='<table class="rd-i"><tr><th>現場名</th><td>'+esc(s.name)+'</td></tr>'+
+      '<tr><th>住所</th><td>'+esc(s.address||"")+'</td></tr>'+
+      '<tr><th>対象期間</th><td>'+esc(jdate(rg[0]))+' 〜 '+esc(jdate(rg[1]))+'</td></tr>'+
+      '<tr><th>担当班</th><td>'+esc(s.crew||"")+'</td></tr>'+
+      (sqmText(s)?'<tr><th>面積</th><td>'+esc(sqmText(s))+'</td></tr>':'')+
+      (hs.length?'<tr><th>引渡時間</th><td>'+esc(handText(s))+'</td></tr>':'')+'</table>';
+    h+='<div class="rd-s"><div><span>出動回数</span><b>'+rows.length+'<small>回</small></b></div><div><span>作業時間</span><b>'+fmt(tot,1)+'<small>時間</small></b></div><div><span>排雪</span><b>'+hai+'<small>回</small></b></div><div><span>最大積雪</span><b>'+(mx==null?'–':fmt(mx,1))+'<small>cm</small></b></div></div>';
+    h+='<h2>作業実績</h2>';
+    if(!rows.length)h+='<p class="rd-e">この期間の日報はありません。</p>';
+    else{
+      h+='<div class="rd-tw"><table class="rd-t"><thead><tr><th>日付</th><th>時間</th><th>作業</th><th>使用機械</th><th>積雪</th><th>担当</th>'+(rpt.memo?'<th>備考</th>':'')+'</tr></thead><tbody>'+rows.map(function(r){
+        return '<tr><td>'+esc(mdw(r.date))+'</td><td class="nw">'+esc((r.start||"--:--")+"〜"+(r.end||"--:--"))+'</td><td>'+(r.haisetsu?"排雪":"除雪")+'</td><td>'+esc((r.machines||[]).join("・"))+'</td><td class="nw">'+(r.snowCm===""||r.snowCm==null?'':esc(r.snowCm)+'cm')+'</td><td>'+esc(r.crew||who(r.by))+'</td>'+(rpt.memo?'<td class="rd-m">'+esc(r.note||"")+'</td>':'')+'</tr>';
+      }).join("")+'</tbody></table></div>';
+      if(noT)h+='<p class="rd-n">※ 開始・終了時刻のない日報'+noT+'件は、作業時間に含めていません。</p>';
+    }
+    if(rpt.photos){
+      var phs=[]; rows.forEach(function(r){(r.photos||[]).forEach(function(p){if(okId(p.id))phs.push({id:p.id,kind:p.kind,date:r.date})})});
+      if(phs.length){
+        h+='<h2>作業写真</h2><div class="rd-p">'+phs.map(function(p){var u=blobUrl(p.id);return '<figure><div class="im">'+(u?'<img src="'+esc(u)+'" alt="作業写真">':'<span>読み込み中…</span>')+'</div><figcaption>'+esc(mdw(p.date))+' '+esc(KIND[p.kind]||"")+'</figcaption></figure>'}).join("")+'</div>';
+      }
+    }
+    h+='<div class="rd-f">'+(rpt.by?'作成者: '+esc(rpt.by):'')+'</div></article>';
+    el.innerHTML=h;
+  }
+
   /* ---------- 機械・備品の稼働ボード ---------- */
   function mchRuns(m,day){
     // その機械を使った日報(日付が一致するもの)
@@ -2159,7 +2306,7 @@ tbody tr:last-child td{border-bottom:0}
     else if(view==="stats")renderStats();
     else if(view==="admin")renderAdminAll();
     renderBell();
-    renderDetail(); renderRepView();
+    renderDetail(); renderRepView(); if(!$("rpt").hidden)renderRptDoc();
   }
   $("filtBtn").addEventListener("click",function(){var v=$("v-sites");v.classList.toggle("fopen");render()});
   $("query").addEventListener("input",function(e){query=e.target.value;render()});
@@ -2236,6 +2383,9 @@ tbody tr:last-child td{border-bottom:0}
     else if(act==="photo"){openLb(d.g,+d.i)}
     else if(act==="spadd"){spSite=id;$("spFile").click()}
     else if(act==="dwadd"){spSite=id;$("dwFile").click()}
+    else if(act==="rptnew"){openRpt(id||repFilter.site||"")}
+    else if(act==="rptprint"){try{window.print()}catch(e){toast("この画面では印刷できません。ブラウザで開いてください。")}}
+    else if(act==="rptcsv"){rptCsv()}
     else if(act==="appset"){pwa.msg="";openAppSet()}
     else if(act==="appsetlater"){try{localStorage.setItem("josetsu.promo2","1")}catch(e){}render()}
     else if(act==="jump"){var el=$(d.t); if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}

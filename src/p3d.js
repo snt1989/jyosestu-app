@@ -40,7 +40,7 @@
     else if(view==="stats")renderStats();
     else if(view==="admin")renderAdminAll();
     renderBell();
-    renderDetail(); renderRepView();
+    renderDetail(); renderRepView(); if(!$("rpt").hidden)renderRptDoc();
   }
   $("filtBtn").addEventListener("click",function(){var v=$("v-sites");v.classList.toggle("fopen");render()});
   $("query").addEventListener("input",function(e){query=e.target.value;render()});
@@ -117,6 +117,9 @@
     else if(act==="photo"){openLb(d.g,+d.i)}
     else if(act==="spadd"){spSite=id;$("spFile").click()}
     else if(act==="dwadd"){spSite=id;$("dwFile").click()}
+    else if(act==="rptnew"){openRpt(id||repFilter.site||"")}
+    else if(act==="rptprint"){try{window.print()}catch(e){toast("この画面では印刷できません。ブラウザで開いてください。")}}
+    else if(act==="rptcsv"){rptCsv()}
     else if(act==="appset"){pwa.msg="";openAppSet()}
     else if(act==="appsetlater"){try{localStorage.setItem("josetsu.promo2","1")}catch(e){}render()}
     else if(act==="jump"){var el=$(d.t); if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}

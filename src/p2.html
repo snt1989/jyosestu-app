@@ -60,6 +60,7 @@
         </select>
         <select id="repSiteSel" aria-label="現場で絞り込み"><option value="">すべての現場</option></select>
       </div>
+      <button class="btn" type="button" data-act="rptnew" data-id="">報告書を作る</button>
     </div>
     <div id="repList"></div>
   </section>
@@ -328,6 +329,15 @@
     <span id="detailEdit"></span>
   </div>
   <div class="page" id="detailBody"></div>
+</div>
+
+<div class="sheet" id="rpt" hidden>
+  <div class="sheet-bar">
+    <button class="ab-btn" type="button" data-act="close" data-sheet="rpt">‹ 戻る</button>
+    <h2>報告書</h2>
+    <button class="ab-btn" type="button" data-act="rptprint">印刷・PDF</button>
+  </div>
+  <div class="page wide rpt-page"><div id="rptCtl" class="card2 rpt-ctl"></div><div id="rptDoc" class="rd-wrap"></div></div>
 </div>
 
 <div class="sheet s2" id="rview" hidden>

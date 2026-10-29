@@ -93,6 +93,94 @@
       },fallback);
     });
   }
+  /* ---------- 報告書(印刷・PDF) ---------- */
+  var rpt={site:"",period:"month",from:"",to:"",addr:"",by:"",photos:true,memo:true};
+  try{rpt.addr=localStorage.getItem("josetsu.rpt.addr")||"";rpt.by=localStorage.getItem("josetsu.rpt.by")||""}catch(e){}
+  function mRange(off){var n=new Date(), a=new Date(n.getFullYear(),n.getMonth()+off,1), b=new Date(n.getFullYear(),n.getMonth()+off+1,0);return [dstr(a),dstr(b)]}
+  function rptRange(){
+    if(rpt.period==="prev")return mRange(-1);
+    if(rpt.period==="season")return seasonRange(seasonOf(todayStr()));
+    if(rpt.period==="custom"){var f=rpt.from||todayStr(), t=rpt.to||f; return f<=t?[f,t]:[t,f]}
+    return mRange(0);
+  }
+  function mdw(ds){var d=String(ds||"").split("-"); if(d.length<3)return ds||""; var dt=new Date(+d[0],+d[1]-1,+d[2]); return (+d[1])+"/"+(+d[2])+"("+"日月火水木金土"[dt.getDay()]+")"}
+  function jdate(ds){var d=String(ds||"").split("-"); return d.length<3?ds:(+d[0])+"年"+(+d[1])+"月"+(+d[2])+"日"}
+  function rptRows(){
+    var r=rptRange();
+    return reports.filter(function(x){return x.siteId===rpt.site&&x.date>=r[0]&&x.date<=r[1]}).sort(function(a,b){return String(a.date).localeCompare(String(b.date))||String(a.start||"").localeCompare(String(b.start||""))});
+  }
+  function openRpt(siteId){
+    var list=manualList();
+    rpt.site=siteId&&siteById(siteId)?siteId:(rpt.site&&siteById(rpt.site)?rpt.site:(list[0]?list[0].id:""));
+    if(!rpt.by)rpt.by=(window.__brand&&window.__brand.name)||($("hdName")&&$("hdName").textContent)||"";
+    openSheet("rpt"); renderRptCtl(); renderRptDoc();
+  }
+  function renderRptCtl(){
+    var o=manualList().map(function(s){return '<option value="'+esc(s.id)+'"'+(s.id===rpt.site?' selected':'')+'>'+esc(s.name)+'</option>'}).join("");
+    var P=[["month","今月"],["prev","先月"],["season","今シーズン"],["custom","期間を指定"]];
+    $("rptCtl").innerHTML=
+      '<label class="nt-field">現場<select id="rcSite">'+o+'</select></label>'+
+      '<label class="nt-field">対象期間<select id="rcPer">'+P.map(function(p){return '<option value="'+p[0]+'"'+(rpt.period===p[0]?' selected':'')+'>'+p[1]+'</option>'}).join("")+'</select></label>'+
+      '<div class="rc-cu" id="rcCu"'+(rpt.period==="custom"?'':' hidden')+'><label class="nt-field">開始日<input type="date" id="rcFrom" value="'+esc(rpt.from)+'"></label><label class="nt-field">終了日<input type="date" id="rcTo" value="'+esc(rpt.to)+'"></label></div>'+
+      '<label class="nt-field">提出先(宛名・任意)<input id="rcAddr" maxlength="40" placeholder="例:○○ビル管理事務所" value="'+esc(rpt.addr)+'"></label>'+
+      '<label class="nt-field">作成者(会社名・任意)<input id="rcBy" maxlength="40" value="'+esc(rpt.by)+'"></label>'+
+      '<label class="pw-ck"><input type="checkbox" id="rcPh"'+(rpt.photos?' checked':'')+'>作業写真をのせる</label>'+
+      '<label class="pw-ck" style="margin-top:6px"><input type="checkbox" id="rcMemo"'+(rpt.memo?' checked':'')+'>日報の備考をのせる</label>'+
+      '<div class="pw-bt" style="margin-top:12px"><button class="btn primary" type="button" data-act="rptprint">印刷・PDFにする</button><button class="btn" type="button" data-act="rptcsv">表をCSVで保存</button></div>'+
+      '<div class="help" id="rptMsg" role="status" style="margin-top:8px">「印刷・PDFにする」を押して、印刷先に「PDFに保存」を選ぶとPDFになります。</div>';
+  }
+  $("rptCtl").addEventListener("input",rptCtlChange);
+  $("rptCtl").addEventListener("change",rptCtlChange);
+  function rptCtlChange(e){
+    var t=e.target;
+    if(t.id==="rcSite")rpt.site=t.value;
+    else if(t.id==="rcPer"){rpt.period=t.value;$("rcCu").hidden=t.value!=="custom"}
+    else if(t.id==="rcFrom")rpt.from=t.value; else if(t.id==="rcTo")rpt.to=t.value;
+    else if(t.id==="rcAddr"){rpt.addr=t.value;try{localStorage.setItem("josetsu.rpt.addr",rpt.addr)}catch(e0){}}
+    else if(t.id==="rcBy"){rpt.by=t.value;try{localStorage.setItem("josetsu.rpt.by",rpt.by)}catch(e0){}}
+    else if(t.id==="rcPh")rpt.photos=t.checked; else if(t.id==="rcMemo")rpt.memo=t.checked; else return;
+    renderRptDoc();
+  }
+  function rptCsv(){
+    var s=siteById(rpt.site); if(!s)return;
+    var lines=[["日付","開始","終了","作業","使用機械","積雪(cm)","担当班","記入者","備考"].map(csvCell2).join(",")];
+    rptRows().forEach(function(r){lines.push([r.date,r.start||"",r.end||"",r.haisetsu?"排雪":"除雪",(r.machines||[]).join("・"),r.snowCm==null?"":r.snowCm,r.crew||"",who(r.by),r.note||""].map(csvCell2).join(","))});
+    var rg=rptRange();
+    csvSave("報告書_"+s.name+"_"+rg[0]+"_"+rg[1]+".csv",lines,"rptMsg");
+  }
+  function renderRptDoc(){
+    var el=$("rptDoc"), s=siteById(rpt.site);
+    if(!s){el.innerHTML='<div class="empty"><b>現場がありません</b></div>';return}
+    var rg=rptRange(), rows=rptRows(), tot=0, noT=0, hai=0, mx=null;
+    rows.forEach(function(r){var h=hoursOf(r); if(h==null)noT++; else tot+=h; if(r.haisetsu)hai++; var v=parseFloat(r.snowCm); if(isFinite(v)&&(mx==null||v>mx))mx=v});
+    var hs=siteHands(s), td=new Date();
+    var h='<article class="rd"><div class="rd-h"><h1>除雪作業報告書</h1><div class="rd-d">作成日 '+esc(jdate(todayStr()))+'</div></div>';
+    if(rpt.addr)h+='<div class="rd-to">'+esc(rpt.addr)+' 御中</div>';
+    h+='<table class="rd-i"><tr><th>現場名</th><td>'+esc(s.name)+'</td></tr>'+
+      '<tr><th>住所</th><td>'+esc(s.address||"")+'</td></tr>'+
+      '<tr><th>対象期間</th><td>'+esc(jdate(rg[0]))+' 〜 '+esc(jdate(rg[1]))+'</td></tr>'+
+      '<tr><th>担当班</th><td>'+esc(s.crew||"")+'</td></tr>'+
+      (sqmText(s)?'<tr><th>面積</th><td>'+esc(sqmText(s))+'</td></tr>':'')+
+      (hs.length?'<tr><th>引渡時間</th><td>'+esc(handText(s))+'</td></tr>':'')+'</table>';
+    h+='<div class="rd-s"><div><span>出動回数</span><b>'+rows.length+'<small>回</small></b></div><div><span>作業時間</span><b>'+fmt(tot,1)+'<small>時間</small></b></div><div><span>排雪</span><b>'+hai+'<small>回</small></b></div><div><span>最大積雪</span><b>'+(mx==null?'–':fmt(mx,1))+'<small>cm</small></b></div></div>';
+    h+='<h2>作業実績</h2>';
+    if(!rows.length)h+='<p class="rd-e">この期間の日報はありません。</p>';
+    else{
+      h+='<div class="rd-tw"><table class="rd-t"><thead><tr><th>日付</th><th>時間</th><th>作業</th><th>使用機械</th><th>積雪</th><th>担当</th>'+(rpt.memo?'<th>備考</th>':'')+'</tr></thead><tbody>'+rows.map(function(r){
+        return '<tr><td>'+esc(mdw(r.date))+'</td><td class="nw">'+esc((r.start||"--:--")+"〜"+(r.end||"--:--"))+'</td><td>'+(r.haisetsu?"排雪":"除雪")+'</td><td>'+esc((r.machines||[]).join("・"))+'</td><td class="nw">'+(r.snowCm===""||r.snowCm==null?'':esc(r.snowCm)+'cm')+'</td><td>'+esc(r.crew||who(r.by))+'</td>'+(rpt.memo?'<td class="rd-m">'+esc(r.note||"")+'</td>':'')+'</tr>';
+      }).join("")+'</tbody></table></div>';
+      if(noT)h+='<p class="rd-n">※ 開始・終了時刻のない日報'+noT+'件は、作業時間に含めていません。</p>';
+    }
+    if(rpt.photos){
+      var phs=[]; rows.forEach(function(r){(r.photos||[]).forEach(function(p){if(okId(p.id))phs.push({id:p.id,kind:p.kind,date:r.date})})});
+      if(phs.length){
+        h+='<h2>作業写真</h2><div class="rd-p">'+phs.map(function(p){var u=blobUrl(p.id);return '<figure><div class="im">'+(u?'<img src="'+esc(u)+'" alt="作業写真">':'<span>読み込み中…</span>')+'</div><figcaption>'+esc(mdw(p.date))+' '+esc(KIND[p.kind]||"")+'</figcaption></figure>'}).join("")+'</div>';
+      }
+    }
+    h+='<div class="rd-f">'+(rpt.by?'作成者: '+esc(rpt.by):'')+'</div></article>';
+    el.innerHTML=h;
+  }
+
   /* ---------- 機械・備品の稼働ボード ---------- */
   function mchRuns(m,day){
     // その機械を使った日報(日付が一致するもの)
