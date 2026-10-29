@@ -190,6 +190,21 @@
         <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="machines" data-in="mmName">機械を追加</button></div>
       </div>
       </div>
+      <h2 class="ah" id="mBulkT">一括編集・CSV</h2>
+      <div class="panel" style="max-width:760px">
+        <label for="mBulk" id="mBulkL">一括編集</label>
+        <textarea id="mBulk" rows="8" style="width:100%;font-family:inherit" spellcheck="false"></textarea>
+        <p class="help muted" id="mBulkH" style="margin:4px 0 8px"></p>
+        <div class="row2"><button class="btn primary" type="button" id="mBulkGo">この内容に置き換える</button><button class="btn" type="button" id="mBulkReset">元に戻す</button></div>
+        <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+        <div class="row2">
+          <button class="btn" type="button" id="mCsvOut">CSVで書き出す</button>
+          <label class="btn" for="mCsvIn" style="cursor:pointer">CSVから取り込む<input type="file" id="mCsvIn" accept=".csv,text/csv" hidden></label>
+          <button class="btn" type="button" id="mCsvTpl">取り込み用の見本を保存</button>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:.9rem"><input type="checkbox" id="mCsvDel" style="width:auto"> ファイルにない項目は削除する(チェックなしなら、追加・更新だけ)</label>
+        <p class="help muted" id="mCsvH" style="margin:6px 0 0"></p>
+      </div>
     </div>
 
     <div id="adm-members" hidden>
