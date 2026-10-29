@@ -169,7 +169,7 @@
     var busy=list.filter(function(g){return g.act.length||g.done.length}), idle=list.filter(function(g){return g.n&&!g.act.length&&!g.done.length});
     busy.sort(function(a,b){return (b.act.length>0)-(a.act.length>0)||(a.n?0:1)-(b.n?0:1)||a.n.localeCompare(b.n,"ja")});
     var out=0;list.forEach(function(g){g.act.forEach(function(x){if(x.st==="out")out++})});
-    var h='<div class="sec"><h2>いま誰がどこに<span class="gc num">出動中 '+out+'件</span></h2></div>';
+    var h='<div class="sec"><h2>出動状況<span class="gc num">出動中 '+out+'件</span></h2></div>';
     if(!busy.length)return h+'<div class="empty"><b>出動中・準備中の現場はありません</b>「現場一覧」や詳細で作業状況を「準備中」「出動中」にすると、ここに出ます。</div>'+(idle.length?'<p class="muted whi">待機: '+idle.map(function(g){return esc(g.n)}).join("・")+'</p>':'');
     h+='<div class="whg">'+busy.map(function(g){
       var run=g.act.some(function(x){return x.st==="out"});
