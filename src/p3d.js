@@ -170,7 +170,7 @@
   });
 
   /* ---------- 現場の追加・編集 ---------- */
-  var geoLoc="";
+  var geoLoc="",geoSrc="city";
   function updLocHint(){
     var l=areaLoc($("fArea").value.trim());
     $("fLoc").placeholder=l?("空欄なら地区の代表地点 "+l):"例:39.72, 140.10";
@@ -193,7 +193,7 @@
     var w0=(s&&!copy)?wx[s.id]:null; $("fWxState").textContent=isNew?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
     $("fDel").hidden=isNew; $("fDel").textContent="削除"; $("fErr").textContent="";
     updLocHint();
-    $("fAddr").value=s&&s.address||""; $("fSqm").value=s&&+s.sqm>0?s.sqm:""; geoLoc=(s&&s.locSrc==="city")?s.loc:""; $("fGeoMsg").textContent=""; mapLink();
+    $("fAddr").value=s&&s.address||""; $("fSqm").value=s&&+s.sqm>0?s.sqm:""; geoLoc=(s&&(s.locSrc==="city"||s.locSrc==="addr"))?s.loc:""; geoSrc=(s&&s.locSrc==="addr")?"addr":"city"; $("fGeoMsg").textContent=""; mapLink();
     openSheet("sform"); setTimeout(function(){$("fName").focus()},0);
   }
   function closeDlg(){$("sform").hidden=true;editingId=null;lockBody()}
@@ -253,7 +253,7 @@
     var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,sqm:(function(v){v=parseFloat($("fSqm").value);return v>0?Math.round(v*100)/100:0})(),handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
       lines:ls.site.lines,contractCount:ls.site.contractCount};
     var priceData=ls.price;
-    data.locSrc=data.loc?(data.loc===geoLoc?"city":"manual"):"";
+    data.locSrc=data.loc?(data.loc===geoLoc?geoSrc:"manual"):"";
     if(!data.name||(!data.loc&&!areaLoc(data.area))){$("fErr").textContent="現場名と天気を調べる場所を入力してください。場所を空欄にする場合は、代表地点を登録した地区を選んでください。";return}
     $("fSave").disabled=true;
     try{
@@ -1370,35 +1370,59 @@
     }
     return best;
   }
-  $("fGeo").addEventListener("click",function(){
+  function km(a,b){var p=a.split(",").map(Number),q=b.split(",").map(Number),r=Math.PI/180,x=(q[1]-p[1])*r*Math.cos((p[0]+q[0])/2*r),y=(q[0]-p[0])*r;return Math.sqrt(x*x+y*y)*6371}
+  /* 国土地理院の住所検索で番地付近まで。失敗・不一致は市区町村中心(概算)に切り替える */
+  async function geoLookup(addr){
+    var city=geoFromAddress(addr), a=String(addr||"").replace(/[\s　]/g,"");
+    try{
+      var qs=[a]; if(!/^(北海道|東京都|大阪府|京都府|.{2,3}県)/.test(a))qs.push("岩手県"+a);
+      for(var i=0;i<qs.length;i++){
+        var ctl=new AbortController(), tm=setTimeout(function(){ctl.abort()},8000);
+        var r=await fetch("https://msearch.gsi.go.jp/address-search/AddressSearch?q="+encodeURIComponent(qs[i]),{signal:ctl.signal}); clearTimeout(tm);
+        if(!r.ok)continue; var j=await r.json();
+        for(var k=0;k<Math.min(3,j.length);k++){
+          var c=j[k]&&j[k].geometry&&j[k].geometry.coordinates; if(!c||c.length<2)continue;
+          var loc=(+c[1]).toFixed(5)+","+(+c[0]).toFixed(5);
+          if(city&&km(loc,city.loc)>20)continue;   /* 市区町村から大きく外れた候補は誤ヒットとして捨てる */
+          return {loc:loc,src:"addr",name:(j[k].properties&&j[k].properties.title)||a};
+        }
+      }
+    }catch(e){}
+    return city?{loc:city.loc,src:"city",name:city.name}:null;
+  }
+  $("fGeo").addEventListener("click",async function(){
     var a=$("fAddr").value.trim();
     if(!a){$("fGeoMsg").textContent="先に住所を入力してください。";return}
-    var g=geoFromAddress(a);
-    if(!g){$("fGeoMsg").textContent="住所から市町村を判定できませんでした。「地図で確認」で場所を調べ、緯度・経度を入力してください。";return}
-    $("fLoc").value=g.loc; geoLoc=g.loc;
-    $("fGeoMsg").textContent=g.name+"の中心付近(概算)を設定しました。現場の緯度・経度がわかる場合は、上書きしてください。";
+    $("fGeoMsg").textContent="住所を調べています…";
+    var g=await geoLookup(a);
+    if(!g){$("fGeoMsg").textContent="住所から場所を判定できませんでした。「地図で確認」で場所を調べ、緯度・経度を入力してください。";return}
+    $("fLoc").value=g.loc; geoLoc=g.loc; geoSrc=g.src;
+    $("fGeoMsg").textContent=g.src==="addr"?"住所検索の結果「"+g.name+"」付近に設定しました。地図で位置を確認してください。":g.name+"の中心付近(概算)を設定しました。番地までは特定できませんでした。";
   });
-  $("bGeo").addEventListener("click",async function(){
-    if(!db)return;
-    var ids=selIds(); if(!ids.length)return;
-    var ok=0,noAddr=0,noMatch=0,manual=0;
-    $("bGeo").disabled=true;
+  async function geoBulk(ids,msgId){
+    if(!db||!ids.length)return;
+    var ok=0,city=0,noAddr=0,noMatch=0,manual=0,n=0;
     for(var i=0;i<ids.length;i++){
       var s=siteById(ids[i]);
       if(!s)continue;
       if(!s.address){noAddr++;continue}
       if(s.locSrc==="manual"){manual++;continue}
-      var g=geoFromAddress(s.address);
+      flash(msgId,"住所を調べています… "+(++n)+"/"+ids.length);
+      var g=await geoLookup(s.address);
       if(!g){noMatch++;continue}
-      try{await db.doc("sites/"+s.id).update({loc:g.loc,locSrc:"city"});ok++}catch(e){}
+      try{await db.doc("sites/"+s.id).update({loc:g.loc,locSrc:g.src});if(g.src==="addr")ok++;else city++}catch(e){}
     }
-    $("bGeo").disabled=false;
-    var t=ok+"件の位置を設定しました(市町村の中心付近・概算)。";
+    var t=ok+"件を住所から番地付近で設定しました。";
+    if(city)t+=" "+city+"件は市区町村の中心(概算)です。";
     if(noAddr)t+=" 住所なし"+noAddr+"件。";
-    if(noMatch)t+=" 市町村を判定できず"+noMatch+"件。";
-    if(manual)t+=" 緯度・経度を直接入力済みの"+manual+"件は変更していません。";
-    flash("bMsg",t);
+    if(noMatch)t+=" 判定できず"+noMatch+"件。";
+    if(manual)t+=" 位置を直接指定済みの"+manual+"件は変更していません。";
+    flash(msgId,t);
+  }
+  $("bGeo").addEventListener("click",async function(){
+    $("bGeo").disabled=true; await geoBulk(selIds(),"bMsg"); $("bGeo").disabled=false;
   });
+  window.__geoBulk=geoBulk;
 
   /* ---------- 起動 ---------- */
   async function resolveNames(){

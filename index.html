@@ -734,7 +734,7 @@ tbody tr:last-child td{border-bottom:0}
     <div id="banner"></div>
     <div id="siteMapBox" hidden>
       <div id="siteMap" role="region" aria-label="現場の全体マップ"></div>
-      <div class="mp-bar"><button class="btn sm" type="button" id="mpFit">全体を表示</button><button class="btn sm" type="button" id="mpMe">現在地</button><span class="muted" id="mpMsg" role="status"></span></div>
+      <div class="mp-bar"><button class="btn sm" type="button" id="mpFit">全体を表示</button><button class="btn sm" type="button" id="mpMe">現在地</button><button class="btn sm" type="button" id="mpGeo" hidden>住所から位置を自動登録</button><span class="muted" id="mpMsg" role="status"></span></div>
       <div class="mp-leg" id="mpLeg"></div>
       <div id="mpUn"></div>
     </div>
@@ -2022,7 +2022,7 @@ tbody tr:last-child td{border-bottom:0}
   function pinIcon(p){
     var out=stOf(p.s)==="out", lv=p.a.lv;
     return L.divIcon({className:"mpin-w",iconSize:[30,40],iconAnchor:[15,38],popupAnchor:[0,-34],
-      html:'<div class="mpin l'+lv+(out?' out':'')+(p.q!=="m"?' apx':'')+'"><i></i><span class="pl">'+esc(p.s.name)+'</span></div>'});
+      html:'<div class="mpin l'+lv+(out?' out':'')+(p.q==="c"||p.q==="a"?' apx':'')+'"><i></i><span class="pl">'+esc(p.s.name)+'</span></div>'});
   }
   function pinPopup(p){
     var s=p.s, a=p.a, st=stOf(s);
@@ -2030,7 +2030,7 @@ tbody tr:last-child td{border-bottom:0}
       '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
       (a.lv>0?'<div>降雪目安 <b>約'+fmt(a.snow2,0)+'cm</b> / 基準'+esc(s.threshold||10)+'cm</div>':'')+
       (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
-      (p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
+      (p.q==="d"?'<div class="mpp-n">住所から割り出した位置です。ずれている場合は'+(canAdmin?'「位置を直す」で動かせます。':'管理者にお知らせください。')+'</div>':p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
       '<div class="mpp-r"><button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button>'+(canAdmin?'<button class="btn sm" type="button" data-mfix="'+esc(s.id)+'">位置を直す</button>':'')+'</div></div>';
   }
   function startFix(id){
@@ -2053,8 +2053,8 @@ tbody tr:last-child td{border-bottom:0}
   function mapLbl(){if(SM.map)$("siteMap").classList.toggle("z-lbl",SM.map.getZoom()>=12)}
   function renderSiteMap(items){
     var pins=[], un=[];
-    items.forEach(function(x){var ll=parseLL(effLoc(x.s)); if(ll)pins.push({s:x.s,a:x.a,ll:ll,q:(x.s.loc&&String(x.s.loc).trim())?(x.s.locSrc==="manual"?"m":"c"):"a"}); else un.push(x.s)});
-    SM.pins=pins;
+    items.forEach(function(x){var ll=parseLL(effLoc(x.s)); if(ll)pins.push({s:x.s,a:x.a,ll:ll,q:(x.s.loc&&String(x.s.loc).trim())?(x.s.locSrc==="manual"?"m":x.s.locSrc==="addr"?"d":"c"):"a"}); else un.push(x.s)});
+    SM.pins=pins; $("mpGeo").hidden=!canAdmin;
     var cnt={3:0,2:0,1:0,0:0}; pins.forEach(function(p){cnt[p.a.lv]++});
     $("mpLeg").innerHTML=[[3,"出動目安"],[2,"警戒"],[1,"平常"],[0,"未取得"]].map(function(g){return '<span class="lg"><i style="background:'+MPC[g[0]]+'"></i>'+g[1]+' <b class="num">'+cnt[g[0]]+'</b></span>'}).join("")+'<span class="lg"><i class="ring"></i>出動中</span>';
     $("mpUn").innerHTML=un.length?'<div class="mp-un"><b>地図に出せない現場('+un.length+'件)</b>:'+un.map(function(s){return esc(s.name)}).join("、")+'<div class="muted">「設定」の現場編集で、天気を調べる場所(位置)を登録すると表示されます。</div></div>':'';
@@ -2086,6 +2086,12 @@ tbody tr:last-child td{border-bottom:0}
       SM.map=null;
     });
   }
+  $("mpGeo").addEventListener("click",async function(){
+    var ids=sites.filter(function(s){return s.address&&s.locSrc!=="manual"}).map(function(s){return s.id});
+    if(!ids.length){$("mpMsg").textContent="住所が登録された現場がありません。";return}
+    if(!confirm("住所が登録された"+ids.length+"件の現場について、住所から位置を調べて登録します。\n(ピンで直接直した現場は変更しません)")){return}
+    $("mpGeo").disabled=true; await window.__geoBulk(ids,"mpMsg"); $("mpGeo").disabled=false;
+  });
   $("mpFit").addEventListener("click",function(){mapFit()});
   $("mpMe").addEventListener("click",function(){
     if(!SM.map)return;
@@ -2573,7 +2579,7 @@ tbody tr:last-child td{border-bottom:0}
   });
 
   /* ---------- 現場の追加・編集 ---------- */
-  var geoLoc="";
+  var geoLoc="",geoSrc="city";
   function updLocHint(){
     var l=areaLoc($("fArea").value.trim());
     $("fLoc").placeholder=l?("空欄なら地区の代表地点 "+l):"例:39.72, 140.10";
@@ -2596,7 +2602,7 @@ tbody tr:last-child td{border-bottom:0}
     var w0=(s&&!copy)?wx[s.id]:null; $("fWxState").textContent=isNew?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
     $("fDel").hidden=isNew; $("fDel").textContent="削除"; $("fErr").textContent="";
     updLocHint();
-    $("fAddr").value=s&&s.address||""; $("fSqm").value=s&&+s.sqm>0?s.sqm:""; geoLoc=(s&&s.locSrc==="city")?s.loc:""; $("fGeoMsg").textContent=""; mapLink();
+    $("fAddr").value=s&&s.address||""; $("fSqm").value=s&&+s.sqm>0?s.sqm:""; geoLoc=(s&&(s.locSrc==="city"||s.locSrc==="addr"))?s.loc:""; geoSrc=(s&&s.locSrc==="addr")?"addr":"city"; $("fGeoMsg").textContent=""; mapLink();
     openSheet("sform"); setTimeout(function(){$("fName").focus()},0);
   }
   function closeDlg(){$("sform").hidden=true;editingId=null;lockBody()}
@@ -2656,7 +2662,7 @@ tbody tr:last-child td{border-bottom:0}
     var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,sqm:(function(v){v=parseFloat($("fSqm").value);return v>0?Math.round(v*100)/100:0})(),handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
       lines:ls.site.lines,contractCount:ls.site.contractCount};
     var priceData=ls.price;
-    data.locSrc=data.loc?(data.loc===geoLoc?"city":"manual"):"";
+    data.locSrc=data.loc?(data.loc===geoLoc?geoSrc:"manual"):"";
     if(!data.name||(!data.loc&&!areaLoc(data.area))){$("fErr").textContent="現場名と天気を調べる場所を入力してください。場所を空欄にする場合は、代表地点を登録した地区を選んでください。";return}
     $("fSave").disabled=true;
     try{
@@ -3773,35 +3779,59 @@ tbody tr:last-child td{border-bottom:0}
     }
     return best;
   }
-  $("fGeo").addEventListener("click",function(){
+  function km(a,b){var p=a.split(",").map(Number),q=b.split(",").map(Number),r=Math.PI/180,x=(q[1]-p[1])*r*Math.cos((p[0]+q[0])/2*r),y=(q[0]-p[0])*r;return Math.sqrt(x*x+y*y)*6371}
+  /* 国土地理院の住所検索で番地付近まで。失敗・不一致は市区町村中心(概算)に切り替える */
+  async function geoLookup(addr){
+    var city=geoFromAddress(addr), a=String(addr||"").replace(/[\s　]/g,"");
+    try{
+      var qs=[a]; if(!/^(北海道|東京都|大阪府|京都府|.{2,3}県)/.test(a))qs.push("岩手県"+a);
+      for(var i=0;i<qs.length;i++){
+        var ctl=new AbortController(), tm=setTimeout(function(){ctl.abort()},8000);
+        var r=await fetch("https://msearch.gsi.go.jp/address-search/AddressSearch?q="+encodeURIComponent(qs[i]),{signal:ctl.signal}); clearTimeout(tm);
+        if(!r.ok)continue; var j=await r.json();
+        for(var k=0;k<Math.min(3,j.length);k++){
+          var c=j[k]&&j[k].geometry&&j[k].geometry.coordinates; if(!c||c.length<2)continue;
+          var loc=(+c[1]).toFixed(5)+","+(+c[0]).toFixed(5);
+          if(city&&km(loc,city.loc)>20)continue;   /* 市区町村から大きく外れた候補は誤ヒットとして捨てる */
+          return {loc:loc,src:"addr",name:(j[k].properties&&j[k].properties.title)||a};
+        }
+      }
+    }catch(e){}
+    return city?{loc:city.loc,src:"city",name:city.name}:null;
+  }
+  $("fGeo").addEventListener("click",async function(){
     var a=$("fAddr").value.trim();
     if(!a){$("fGeoMsg").textContent="先に住所を入力してください。";return}
-    var g=geoFromAddress(a);
-    if(!g){$("fGeoMsg").textContent="住所から市町村を判定できませんでした。「地図で確認」で場所を調べ、緯度・経度を入力してください。";return}
-    $("fLoc").value=g.loc; geoLoc=g.loc;
-    $("fGeoMsg").textContent=g.name+"の中心付近(概算)を設定しました。現場の緯度・経度がわかる場合は、上書きしてください。";
+    $("fGeoMsg").textContent="住所を調べています…";
+    var g=await geoLookup(a);
+    if(!g){$("fGeoMsg").textContent="住所から場所を判定できませんでした。「地図で確認」で場所を調べ、緯度・経度を入力してください。";return}
+    $("fLoc").value=g.loc; geoLoc=g.loc; geoSrc=g.src;
+    $("fGeoMsg").textContent=g.src==="addr"?"住所検索の結果「"+g.name+"」付近に設定しました。地図で位置を確認してください。":g.name+"の中心付近(概算)を設定しました。番地までは特定できませんでした。";
   });
-  $("bGeo").addEventListener("click",async function(){
-    if(!db)return;
-    var ids=selIds(); if(!ids.length)return;
-    var ok=0,noAddr=0,noMatch=0,manual=0;
-    $("bGeo").disabled=true;
+  async function geoBulk(ids,msgId){
+    if(!db||!ids.length)return;
+    var ok=0,city=0,noAddr=0,noMatch=0,manual=0,n=0;
     for(var i=0;i<ids.length;i++){
       var s=siteById(ids[i]);
       if(!s)continue;
       if(!s.address){noAddr++;continue}
       if(s.locSrc==="manual"){manual++;continue}
-      var g=geoFromAddress(s.address);
+      flash(msgId,"住所を調べています… "+(++n)+"/"+ids.length);
+      var g=await geoLookup(s.address);
       if(!g){noMatch++;continue}
-      try{await db.doc("sites/"+s.id).update({loc:g.loc,locSrc:"city"});ok++}catch(e){}
+      try{await db.doc("sites/"+s.id).update({loc:g.loc,locSrc:g.src});if(g.src==="addr")ok++;else city++}catch(e){}
     }
-    $("bGeo").disabled=false;
-    var t=ok+"件の位置を設定しました(市町村の中心付近・概算)。";
+    var t=ok+"件を住所から番地付近で設定しました。";
+    if(city)t+=" "+city+"件は市区町村の中心(概算)です。";
     if(noAddr)t+=" 住所なし"+noAddr+"件。";
-    if(noMatch)t+=" 市町村を判定できず"+noMatch+"件。";
-    if(manual)t+=" 緯度・経度を直接入力済みの"+manual+"件は変更していません。";
-    flash("bMsg",t);
+    if(noMatch)t+=" 判定できず"+noMatch+"件。";
+    if(manual)t+=" 位置を直接指定済みの"+manual+"件は変更していません。";
+    flash(msgId,t);
+  }
+  $("bGeo").addEventListener("click",async function(){
+    $("bGeo").disabled=true; await geoBulk(selIds(),"bMsg"); $("bGeo").disabled=false;
   });
+  window.__geoBulk=geoBulk;
 
   /* ---------- 起動 ---------- */
   async function resolveNames(){

@@ -201,7 +201,7 @@
   function pinIcon(p){
     var out=stOf(p.s)==="out", lv=p.a.lv;
     return L.divIcon({className:"mpin-w",iconSize:[30,40],iconAnchor:[15,38],popupAnchor:[0,-34],
-      html:'<div class="mpin l'+lv+(out?' out':'')+(p.q!=="m"?' apx':'')+'"><i></i><span class="pl">'+esc(p.s.name)+'</span></div>'});
+      html:'<div class="mpin l'+lv+(out?' out':'')+(p.q==="c"||p.q==="a"?' apx':'')+'"><i></i><span class="pl">'+esc(p.s.name)+'</span></div>'});
   }
   function pinPopup(p){
     var s=p.s, a=p.a, st=stOf(s);
@@ -209,7 +209,7 @@
       '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
       (a.lv>0?'<div>降雪目安 <b>約'+fmt(a.snow2,0)+'cm</b> / 基準'+esc(s.threshold||10)+'cm</div>':'')+
       (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
-      (p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
+      (p.q==="d"?'<div class="mpp-n">住所から割り出した位置です。ずれている場合は'+(canAdmin?'「位置を直す」で動かせます。':'管理者にお知らせください。')+'</div>':p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
       '<div class="mpp-r"><button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button>'+(canAdmin?'<button class="btn sm" type="button" data-mfix="'+esc(s.id)+'">位置を直す</button>':'')+'</div></div>';
   }
   function startFix(id){
@@ -232,8 +232,8 @@
   function mapLbl(){if(SM.map)$("siteMap").classList.toggle("z-lbl",SM.map.getZoom()>=12)}
   function renderSiteMap(items){
     var pins=[], un=[];
-    items.forEach(function(x){var ll=parseLL(effLoc(x.s)); if(ll)pins.push({s:x.s,a:x.a,ll:ll,q:(x.s.loc&&String(x.s.loc).trim())?(x.s.locSrc==="manual"?"m":"c"):"a"}); else un.push(x.s)});
-    SM.pins=pins;
+    items.forEach(function(x){var ll=parseLL(effLoc(x.s)); if(ll)pins.push({s:x.s,a:x.a,ll:ll,q:(x.s.loc&&String(x.s.loc).trim())?(x.s.locSrc==="manual"?"m":x.s.locSrc==="addr"?"d":"c"):"a"}); else un.push(x.s)});
+    SM.pins=pins; $("mpGeo").hidden=!canAdmin;
     var cnt={3:0,2:0,1:0,0:0}; pins.forEach(function(p){cnt[p.a.lv]++});
     $("mpLeg").innerHTML=[[3,"出動目安"],[2,"警戒"],[1,"平常"],[0,"未取得"]].map(function(g){return '<span class="lg"><i style="background:'+MPC[g[0]]+'"></i>'+g[1]+' <b class="num">'+cnt[g[0]]+'</b></span>'}).join("")+'<span class="lg"><i class="ring"></i>出動中</span>';
     $("mpUn").innerHTML=un.length?'<div class="mp-un"><b>地図に出せない現場('+un.length+'件)</b>:'+un.map(function(s){return esc(s.name)}).join("、")+'<div class="muted">「設定」の現場編集で、天気を調べる場所(位置)を登録すると表示されます。</div></div>':'';
@@ -265,6 +265,12 @@
       SM.map=null;
     });
   }
+  $("mpGeo").addEventListener("click",async function(){
+    var ids=sites.filter(function(s){return s.address&&s.locSrc!=="manual"}).map(function(s){return s.id});
+    if(!ids.length){$("mpMsg").textContent="住所が登録された現場がありません。";return}
+    if(!confirm("住所が登録された"+ids.length+"件の現場について、住所から位置を調べて登録します。\n(ピンで直接直した現場は変更しません)")){return}
+    $("mpGeo").disabled=true; await window.__geoBulk(ids,"mpMsg"); $("mpGeo").disabled=false;
+  });
   $("mpFit").addEventListener("click",function(){mapFit()});
   $("mpMe").addEventListener("click",function(){
     if(!SM.map)return;
