@@ -12,6 +12,7 @@
   var INPUT='width:100%;min-height:46px;border:1px solid #E3E7E5;border-radius:10px;padding:8px 12px;font:inherit;box-sizing:border-box;margin:4px 0 12px';
   var BTN='width:100%;min-height:48px;border:0;border-radius:999px;background:#1E8449;color:#fff;font:inherit;font-weight:700;cursor:pointer';
   var LINK='background:none;border:0;color:#2F6FA8;font:inherit;text-decoration:underline;cursor:pointer;padding:6px';
+  function padPw(m,p){return m.slice(-PD.length)===PD?p+"~Js1":p}
   var BR0={name:"除雪管理アプリ"};
   window.__applyBrand=function(b,save){
     b=b||{}; window.__brand=b; var name=b.name||BR0.name;
@@ -35,7 +36,7 @@
   function title(t){var bb=window.__brand||{};return '<div style="text-align:center;margin-bottom:14px">'+(bb.logo?'<img src="'+bb.logo+'" alt="" style="max-height:56px;max-width:220px;margin-bottom:6px">':'')+'<div style="font-size:1.25rem;font-weight:700;color:#175C40">'+esc(bb.name||"除雪管理アプリ")+'</div><div style="color:#5C6459;font-size:.9rem;margin-top:2px">'+t+'</div></div>'}
   function never(){return new Promise(function(){})}
   function failScreen(msg){overlay(title("設定が必要です")+'<p style="line-height:1.7;font-size:.92rem">'+msg+'</p>');return never()}
-  var ERR={"auth/invalid-email":"電話番号またはメールアドレスの形式が正しくありません。","auth/user-not-found":"電話番号(メール)かパスワードが違います。","auth/wrong-password":"電話番号(メール)かパスワードが違います。","auth/invalid-credential":"電話番号(メール)かパスワードが違います。","auth/email-already-in-use":"この電話番号(メール)は、すでに登録されています。","auth/weak-password":"パスワードは6文字以上にしてください。","auth/too-many-requests":"試行が多すぎます。しばらくしてからお試しください。","auth/network-request-failed":"通信できませんでした。"};
+  var ERR={"auth/invalid-email":"電話番号またはメールアドレスの形式が正しくありません。","auth/user-not-found":"電話番号(メール)かパスワードが違います。","auth/wrong-password":"電話番号(メール)かパスワードが違います。","auth/invalid-credential":"電話番号(メール)かパスワードが違います。","auth/email-already-in-use":"この電話番号(メール)は、すでに登録されています。","auth/weak-password":"パスワードは4文字以上にしてください。","auth/too-many-requests":"試行が多すぎます。しばらくしてからお試しください。","auth/network-request-failed":"通信できませんでした。"};
 
   if(!cfg.apiKey||!window.firebase){
     window.claude={use:async function(){return failScreen("Firebase の設定が未入力です。<code>firebase-config.js</code> に設定値を入れて、もう一度デプロイしてください。")}};
@@ -124,7 +125,7 @@
       function go(){
         var m=toId(mail.value), p=pw.value; if(!mail.value.trim()||!p){draw("電話番号とパスワードを入力してください。");return} if(!m){draw("電話番号を、数字だけ(9〜15桁)で入力してください。");return}
         var b=el.querySelector("#fbGo"); b.disabled=true;
-        if(mode==="in")auth.signInWithEmailAndPassword(m,p).then(function(){location.reload()},function(e){draw(ERR[e.code]||"ログインできませんでした。")});
+        if(mode==="in")auth.signInWithEmailAndPassword(m,padPw(m,p)).then(function(){location.reload()},function(e){draw(ERR[e.code]||"ログインできませんでした。")});
         else{
           var nm="";
           auth.createUserWithEmailAndPassword(m,p).then(function(c){

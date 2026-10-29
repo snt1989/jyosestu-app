@@ -254,7 +254,7 @@
     $("mbAcctRow").hidden=simple; $("mbPwRow").hidden=!simple; $("mbPw").value="";
     if(simple){
       $("mbTelLab").innerHTML='電話番号(ログインID)<span class="req">必須</span>';
-      $("mbPw").placeholder=mbUid?"変える場合だけ入力":"6文字以上";
+      $("mbPw").placeholder=mbUid?"変える場合だけ入力":"4文字以上(数字でも文字でも可)";
       $("mbPwHelp").textContent=mbUid?"パスワードを忘れた人は、ここで新しく決め直せます。変えないときは空のままにします。":"この電話番号と、このパスワードでログインします。本人に伝えてください。";
     }
     $("mbMsg").textContent=""; $("mbForm").hidden=false; $("mbName").focus();
@@ -431,7 +431,7 @@
     var mb=function(n){return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.round(n/1024)+"KB"};
     msg(ok?(ok+"枚を保存しました(元 "+mb(before)+" → 約 "+mb(window.__blobUrl?after*0.75:after)+")"+(fails?("。"+fails+"枚は保存できませんでした。"):"")):"写真を保存できませんでした。");
   });
-  var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)を入力してください。","auth/email-already-exists":"この電話番号は、すでにログイン用に使われています。",cannot_delete_admin:"管理者のアカウントは削除できません。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
+  var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは4文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)を入力してください。","auth/email-already-exists":"この電話番号は、すでにログイン用に使われています。",cannot_delete_admin:"管理者のアカウントは削除できません。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
   $("mbCredGo").addEventListener("click",async function(){
     var id=$("mbCredId").value.trim(), pw=$("mbCredPw").value;
     if(!id&&!pw){$("mbCredMsg").textContent=CERR.nothing;return}
@@ -466,8 +466,8 @@
       var digits=data.phone.replace(/[^0-9０-９]/g,"").replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248)});
       if(!/^\d{9,15}$/.test(digits)){$("mbMsg").textContent="電話番号を、数字9〜15桁で入力してください。";return}
       if(members.some(function(x){return x.id!==mbEdit&&String(x.phone||"").replace(/[^0-9]/g,"")===digits})){$("mbMsg").textContent="この電話番号は、ほかのメンバーに登録されています。";return}
-      if(!mbUid&&pw.length<6){$("mbMsg").textContent="ログインパスワードを6文字以上で入力してください。";return}
-      if(mbUid&&pw&&pw.length<6){$("mbMsg").textContent="パスワードは6文字以上にしてください。";return}
+      if(!mbUid&&pw.length<4){$("mbMsg").textContent="ログインパスワードを4文字以上で入力してください。";return}
+      if(mbUid&&pw&&pw.length<4){$("mbMsg").textContent="パスワードは4文字以上にしてください。";return}
     }else if(mbUid&&members.some(function(x){return x.uid===mbUid&&x.id!==mbEdit})){$("mbMsg").textContent="このアカウントは、ほかのメンバーに連携されています。";return}
     $("mbSave").disabled=true;
     try{

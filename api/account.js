@@ -17,6 +17,7 @@ function toId(v) {
   const d = v.replace(/[\s\-－ー‐()（）+]/g, "").replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 65248));
   return /^\d{9,15}$/.test(d) ? d + PD : "";
 }
+const SUF = "~Js1"; // 電話番号アカウントは、Firebase の6文字以上の決まりに合わせて、決まった文字を足して保存する
 const isAdminEmail = (e) => ADMINS.indexOf(String(e || "").toLowerCase()) >= 0;
 
 module.exports = async (req, res) => {
@@ -44,8 +45,9 @@ module.exports = async (req, res) => {
       const email = toId(b.id);
       if (!email) return res.status(400).json({ error: "bad_id" });
       const pw = String(b.password || "");
-      if (pw.length < 6) return res.status(400).json({ error: "weak_password" });
-      const u = await admin.auth().createUser({ email, password: pw, displayName: name || undefined });
+      const isPhone = email.slice(-PD.length) === PD;
+      if (pw.length < (isPhone ? 4 : 6)) return res.status(400).json({ error: "weak_password" });
+      const u = await admin.auth().createUser({ email, password: isPhone ? pw + SUF : pw, displayName: name || undefined });
       await fs.doc("users/" + u.uid).set({ name: name || email.replace(PD, ""), email, role: b.active === false ? "pending" : "member", createdAt: Date.now() });
       return res.status(200).json({ ok: true, uid: u.uid });
     }
@@ -64,15 +66,16 @@ module.exports = async (req, res) => {
     }
 
     const upd = {};
-    if (b.password) {
-      if (String(b.password).length < 6) return res.status(400).json({ error: "weak_password" });
-      upd.password = String(b.password);
-    }
     let email = "";
     if (b.id) {
       email = toId(b.id);
       if (!email) return res.status(400).json({ error: "bad_id" });
       upd.email = email;
+    }
+    if (b.password) {
+      const isPhone = String(email || target.email || "").slice(-PD.length) === PD;
+      if (String(b.password).length < (isPhone ? 4 : 6)) return res.status(400).json({ error: "weak_password" });
+      upd.password = isPhone ? String(b.password) + SUF : String(b.password);
     }
     if (name) upd.displayName = name;
     if (Object.keys(upd).length) await admin.auth().updateUser(uid, upd);

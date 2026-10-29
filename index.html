@@ -633,7 +633,7 @@ tbody tr:last-child td{border-bottom:0}
         <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option></select></div></div>
         <div class="form-row"><label for="mbTel" id="mbTelLab">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
         <div class="form-row"><label for="mbNote">備考</label><div><input id="mbNote" maxlength="100" placeholder="例:大型除雪機の資格あり"></div></div>
-        <div class="form-row" id="mbPwRow" hidden><label for="mbPw">ログインパスワード</label><div><input id="mbPw" type="text" maxlength="60" autocomplete="off" placeholder="6文字以上"><span class="help" id="mbPwHelp">この電話番号と、このパスワードでログインします。</span></div></div>
+        <div class="form-row" id="mbPwRow" hidden><label for="mbPw">ログインパスワード</label><div><input id="mbPw" type="text" maxlength="60" autocomplete="off" placeholder="4文字以上"><span class="help" id="mbPwHelp">この電話番号と、このパスワードでログインします。</span></div></div>
         <div class="form-row" id="mbAcctRow"><label for="mbAcctQ">ログインアカウント</label><div>
           <div class="mbacct"><span id="mbAcctNow" class="mbacct-now">未連携</span><button class="btn sm" type="button" id="mbAcctMe">自分を連携</button><button class="btn sm" type="button" id="mbAcctClr" hidden>解除</button></div>
           <input id="mbAcctQ" type="search" maxlength="40" placeholder="名前で探して連携" autocomplete="off"><div id="mbAcctRes" class="mbres"></div>
@@ -1919,7 +1919,7 @@ tbody tr:last-child td{border-bottom:0}
     $("mbAcctRow").hidden=simple; $("mbPwRow").hidden=!simple; $("mbPw").value="";
     if(simple){
       $("mbTelLab").innerHTML='電話番号(ログインID)<span class="req">必須</span>';
-      $("mbPw").placeholder=mbUid?"変える場合だけ入力":"6文字以上";
+      $("mbPw").placeholder=mbUid?"変える場合だけ入力":"4文字以上(数字でも文字でも可)";
       $("mbPwHelp").textContent=mbUid?"パスワードを忘れた人は、ここで新しく決め直せます。変えないときは空のままにします。":"この電話番号と、このパスワードでログインします。本人に伝えてください。";
     }
     $("mbMsg").textContent=""; $("mbForm").hidden=false; $("mbName").focus();
@@ -2096,7 +2096,7 @@ tbody tr:last-child td{border-bottom:0}
     var mb=function(n){return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.round(n/1024)+"KB"};
     msg(ok?(ok+"枚を保存しました(元 "+mb(before)+" → 約 "+mb(window.__blobUrl?after*0.75:after)+")"+(fails?("。"+fails+"枚は保存できませんでした。"):"")):"写真を保存できませんでした。");
   });
-  var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)を入力してください。","auth/email-already-exists":"この電話番号は、すでにログイン用に使われています。",cannot_delete_admin:"管理者のアカウントは削除できません。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
+  var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは4文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)を入力してください。","auth/email-already-exists":"この電話番号は、すでにログイン用に使われています。",cannot_delete_admin:"管理者のアカウントは削除できません。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
   $("mbCredGo").addEventListener("click",async function(){
     var id=$("mbCredId").value.trim(), pw=$("mbCredPw").value;
     if(!id&&!pw){$("mbCredMsg").textContent=CERR.nothing;return}
@@ -2131,8 +2131,8 @@ tbody tr:last-child td{border-bottom:0}
       var digits=data.phone.replace(/[^0-9０-９]/g,"").replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248)});
       if(!/^\d{9,15}$/.test(digits)){$("mbMsg").textContent="電話番号を、数字9〜15桁で入力してください。";return}
       if(members.some(function(x){return x.id!==mbEdit&&String(x.phone||"").replace(/[^0-9]/g,"")===digits})){$("mbMsg").textContent="この電話番号は、ほかのメンバーに登録されています。";return}
-      if(!mbUid&&pw.length<6){$("mbMsg").textContent="ログインパスワードを6文字以上で入力してください。";return}
-      if(mbUid&&pw&&pw.length<6){$("mbMsg").textContent="パスワードは6文字以上にしてください。";return}
+      if(!mbUid&&pw.length<4){$("mbMsg").textContent="ログインパスワードを4文字以上で入力してください。";return}
+      if(mbUid&&pw&&pw.length<4){$("mbMsg").textContent="パスワードは4文字以上にしてください。";return}
     }else if(mbUid&&members.some(function(x){return x.uid===mbUid&&x.id!==mbEdit})){$("mbMsg").textContent="このアカウントは、ほかのメンバーに連携されています。";return}
     $("mbSave").disabled=true;
     try{
