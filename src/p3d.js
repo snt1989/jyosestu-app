@@ -2,6 +2,7 @@
   /* ---------- 画面の切り替え・描画 ---------- */
   var TABI={
     home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    machines:'<path d="M3 17h13v-5l-3-4H8v4H3z"/><circle cx="7" cy="18" r="2"/><circle cx="14" cy="18" r="2"/><path d="M16 12h4l1 3v3h-3"/>',
     sites:'<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
     reports:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
     notes:'<path d="M4 5h16v11H9l-5 4z"/>',
@@ -9,7 +10,7 @@
     members:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.2c2.7 0 4.5 2 4.5 4.8"/>',
     admin:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'
   };
-  var TABS=[["home","ホーム"],["sites","現場一覧"],["reports","日報"],["notes","連絡"],["stats","集計"],["admin","設定"]];
+  var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械"],["reports","日報"],["notes","連絡"],["stats","集計"],["admin","設定"]];
   function goto(v,f){
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
     if(v==="members"){view="admin";sub="members"}
@@ -17,11 +18,12 @@
     render(); window.scrollTo(0,0);
   }
   window.addEventListener("blobloaded",function(){render();var lb=$("lbImg");if(lb&&lb.dataset.pid){var u=blobUrl(lb.dataset.pid);if(u)lb.src=u}});
+  setInterval(function(){if(view==="machines"&&!document.hidden)render()},60000);
   var rqT=0;
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
   function doRender(){
     if(!canAdmin&&view==="admin")view="home";
-    var NAV=TABS.slice(0,5);
+    var NAV=TABS.filter(function(t){return t[0]!=="admin"});
     if(canAdmin){NAV.push(["members","メンバー管理"]);NAV.push(["admin","設定"])}
     $("tabbar").innerHTML=NAV.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):view===t[0];
@@ -32,6 +34,7 @@
     $("upd").textContent=lastAt?timeStr(lastAt):"--:--";
     if(view==="home")renderHome();
     else if(view==="sites")renderSites();
+    else if(view==="machines")renderMachines();
     else if(view==="reports")renderReports();
     else if(view==="notes")renderNotes();
     else if(view==="stats")renderStats();

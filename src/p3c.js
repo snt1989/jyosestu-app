@@ -93,6 +93,66 @@
       },fallback);
     });
   }
+  /* ---------- 機械・備品の稼働ボード ---------- */
+  function mchRuns(m,day){
+    // その機械を使った日報(日付が一致するもの)
+    return reports.filter(function(r){return r.date===day&&r.machines&&r.machines.indexOf(m)>=0})
+      .sort(function(a,b){return String(a.start||"").localeCompare(String(b.start||""))});
+  }
+  function mchState(r,day,nowM,today){
+    // 稼働中か、終了済みか、これからか
+    var st=hm2m(r.start), en=hm2m(r.end);
+    if(r.date===today){
+      if(st==null&&en==null)return "done";
+      if(st!=null&&nowM<st)return "plan";
+      if(en==null)return "run";
+      var over=st!=null&&en<st;
+      return (over||nowM<=en)?"run":"done";
+    }
+    return "done";
+  }
+  function hm2m(t){var m=/^(\d{1,2}):(\d{2})/.exec(t||"");return m?(+m[1])*60+(+m[2]):null}
+  function renderMachines(){
+    var now=new Date(), today=todayStr(), nowM=now.getHours()*60+now.getMinutes();
+    var names=masters.machines.slice();
+    reports.forEach(function(r){(r.machines||[]).forEach(function(m){if(names.indexOf(m)<0)names.push(m)})});
+    var yd=dstr(new Date(now.getTime()-86400000));
+    var days=[];for(var i=6;i>=0;i--)days.push(dstr(new Date(now.getTime()-i*86400000)));
+    var sr=seasonRange(seasonOf(today));
+    var rows=names.map(function(m){
+      var tr=mchRuns(m,today), st="idle", cur=null;
+      tr.forEach(function(r){var k=mchState(r,today,nowM,today);r.__k=k; if(k==="run"&&!cur){st="run";cur=r}});
+      // 日をまたぐ作業(昨日開始・終了が翌日)
+      if(st!=="run")mchRuns(m,yd).forEach(function(r){var s1=hm2m(r.start),e1=hm2m(r.end);if(s1!=null&&e1!=null&&e1<s1&&nowM<=e1){st="run";cur=r}});
+      if(st!=="run"&&tr.some(function(r){return r.__k==="done"}))st="done";
+      if(st==="idle"&&tr.some(function(r){return r.__k==="plan"}))st="plan";
+      var used=days.map(function(d){return mchRuns(m,d).length});
+      var season=reports.filter(function(r){return r.date>=sr[0]&&r.date<=sr[1]&&r.machines&&r.machines.indexOf(m)>=0}).length;
+      var last=reports.filter(function(r){return r.machines&&r.machines.indexOf(m)>=0&&r.date<today}).map(function(r){return r.date}).sort().pop();
+      return {m:m,st:st,cur:cur,tr:tr,used:used,season:season,last:last};
+    });
+    var ord={run:0,plan:1,done:2,idle:3};
+    rows.sort(function(a,b){return ord[a.st]-ord[b.st]||a.m.localeCompare(b.m,"ja")});
+    var cnt={run:0,plan:0,done:0,idle:0}; rows.forEach(function(r){cnt[r.st]++});
+    var L={run:"稼働中",plan:"予定あり",done:"本日稼働済",idle:"待機"};
+    var h='<div class="mbh"><h1 class="mbt">機械・備品の稼働</h1><span class="muted">'+esc(today.replace(/-/g,"/"))+' '+p2(now.getHours())+':'+p2(now.getMinutes())+' 現在</span></div>';
+    h+='<div class="mbs">'+["run","plan","done","idle"].map(function(k){return '<div class="mbsn k-'+k+'"><span class="n num">'+cnt[k]+'</span><span class="l">'+L[k]+'</span></div>'}).join("")+'</div>';
+    if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>設定のマスタで機械・備品を登録すると、ここに表示されます。</div>';
+    else h+='<div class="mbg">'+rows.map(function(x){
+      var wd=["日","月","火","水","木","金","土"];
+      var bars=x.used.map(function(c,i){var d=new Date(now.getTime()-(6-i)*86400000);return '<span class="mbd'+(c?' on':'')+(i===6?' tdy':'')+'" title="'+(d.getMonth()+1)+'/'+d.getDate()+' '+c+'回"><i>'+(c||'')+'</i><em>'+wd[d.getDay()]+'</em></span>'}).join("");
+      var lines=x.tr.length?x.tr.map(function(r){
+        var k=r.__k||"done";
+        return '<button type="button" class="mbl k-'+k+'" data-act="rep" data-id="'+esc(r.id)+'"><span class="tm num">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span><span class="nm">'+esc(r.siteName||"(現場名なし)")+'</span><span class="cw">'+esc(r.crew||"")+'</span></button>';
+      }).join(""):'<div class="mbn muted">'+(x.last?'最後の稼働 '+esc(x.last.slice(5).replace("-","/"))+'':'今シーズンはまだ稼働していません')+'</div>';
+      return '<article class="card2 mbc k-'+x.st+'"><div class="mbc-h"><b class="mbnm">'+esc(x.m)+'</b><span class="mbp k-'+x.st+'">'+L[x.st]+'</span></div>'+
+        '<div class="mbls">'+lines+'</div>'+
+        '<div class="mbf"><div class="mbds" aria-label="直近7日の稼働回数">'+bars+'</div><div class="mbse"><span class="muted">今シーズン</span><b class="num">'+x.season+'</b><small>回</small></div></div></article>';
+    }).join("")+'</div>';
+    h+='<p class="legend">日報の「使用機械」から自動で集計しています。開始〜終了の時刻内は「稼働中」、時刻が過ぎると「本日稼働済」と表示します。日報に機械を入れ忘れると、ここには出ません。</p>';
+    $("machBody").innerHTML=h;
+  }
+
   function machList(extra){
     var l=masters.machines.slice();
     (extra||[]).forEach(function(m){if(l.indexOf(m)<0)l.push(m)});
