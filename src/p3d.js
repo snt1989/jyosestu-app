@@ -45,7 +45,7 @@
   $("stSel").addEventListener("change",function(e){stF=e.target.value;render()});
   $("sortSel").addEventListener("change",function(e){sortK=e.target.value;sortDir=(sortK==="snow"||sortK==="count"||sortK==="created")?-1:1;render()});
   $("sortDir").addEventListener("click",function(){sortDir=-sortDir;render()});
-  $("siteReset").addEventListener("click",function(){query="";$("query").value="";areaF="";crewF="";stF="";filter="all";sortK="prio";sortDir=1;render()});
+  $("siteReset").addEventListener("click",function(){query="";$("query").value="";areaF="";crewF="";stF="";filter="all";sortK="manual";sortDir=1;render()});
   $("repPeriod").addEventListener("change",function(e){repFilter.period=e.target.value;render()});
   $("repSiteSel").addEventListener("change",function(e){repFilter.site=e.target.value;render()});
   $("btnRefresh").addEventListener("click",function(){refreshAll(true)});

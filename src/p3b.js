@@ -174,7 +174,7 @@
   }
 
   /* ---------- 現場一覧 ---------- */
-  var crewF="", stF="", sortK="prio", sortDir=1, lastCrewKey="";
+  var crewF="", stF="", sortK="manual", sortDir=1, lastCrewKey="";
   function syncCrewSel(){
     var set={}; sites.forEach(function(s){if(s.crew)set[s.crew]=1}); (masters.crews||[]).forEach(function(c){if(c)set[c]=1});
     var list=Object.keys(set).sort(function(a,b){return a.localeCompare(b,"ja")}), key=list.join("|");
