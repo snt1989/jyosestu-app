@@ -263,8 +263,9 @@
       if(rf.id){await db.doc("reports/"+rf.id).update(data)}
       else{
         data.by=myId||""; data.at=Date.now();
-        await db.collection("reports").add(data);
-        if($("rfDone").checked&&s){try{await db.doc("ops/"+sid).set({status:"done",statusAt:Date.now(),statusBy:myName||""})}catch(e2){}}
+        var rpr=await db.collection("reports").add(data);
+        pwaNotify("report",rpr&&rpr.id);
+        if($("rfDone").checked&&s){try{await db.doc("ops/"+sid).set({status:"done",statusAt:Date.now(),statusBy:myName||""});pwaNotify("status",sid)}catch(e2){}}
       }
       var gone=rf.removed.slice(); rf.added=[]; rf.removed=[];
       rf=null; $("rform").hidden=true; lockBody();
@@ -312,7 +313,8 @@
     var sid=$("ntSite").value, s=sid?siteById(sid):null;
     $("ntPost").disabled=true;
     try{
-      await db.collection("notes").add({siteId:sid,siteName:s?s.name:"",text:text,by:myId||"",at:Date.now()});
+      var ntr=await db.collection("notes").add({siteId:sid,siteName:s?s.name:"",text:text,by:myId||"",at:Date.now()});
+      pwaNotify("note",ntr&&ntr.id);
       $("ntText").value=""; toast("連絡を投稿しました。");
     }catch(err){toast(err&&err.code==="quota_exceeded"?"登録できる件数の上限に達しています。":"投稿できませんでした。もう一度お試しください。")}
     finally{$("ntPost").disabled=false}

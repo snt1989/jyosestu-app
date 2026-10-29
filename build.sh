@@ -4,6 +4,7 @@ set -e
 cd "$(dirname "$0")"
 {
   echo '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+  echo '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#175C40"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="除雪管理"><meta name="apple-mobile-web-app-status-bar-style" content="default">'
   echo '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>'
   echo '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>'
   echo '<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>'

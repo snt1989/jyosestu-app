@@ -1,0 +1,17 @@
+{
+  "name": "除雪管理アプリ",
+  "short_name": "除雪管理",
+  "description": "除雪の出動・日報・連絡をみんなで共有するアプリ",
+  "start_url": "/?src=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "ja",
+  "background_color": "#F7F7F5",
+  "theme_color": "#175C40",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

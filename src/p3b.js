@@ -197,7 +197,7 @@
     var c3=0,c2=0,out=0;
     items.forEach(function(x){if(x.a.lv===3)c3++;else if(x.a.lv===2)c2++; if(stOf(x.s)==="out")out++});
     var td=todayStr(), todayReps=sortReps(reports.filter(function(r){return r.date===td}));
-    var h=banners()+annHome();
+    var h=banners()+(window.__appPromo?window.__appPromo():"")+annHome();
     h+='<div class="hello"><span class="d">'+esc(new Date().toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"}))+'</span><span class="muted">全'+sites.length+'現場</span></div>';
     h+='<div class="tiles">'+
       '<button type="button" class="tile c3" data-nav="sites" data-f="l3"><span class="n">'+c3+'</span><span class="l">出動目安</span></button>'+

@@ -19,7 +19,7 @@
     try{document.title=name}catch(e){}
     var head=document.head;
     Array.prototype.slice.call(head.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]')).forEach(function(l){l.remove()});
-    if(b.icon){["icon","apple-touch-icon"].forEach(function(rel){var l=document.createElement("link");l.rel=rel;l.href=b.icon;head.appendChild(l)})}
+    ["icon","apple-touch-icon"].forEach(function(rel){var l=document.createElement("link");l.rel=rel;l.href=b.icon||(rel==="icon"?"/icons/icon-192.png":"/icons/apple-touch-icon.png");head.appendChild(l)});
     var r=document.documentElement;
     r.style.setProperty("--bname",JSON.stringify(name));
     if(b.logo){r.style.setProperty("--blogo","url("+b.logo+")");r.classList.add("has-logo")}else{r.style.removeProperty("--blogo");r.classList.remove("has-logo")}
@@ -95,6 +95,14 @@
     },
     setPhotoCache:function(id,u){pcache[id]=u},
     accountId:async function(uid){var d=await fs.doc("users/"+uid).get();return d.exists?disp((d.data()||{}).email):""},
+    callPush:async function(body){
+      var u=auth.currentUser; if(!u)throw new Error("login");
+      var tok=await u.getIdToken();
+      var r=await fetch("/api/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify(body)});
+      var j={};try{j=await r.json()}catch(e){}
+      if(!r.ok)throw new Error(j.error||("http"+r.status));
+      return j;
+    },
     callAccount:async function(body){
       var u=auth.currentUser; if(!u)throw new Error("login");
       var tok=await u.getIdToken();

@@ -83,7 +83,7 @@
     else if(act==="status"){
       if(!s||!canWrite()||busy[id]||stOf(s)===d.v)return;
       busy[id]=true;
-      try{await db.doc("ops/"+id).set({status:d.v,statusAt:Date.now(),statusBy:myName||""})}catch(err){toast("作業状況を保存できませんでした。")}
+      try{await db.doc("ops/"+id).set({status:d.v,statusAt:Date.now(),statusBy:myName||""});pwaNotify("status",id)}catch(err){toast("作業状況を保存できませんでした。")}
       busy[id]=false;
     }
     else if(act==="newrep"){openReportForm(id||(detailId||""),null)}
@@ -116,6 +116,8 @@
     else if(act==="photo"){openLb(d.g,+d.i)}
     else if(act==="spadd"){spSite=id;$("spFile").click()}
     else if(act==="dwadd"){spSite=id;$("dwFile").click()}
+    else if(act==="appset"){pwa.msg="";openAppSet()}
+    else if(act==="appsetlater"){try{localStorage.setItem("josetsu.promo2","1")}catch(e){}render()}
     else if(act==="jump"){var el=$(d.t); if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}
     else if(act==="dwopen"){
       var w=window.open("","_blank"), dm=$("dwMsg");
@@ -137,11 +139,13 @@
     else if(act==="lbnext"){lb.i=(lb.i+1)%lb.list.length;lbShow()}
   });
   document.addEventListener("change",async function(e){
+    var pc=e.target.closest&&e.target.closest("[data-pwp]");
+    if(pc){pwa.prefs[pc.dataset.pwp]=pc.checked;try{localStorage.setItem("josetsu.pushprefs",JSON.stringify(pwa.prefs))}catch(e0){}if(pwa.sub)window.__FB.callPush({action:"prefs",endpoint:pwa.sub.endpoint,prefs:pwa.prefs}).catch(function(){});return}
     var sl=e.target.closest&&e.target.closest("select[data-stsel]"); if(!sl)return;
     var id=sl.dataset.stsel, s=siteById(id);
     if(!s||!canWrite()||busy[id])return;
     busy[id]=true;
-    try{await db.doc("ops/"+id).set({status:sl.value,statusAt:Date.now(),statusBy:myName||""})}catch(err){toast("作業状況を保存できませんでした。");render()}
+    try{await db.doc("ops/"+id).set({status:sl.value,statusAt:Date.now(),statusBy:myName||""});pwaNotify("status",id)}catch(err){toast("作業状況を保存できませんでした。");render()}
     busy[id]=false;
   });
   document.addEventListener("keydown",function(e){
@@ -605,6 +609,85 @@
     });
     return items;
   }
+  /* ---------- アプリのインストールと通知(本番アプリのみ) ---------- */
+  var pwa={ev:null,reg:null,sub:null,on:false,msg:"",prefs:{note:true,ann:true,status:true,report:true}};
+  try{var pp=JSON.parse(localStorage.getItem("josetsu.pushprefs")||"null");if(pp)Object.keys(pwa.prefs).forEach(function(k){if(pp[k]===false)pwa.prefs[k]=false})}catch(e){}
+  function pwaOn(){return !!(window.__FB&&window.__FB.callPush)}
+  function isStandalone(){try{return (window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}catch(e){return false}}
+  function isIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)}
+  function pushCan(){return pwaOn()&&"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window}
+  function u8(b64){var p="=".repeat((4-b64.length%4)%4), s=(b64+p).replace(/-/g,"+").replace(/_/g,"/"), r=atob(s), o=new Uint8Array(r.length);for(var i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
+  window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();pwa.ev=e;if(isAppSetOpen())openAppSet()});
+  window.addEventListener("appinstalled",function(){pwa.ev=null;toast("インストールしました。");if(isAppSetOpen())openAppSet()});
+  function isAppSetOpen(){return $("mdl").classList.contains("open")&&!!$("mdBox").querySelector("[data-pw]")}
+  async function pwaInit(){
+    if(!pwaOn()||!("serviceWorker" in navigator))return;
+    try{
+      pwa.reg=await navigator.serviceWorker.register("/sw.js");
+      navigator.serviceWorker.addEventListener("message",function(e){if(e.data&&e.data.type==="nav")applyDeepLink(e.data.url)});
+      if(pushCan()){pwa.sub=await pwa.reg.pushManager.getSubscription();pwa.on=!!pwa.sub&&Notification.permission==="granted";render()}
+    }catch(e){}
+  }
+  var dlTries=0;
+  function applyDeepLink(u){
+    var q;try{q=new URL(u||location.href,location.origin).searchParams}catch(e){return}
+    var go=q.get("go"), site=q.get("site");
+    if(!go&&!site)return;
+    if(site){
+      if(!sites.length&&dlTries++<30){setTimeout(function(){applyDeepLink(u)},500);return}
+      if(siteById(site)){closeModal();openDetail(site)}
+    }else if(["home","sites","machines","reports","notes","stats"].indexOf(go)>=0){closeModal();goto(go)}
+    try{history.replaceState(null,"",location.pathname)}catch(e){}
+  }
+  function pwaNotify(type,id){if(pwaOn()&&id){window.__FB.callPush({action:"notify",type:type,id:id}).catch(function(){})}}
+  function openAppSet(){
+    var inst, push;
+    if(isStandalone())inst='<p><b>インストール済み</b>です。ホーム画面のアイコンから開けます。</p>';
+    else if(pwa.ev)inst='<p>ホーム画面に追加すると、アプリのように開けます。</p><button class="btn primary" type="button" data-mact="pwinstall">アプリをインストール</button>';
+    else if(isIOS())inst='<p>iPhone・iPadでは、Safariの共有ボタン(□に↑)→「ホーム画面に追加」を選びます。<br>追加したアイコンから開くと、通知も使えます。</p>';
+    else inst='<p>ブラウザのメニューから「アプリをインストール」または「ホーム画面に追加」を選んでください。</p>';
+    if(!("serviceWorker" in navigator)||!("Notification" in window)||!("PushManager" in window)){
+      push='<p class="muted">この端'+'末・ブラウザでは通知が使えません。'+(isIOS()&&!isStandalone()?'iPhone・iPadは、先にホーム画面に追加してから、そのアイコンから開いてください。':'')+'</p>';
+    }else if(Notification.permission==="denied"){
+      push='<p class="muted">通知がブロックされています。ブラウザ(またはOS)の設定で、このサイトの通知を「許可」にしてください。</p>';
+    }else if(pwa.on){
+      push='<p><b>この端末で通知を受け取っています。</b></p><div class="pw-pf">'+[["note","連絡"],["ann","お知らせ"],["status","出動状況の変更"],["report","日報の提出"]].map(function(x){return '<label class="pw-ck"><input type="checkbox" data-pwp="'+x[0]+'"'+(pwa.prefs[x[0]]?' checked':'')+'>'+x[1]+'</label>'}).join("")+'</div>'+
+        '<div class="pw-bt"><button class="btn" type="button" data-mact="pwtest">テスト通知を送る</button><button class="btn" type="button" data-mact="pwoff">この端末の通知をオフにする</button></div>';
+    }else{
+      push='<p>連絡・お知らせ・出動状況・日報があったときに、この端末へ通知します。</p><button class="btn primary" type="button" data-mact="pwon">通知をオンにする</button>';
+    }
+    openModal("アプリ・通知",'<div data-pw class="pw"><h4>アプリのインストール</h4>'+inst+'<h4>通知</h4>'+push+(pwa.msg?'<p class="pw-msg" role="status">'+esc(pwa.msg)+'</p>':'')+'</div>','<button class="btn first" type="button" data-mact="notices">戻る</button><button class="btn" type="button" data-mclose>閉じる</button>');
+  }
+  async function pwaEnable(){
+    pwa.msg="";
+    try{
+      var perm=await Notification.requestPermission();
+      if(perm!=="granted"){pwa.msg=perm==="denied"?"通知が許可されませんでした。":"通知はオンになっていません。";openAppSet();return}
+      var kr=await fetch("/api/push?key=1"); var kj=await kr.json(); if(!kj.publicKey)throw new Error("key");
+      var reg=await navigator.serviceWorker.ready, sub=await reg.pushManager.getSubscription();
+      if(!sub){
+        try{sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(kj.publicKey)})}
+        catch(e1){var old=await reg.pushManager.getSubscription(); if(old)await old.unsubscribe(); sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(kj.publicKey)})}
+      }
+      await window.__FB.callPush({action:"subscribe",sub:sub.toJSON(),prefs:pwa.prefs});
+      pwa.sub=sub; pwa.on=true; pwa.msg="通知をオンにしました。"; render();
+    }catch(e){pwa.msg="通知をオンにできませんでした。しばらくしてからもう一度お試しください。(サーバーの通知設定が済んでいない場合があります)"}
+    openAppSet();
+  }
+  async function pwaDisable(){
+    try{var sub=pwa.sub||(pwa.reg&&await pwa.reg.pushManager.getSubscription()); if(sub){var ep=sub.endpoint; await sub.unsubscribe(); try{await window.__FB.callPush({action:"unsubscribe",endpoint:ep})}catch(e2){}}}catch(e){}
+    pwa.sub=null; pwa.on=false; pwa.msg="この端末の通知をオフにしました。"; render(); openAppSet();
+  }
+  function appPromo(){
+    if(!pwaOn())return "";
+    try{if(localStorage.getItem("josetsu.promo2")==="1")return ""}catch(e){}
+    if(isStandalone()&&(pwa.on||!pushCan()))return "";
+    if(pwa.on)return "";
+    return '<div class="card2 pw-promo"><div><b>アプリとして使う・通知を受け取る</b><div class="muted">ホーム画面に追加すると、連絡や出動の通知が届きます。</div></div><div class="pw-pb"><button class="btn primary sm" type="button" data-act="appset">設定する</button><button class="btn sm" type="button" data-act="appsetlater">あとで</button></div></div>';
+  }
+  window.__appPromo=appPromo;
+  pwaInit();
+  setTimeout(function(){applyDeepLink()},800);
   function renderBell(){
     var n=noticeItems().length, el=$("btnBell");
     el.innerHTML=iBell()+(n?'<span class="bell-dot">'+(n>99?"99+":n)+'</span>':'');
@@ -635,7 +718,7 @@
         return '<button type="button" class="nt-row" data-notice="'+p[1]+'"><span class="ic">'+IC[g]+'</span><span style="flex:1;min-width:0"><span class="tt">'+esc(p[0].title)+'</span><span class="sb'+(p[0].urgent?' urg':'')+'">'+esc(p[0].sub)+'</span></span></button>';
       }).join("");
     });
-    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button><button class="btn" type="button" data-mclose>閉じる</button>');
+    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">アプリ・通知</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
   }
   function openAnnView(id){
     var a=announcements.filter(function(x){return x.id===id})[0]; if(!a){closeModal();return}
@@ -680,7 +763,7 @@
     $("anSave").disabled=true;
     try{
       if(annEdit){await db.doc("announcements/"+annEdit).update(d)}
-      else{d.at=Date.now();d.by=myId||"";await db.collection("announcements").add(d)}
+      else{d.at=Date.now();d.by=myId||"";var anr=await db.collection("announcements").add(d);pwaNotify("ann",anr&&anr.id)}
       toast(annEdit?"お知らせを更新しました。":"お知らせを投稿しました。"); openAnnHist();
     }catch(err){$("anMsg").textContent="保存できませんでした。編集権限を確認してください。";$("anSave").disabled=false}
   }
@@ -699,6 +782,11 @@
     var k=b.dataset.mact, id=b.dataset.id;
     if(k==="notices")openNotices();
     else if(k==="annhist")openAnnHist();
+    else if(k==="appset"){pwa.msg="";openAppSet()}
+    else if(k==="pwinstall"){if(pwa.ev){pwa.ev.prompt();try{await pwa.ev.userChoice}catch(e){}pwa.ev=null;openAppSet()}}
+    else if(k==="pwon")pwaEnable();
+    else if(k==="pwoff")pwaDisable();
+    else if(k==="pwtest"){try{var tr=await window.__FB.callPush({action:"test"});pwa.msg=tr.sent?"テスト通知を送りました。":"送信先が見つかりませんでした。通知をオフ→オンにしてみてください。"}catch(e){pwa.msg="テスト通知を送れませんでした。"}openAppSet()}
     else if(k==="nthist")openNtHist();
     else if(k==="annew"){if(canAdmin)openAnnForm(null)}
     else if(k==="anedit"){var a0=announcements.filter(function(x){return x.id===id})[0];if(a0&&canAdmin)openAnnForm(a0)}
