@@ -39,6 +39,7 @@
     return a.filter(function(h){return h&&/^\d{1,2}:\d{2}$/.test(h.time||"")}).map(function(h){return {label:String(h.label||""),time:("0"+h.time).slice(-5)}})
       .sort(function(x,y){return x.time.localeCompare(y.time)});
   }
+  function sqmText(s){var v=+s.sqm;return v>0?v.toLocaleString("ja-JP",{maximumFractionDigits:2})+" ㎡":""}
   function handText(s,short){return siteHands(s).map(function(h){return (h.label&&!short?h.label+" ":"")+h.time}).join(" ・ ")}
   function lineLabel(l){return l.work||LSHORT[l.kind]||""}
   function lineMatch(kind,r){return kind==="all"?true:kind==="joset"?!r.haisetsu:kind==="hai"?!!r.haisetsu:false}

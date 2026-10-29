@@ -137,9 +137,10 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
 .dvn button{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;font-size:.92rem;font-weight:600;cursor:pointer;min-height:40px}
 .dvn button:active{background:var(--accent-soft)}
 .dvi{padding:0;overflow:hidden}
-.dvt{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+.dvt{display:grid;grid-template-columns:repeat(2,1fr);border-bottom:1px solid var(--line)}
 .dvt .tl{padding:14px 16px;display:flex;flex-direction:column;gap:4px}
-.dvt .tl+.tl{border-left:1px solid var(--line)}
+.dvt .tl:nth-child(even){border-left:1px solid var(--line)}
+.dvt .tl:nth-child(n+3){border-top:1px solid var(--line)}
 .dvt .tl span{font-size:.85rem;color:var(--muted)}
 .dvt .tl b{font-size:1.35rem;line-height:1.2}
 @media (max-width:420px){.dvt .tl{padding:12px 10px}.dvt .tl b{font-size:1.15rem}}
@@ -219,6 +220,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
 .whl.done{opacity:.85}
 .whl.soon .mt{color:var(--warn);font-weight:700}
 .whl.late{border-color:var(--crit)} .whl.late .mt{color:var(--crit);font-weight:700}
+.dvt .tl b.hd span{font-size:inherit;color:inherit}
 .dvt .tl b.hd{display:flex;flex-direction:column;gap:2px;font-size:1.15rem}
 .fh{margin-top:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 .fh-t{font-weight:600;display:flex;flex-direction:column;gap:2px;font-size:.95rem}
@@ -946,6 +948,7 @@ tbody tr:last-child td{border-bottom:0}
         <label for="fAddr">住所(任意)<input id="fAddr" maxlength="120" placeholder="例:盛岡市盛岡駅前北通10-38"></label>
         <div class="help" id="fGeoMsg" role="status"></div>
       </div>
+      <label for="fSqm">平米数(㎡・任意)<input id="fSqm" type="number" inputmode="decimal" min="0" max="9999999" step="any" placeholder="例:1200"></label>
       <label for="fCrew">担当班(任意)<input id="fCrew" data-combo="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
       <label for="fNote">メモ(任意)<textarea id="fNote" maxlength="200" placeholder="例:除雪機は倉庫横。排雪場所は北側。"></textarea></label>
     </div></div>
@@ -1032,6 +1035,7 @@ tbody tr:last-child td{border-bottom:0}
     return a.filter(function(h){return h&&/^\d{1,2}:\d{2}$/.test(h.time||"")}).map(function(h){return {label:String(h.label||""),time:("0"+h.time).slice(-5)}})
       .sort(function(x,y){return x.time.localeCompare(y.time)});
   }
+  function sqmText(s){var v=+s.sqm;return v>0?v.toLocaleString("ja-JP",{maximumFractionDigits:2})+" ㎡":""}
   function handText(s,short){return siteHands(s).map(function(h){return (h.label&&!short?h.label+" ":"")+h.time}).join(" ・ ")}
   function lineLabel(l){return l.work||LSHORT[l.kind]||""}
   function lineMatch(kind,r){return kind==="all"?true:kind==="joset"?!r.haisetsu:kind==="hai"?!!r.haisetsu:false}
@@ -1550,7 +1554,7 @@ tbody tr:last-child td{border-bottom:0}
     h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
     var n=siteSeasonCount(s.id), sl=siteLines(s);
     h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
-    h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>引渡時間</span>'+(siteHands(s).length?'<b class="num hd">'+siteHands(s).map(function(h){return '<span>'+(h.label?'<small>'+esc(h.label)+' </small>':'')+esc(h.time)+'</span>'}).join("")+'</b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
+    h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>平米数</span>'+(+s.sqm>0?'<b class="num">'+esc(sqmText(s).replace(" ㎡",""))+'<small> ㎡</small></b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>引渡時間</span>'+(siteHands(s).length?'<b class="num hd">'+siteHands(s).map(function(h){return '<span>'+(h.label?'<small>'+esc(h.label)+' </small>':'')+esc(h.time)+'</span>'}).join("")+'</b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
     h+='<div class="dvr"><span class="k">住所</span><div class="v">'+(s.address?esc(s.address)+'<a class="btn sm" style="margin-left:8px" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図を開く</a>':'<span class="muted">未登録</span>')+'</div></div>';
     h+='<div class="dvr"><span class="k">メモ</span><div class="v" style="white-space:pre-wrap">'+(s.note?esc(s.note):'<span class="muted">なし</span>')+'</div></div></div>';
     h+='<div class="sec" id="dvCt"><h2>契約・単価'+(canAdmin?admBadge():'')+'</h2></div><div class="card2 dvc">'+sl.map(function(l){
@@ -2198,7 +2202,7 @@ tbody tr:last-child td{border-bottom:0}
     var w0=(s&&!copy)?wx[s.id]:null; $("fWxState").textContent=isNew?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
     $("fDel").hidden=isNew; $("fDel").textContent="削除"; $("fErr").textContent="";
     updLocHint();
-    $("fAddr").value=s&&s.address||""; geoLoc=(s&&s.locSrc==="city")?s.loc:""; $("fGeoMsg").textContent=""; mapLink();
+    $("fAddr").value=s&&s.address||""; $("fSqm").value=s&&+s.sqm>0?s.sqm:""; geoLoc=(s&&s.locSrc==="city")?s.loc:""; $("fGeoMsg").textContent=""; mapLink();
     openSheet("sform"); setTimeout(function(){$("fName").focus()},0);
   }
   function closeDlg(){$("sform").hidden=true;editingId=null;lockBody()}
@@ -2255,7 +2259,7 @@ tbody tr:last-child td{border-bottom:0}
     if(!db)return;
     var th=parseInt($("fTh").value,10); if(!(th>0))th=10;
     readLines(); var kept=fLines.filter(function(l){return l.work||l.count>0||l.unitPrice>0}), ls=lineSave(kept);
-    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
+    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,sqm:(function(v){v=parseFloat($("fSqm").value);return v>0?Math.round(v*100)/100:0})(),handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
       lines:ls.site.lines,contractCount:ls.site.contractCount};
     var priceData=ls.price;
     data.locSrc=data.loc?(data.loc===geoLoc?"city":"manual"):"";
@@ -2801,6 +2805,7 @@ tbody tr:last-child td{border-bottom:0}
         '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div>'+
         '<span class="ed edb">'+(mv?'<button class="btn sm" type="button" data-act="mv" data-d="-1" data-id="'+id+'" aria-label="上へ"'+(aids.indexOf(s.id)===0?' disabled':'')+'>↑</button><button class="btn sm" type="button" data-act="mv" data-d="1" data-id="'+id+'" aria-label="下へ"'+(aids.indexOf(s.id)===aids.length-1?' disabled':'')+'>↓</button>':'')+'<button class="btn sm" type="button" data-act="copy" data-id="'+id+'" aria-label="'+esc(s.name)+'をコピー">コピー</button><button class="btn sm" type="button" data-act="edit" data-id="'+id+'">編集</button></span>'+
         '<div class="kvs"><span class="k"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></span>'+
+        '<span class="k'+(+s.sqm>0?'':' emp')+'"><small>平米数</small><span class="num">'+esc(sqmText(s)||"–")+'</span></span>'+
         '<span class="k'+(siteHands(s).length?'':' emp')+'"><small>引渡時間</small><span class="num">'+esc(handText(s)||"–")+'</span></span>'+
         '<span class="k'+(s.loc?'':' emp')+'"><small>位置</small><span>'+(s.loc?'設定済':'未設定')+'</span></span>'+
         '<span class="k wide'+(s.address?'':' emp')+'"><small>住所</small><span class="tx">'+esc(s.address||"–")+'</span></span>'+
@@ -3198,7 +3203,7 @@ tbody tr:last-child td{border-bottom:0}
   });
 
   /* ---------- CSV ---------- */
-  var CSVH=["現場名","地区","住所","天気を調べる場所","担当班","出動基準(cm)","契約回数","単価(円)","単価の単位","メモ","引渡時間"];
+  var CSVH=["現場名","地区","住所","天気を調べる場所","担当班","出動基準(cm)","契約回数","単価(円)","単価の単位","メモ","引渡時間","平米数"];
   function csvCell2(v){v=String(v==null?"":v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
   function parseCsv(t){
     t=String(t||"").replace(/^\uFEFF/,"");
@@ -3222,7 +3227,7 @@ tbody tr:last-child td{border-bottom:0}
     var lines=[CSVH.map(csvCell2).join(",")];
     adminRows().forEach(function(s){
       var p=canAdmin?priceOf(s.id):null;
-      lines.push([s.name,s.area||"",s.address||"",s.loc||"",s.crew||"",s.threshold||"",s.contractCount||"",p&&p.unitPrice>0?p.unitPrice:"",p&&p.unitPrice>0?p.unit:"",s.note||"",siteHands(s).map(function(h){return (h.label?h.label+" ":"")+h.time}).join(" / ")].map(csvCell2).join(","));
+      lines.push([s.name,s.area||"",s.address||"",s.loc||"",s.crew||"",s.threshold||"",s.contractCount||"",p&&p.unitPrice>0?p.unitPrice:"",p&&p.unitPrice>0?p.unit:"",s.note||"",siteHands(s).map(function(h){return (h.label?h.label+" ":"")+h.time}).join(" / "),+s.sqm>0?s.sqm:""].map(csvCell2).join(","));
     });
     csvSave("現場一覧_"+todayStr()+".csv",lines,"csvMsg");
   });
@@ -3249,6 +3254,7 @@ tbody tr:last-child td{border-bottom:0}
       if(g("地区"))d.area=g("地区"); if(g("住所"))d.address=g("住所"); if(g("担当班"))d.crew=g("担当班"); if(g("メモ"))d.note=g("メモ");
       if(g("天気を調べる場所")){d.loc=g("天気を調べる場所");d.locSrc="manual"}
       var th=parseInt(g("出動基準(cm)"),10); if(th>0)d.threshold=th;
+      var sq=parseFloat(String(g("平米数")).normalize("NFKC").replace(/[,㎡m²\s]/g,"")); if(sq>0)d.sqm=Math.round(sq*100)/100;
       var hv=[]; String(g("引渡時間")).normalize("NFKC").split(/[\/,、;]+/).forEach(function(tok){var m=/^(.*?)(\d{1,2}):(\d{2})\s*$/.exec(tok.trim()); if(m&&+m[2]<24&&+m[3]<60)hv.push({label:m[1].trim(),time:("0"+m[2]).slice(-2)+":"+m[3]})});
       if(hv.length){d.handovers=hv.sort(function(x,y){return x.time.localeCompare(y.time)});d.handover=""}
       var ct=parseInt(g("契約回数"),10); if(ct>=0)d.contractCount=ct;
