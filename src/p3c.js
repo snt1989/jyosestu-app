@@ -201,7 +201,7 @@
   function pinIcon(p){
     var out=stOf(p.s)==="out", lv=p.a.lv;
     return L.divIcon({className:"mpin-w",iconSize:[30,40],iconAnchor:[15,38],popupAnchor:[0,-34],
-      html:'<div class="mpin l'+lv+(out?' out':'')+'"><i></i><span class="pl">'+esc(p.s.name)+'</span></div>'});
+      html:'<div class="mpin l'+lv+(out?' out':'')+(p.q!=="m"?' apx':'')+'"><i></i><span class="pl">'+esc(p.s.name)+'</span></div>'});
   }
   function pinPopup(p){
     var s=p.s, a=p.a, st=stOf(s);
@@ -209,7 +209,20 @@
       '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
       (a.lv>0?'<div>降雪目安 <b>約'+fmt(a.snow2,0)+'cm</b> / 基準'+esc(s.threshold||10)+'cm</div>':'')+
       (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
-      '<button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button></div>';
+      (p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
+      '<div class="mpp-r"><button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button>'+(canAdmin?'<button class="btn sm" type="button" data-mfix="'+esc(s.id)+'">位置を直す</button>':'')+'</div></div>';
+  }
+  function startFix(id){
+    var m=SM.mk&&SM.mk[id], s=siteById(id); if(!m||!s)return;
+    SM.map.closePopup();
+    m.dragging.enable(); m.off("dragend");
+    $("mpMsg").textContent="「"+s.name+"」のピンを正しい場所までドラッグしてください。";
+    m.on("dragend",function(){
+      var q=m.getLatLng(), v=q.lat.toFixed(5)+","+q.lng.toFixed(5);
+      m.dragging.disable();
+      if(!confirm("「"+s.name+"」の位置をここに変更しますか?\n"+v)){render();return}
+      db.doc("sites/"+id).update({loc:v,locSrc:"manual"}).then(function(){$("mpMsg").textContent="位置を保存しました。";toast("位置を保存しました(天気もこの場所で取得します)")},function(){$("mpMsg").textContent="保存できませんでした。";toast("位置を保存できませんでした");render()});
+    });
   }
   function mapFit(){
     if(!SM.map||!SM.pins.length)return;
@@ -219,7 +232,7 @@
   function mapLbl(){if(SM.map)$("siteMap").classList.toggle("z-lbl",SM.map.getZoom()>=12)}
   function renderSiteMap(items){
     var pins=[], un=[];
-    items.forEach(function(x){var ll=parseLL(effLoc(x.s)); if(ll)pins.push({s:x.s,a:x.a,ll:ll}); else un.push(x.s)});
+    items.forEach(function(x){var ll=parseLL(effLoc(x.s)); if(ll)pins.push({s:x.s,a:x.a,ll:ll,q:(x.s.loc&&String(x.s.loc).trim())?(x.s.locSrc==="manual"?"m":"c"):"a"}); else un.push(x.s)});
     SM.pins=pins;
     var cnt={3:0,2:0,1:0,0:0}; pins.forEach(function(p){cnt[p.a.lv]++});
     $("mpLeg").innerHTML=[[3,"出動目安"],[2,"警戒"],[1,"平常"],[0,"未取得"]].map(function(g){return '<span class="lg"><i style="background:'+MPC[g[0]]+'"></i>'+g[1]+' <b class="num">'+cnt[g[0]]+'</b></span>'}).join("")+'<span class="lg"><i class="ring"></i>出動中</span>';
@@ -234,12 +247,13 @@
         L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",{maxZoom:18,attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'}).addTo(SM.map);
         SM.layer=L.layerGroup().addTo(SM.map);
         SM.map.on("zoomend",mapLbl);
-        SM.map.on("popupopen",function(e){var el=e.popup.getElement(), b=el&&el.querySelector("[data-mopen]"); if(b)b.addEventListener("click",function(){SM.map.closePopup();openDetail(b.dataset.mopen)})});
+        SM.map.on("popupopen",function(e){var el=e.popup.getElement(), b=el&&el.querySelector("[data-mopen]"); if(b)b.addEventListener("click",function(){SM.map.closePopup();openDetail(b.dataset.mopen)});
+          var f=el&&el.querySelector("[data-mfix]"); if(f)f.addEventListener("click",function(){startFix(f.dataset.mfix)})});
       }
       SM.map.invalidateSize();
-      SM.layer.clearLayers();
+      SM.layer.clearLayers(); SM.mk={};
       SM.pins.forEach(function(p){
-        L.marker(p.ll,{icon:pinIcon(p),title:p.s.name,riseOnHover:true,zIndexOffset:p.a.lv*100+(stOf(p.s)==="out"?1000:0)}).bindPopup(pinPopup(p),{maxWidth:260}).addTo(SM.layer);
+        SM.mk[p.s.id]=L.marker(p.ll,{icon:pinIcon(p),title:p.s.name,riseOnHover:true,draggable:false,zIndexOffset:p.a.lv*100+(stOf(p.s)==="out"?1000:0)}).bindPopup(pinPopup(p),{maxWidth:260}).addTo(SM.layer);
       });
       SM.vsig=vsig;
       var fsig=SM.pins.map(function(p){return p.s.id}).join("|");
