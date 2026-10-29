@@ -1957,6 +1957,7 @@ tbody tr:last-child td{border-bottom:0}
     ss.innerHTML='<option value="">すべての現場</option>'+sites.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")}).map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'}).join("");
     ss.value=cur;
     var all=phList(), pages=Math.max(1,Math.ceil(all.length/phPS)); if(phPage>=pages)phPage=pages-1;
+    var canRe=!!window.__blobUrl; $("phShrink").hidden=!canRe; $("phQ").hidden=!canRe;
     var cnt=Object.keys(phSel).length;
     $("phInfo").textContent=all.length+"枚"+(cnt?(" / "+cnt+"枚を選択中"):"");
     $("phPg").textContent=(phPage+1)+" / "+pages; $("phPrev").disabled=phPage<=0; $("phNext").disabled=phPage>=pages-1;
@@ -2084,7 +2085,7 @@ tbody tr:last-child td{border-bottom:0}
       }catch(err){fails++}
     }
     var mb=function(n){return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.round(n/1024)+"KB"};
-    msg(ok?(ok+"枚を保存しました(元 "+mb(before)+" → 約 "+mb(after*0.75)+")"+(fails?("。"+fails+"枚は保存できませんでした。"):"")):"写真を保存できませんでした。");
+    msg(ok?(ok+"枚を保存しました(元 "+mb(before)+" → 約 "+mb(window.__blobUrl?after*0.75:after)+")"+(fails?("。"+fails+"枚は保存できませんでした。"):"")):"写真を保存できませんでした。");
   });
   var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)またはメールアドレスを入力してください。","auth/email-already-exists":"そのIDは、すでにほかの人が使っています。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
   $("mbCredGo").addEventListener("click",async function(){
