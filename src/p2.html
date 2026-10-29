@@ -43,7 +43,7 @@
     <div id="banner"></div>
     <div id="siteMapBox" hidden>
       <div id="siteMap" role="region" aria-label="現場の全体マップ"></div>
-      <div class="mp-bar"><button class="btn sm" type="button" id="mpFit">全体を表示</button><button class="btn sm" type="button" id="mpMe">現在地</button><button class="btn sm" type="button" id="mpGeo" hidden>住所から位置を自動登録</button><span class="muted" id="mpMsg" role="status"></span></div>
+      <div class="mp-bar"><div class="seg mp-seg" id="mpBase" role="group" aria-label="地図の種類"><button type="button" data-base="photo" aria-pressed="true">航空写真</button><button type="button" data-base="std" aria-pressed="false">地図</button></div><button class="btn sm" type="button" id="mpFit">全体を表示</button><button class="btn sm" type="button" id="mpMe">現在地</button><button class="btn sm" type="button" id="mpGeo" hidden>住所から位置を自動登録</button><span class="muted" id="mpMsg" role="status"></span></div>
       <div class="mp-leg" id="mpLeg"></div>
       <div id="mpUn"></div>
     </div>

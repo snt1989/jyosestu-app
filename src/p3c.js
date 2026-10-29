@@ -182,7 +182,7 @@
   }
 
   /* ---------- 全体マップ ---------- */
-  var SM={map:null,layer:null,vsig:"",fsig:"",loading:null,me:null,pins:[]};
+  var SM={base:"photo",tile:null,map:null,layer:null,vsig:"",fsig:"",loading:null,me:null,pins:[]};
   var LEAF="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/";
   function parseLL(s){var m=/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(String(s||""));if(!m)return null;var a=+m[1],b=+m[2];return Math.abs(a)<=90&&Math.abs(b)<=180?[a,b]:null}
   function loadLeaflet(){
@@ -212,6 +212,18 @@
       (p.q==="d"?'<div class="mpp-n">住所から割り出した位置です。ずれている場合は'+(canAdmin?'「位置を直す」で動かせます。':'管理者にお知らせください。')+'</div>':p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
       '<div class="mpp-r"><button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button>'+(canAdmin?'<button class="btn sm" type="button" data-mfix="'+esc(s.id)+'">位置を直す</button>':'')+'</div></div>';
   }
+  try{var B0=localStorage.getItem("josetsu.mapbase");if(B0==="std"||B0==="photo")SM.base=B0}catch(e){}
+  function setBase(k){
+    SM.base=k; try{localStorage.setItem("josetsu.mapbase",k)}catch(e){}
+    Array.prototype.forEach.call($("mpBase").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.base===k))});
+    $("siteMap").classList.toggle("is-photo",k==="photo");
+    if(!SM.map||!window.L)return;
+    if(SM.tile)SM.map.removeLayer(SM.tile);
+    var photo=k==="photo";
+    SM.tile=L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/"+(photo?"seamlessphoto/{z}/{x}/{y}.jpg":"std/{z}/{x}/{y}.png"),{maxZoom:18,maxNativeZoom:photo?18:18,attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'}).addTo(SM.map);
+    if(SM.tile.bringToBack)SM.tile.bringToBack();
+  }
+  $("mpBase").addEventListener("click",function(e){var b=e.target.closest("[data-base]");if(b)setBase(b.dataset.base)});
   function startFix(id){
     var m=SM.mk&&SM.mk[id], s=siteById(id); if(!m||!s)return;
     SM.map.closePopup();
@@ -244,7 +256,7 @@
       if(layout!=="map")return;
       if(!SM.map){
         SM.map=L.map("siteMap",{zoomControl:true,worldCopyJump:false}).setView([39.7,141.15],10);
-        L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",{maxZoom:18,attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'}).addTo(SM.map);
+        setBase(SM.base);
         SM.layer=L.layerGroup().addTo(SM.map);
         SM.map.on("zoomend",mapLbl);
         SM.map.on("popupopen",function(e){var el=e.popup.getElement(), b=el&&el.querySelector("[data-mopen]"); if(b)b.addEventListener("click",function(){SM.map.closePopup();openDetail(b.dataset.mopen)});
