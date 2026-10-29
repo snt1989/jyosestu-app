@@ -113,6 +113,7 @@
     else if(act==="photo"){openLb(d.g,+d.i)}
     else if(act==="spadd"){spSite=id;$("spFile").click()}
     else if(act==="dwadd"){spSite=id;$("dwFile").click()}
+    else if(act==="jump"){var el=$(d.t); if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}
     else if(act==="dwopen"){
       var w=window.open("","_blank"), dm=$("dwMsg");
       try{

@@ -302,9 +302,9 @@
     return reports.filter(function(x){return x.siteId===id&&x.date>=r[0]&&x.date<=r[1]&&lineMatch(kind,x)}).length;
   }
   function detailHtml(s){
-    var a=assess(s), w=wx[s.id], id=esc(s.id), h="";
+    var a=assess(s), w=wx[s.id], id=esc(s.id), h='<div class="dv">';
     var bad=wxState(s);
-    h+='<div class="card2"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</span></div>';
+    h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</span></div>';
     if(bad)h+=bad;
     else{
       var c=w.cur||{};
@@ -312,32 +312,31 @@
     }
     if(mcp)h+='<div style="margin-top:6px"><button class="link" type="button" data-act="retry" data-id="'+id+'">この現場の天気を更新</button></div>';
     h+='</div>';
-    h+='<div class="sec"><h2>作業状況</h2><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s);
-    h+='<div class="row2" style="margin-top:12px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div>';
-    var n=siteSeasonCount(s.id), sl=siteLines(s), cc=sl.reduce(function(a,l){return a+l.count},0), multiL=sl.length>1||(sl.length===1&&sl[0].kind!=="all");
-    h+='<div class="sec"><h2>現場の情報</h2></div><div class="card2"><dl class="dl">';
-    h+='<dt>住所</dt><dd>'+(s.address?esc(s.address)+' <a class="linka" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図</a>':'未登録')+'</dd>';
-    h+='<dt>出動基準</dt><dd class="num">降雪 '+esc(s.threshold||10)+' cm</dd>';
-    if(canAdmin)h+='<dt>単価'+admBadge()+'</dt><dd>'+(unitText(s)?'<span class="num">'+esc(unitText(s))+'</span>':'未登録')+'</dd>';
-    if(multiL){
-      h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動</dd>';
-      h+='<dt>契約内容</dt><dd>'+sl.map(function(l){
-        var m=l.kind==="other"?null:siteSeasonCountK(s.id,l.kind);
-        return esc(lineLabel(l))+(l.count?' 契約 <span class="num">'+l.count+'回</span>':'')+(m==null?'':' 中 <span class="num">'+m+'回</span> 出動')+(m!=null&&l.count&&m>l.count?' <span class="tag ice">契約回数を超過</span>':'');
-      }).join('<br>')+'</dd>';
-    }else h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
-    h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(s.note?esc(s.note):'なし')+'</dd></dl></div>';
+    h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
+      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div></div>';
+    h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
+    var n=siteSeasonCount(s.id), sl=siteLines(s);
+    h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
+    h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
+    h+='<div class="dvr"><span class="k">住所</span><div class="v">'+(s.address?esc(s.address)+'<a class="btn sm" style="margin-left:8px" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図を開く</a>':'<span class="muted">未登録</span>')+'</div></div>';
+    h+='<div class="dvr"><span class="k">メモ</span><div class="v" style="white-space:pre-wrap">'+(s.note?esc(s.note):'<span class="muted">なし</span>')+'</div></div></div>';
+    h+='<div class="sec" id="dvCt"><h2>契約・単価'+(canAdmin?admBadge():'')+'</h2></div><div class="card2 dvc">'+sl.map(function(l){
+      var m=l.kind==="other"?null:siteSeasonCountK(s.id,l.kind), over=m!=null&&l.count&&m>l.count, pc=l.count&&m!=null?Math.min(100,Math.round(m/l.count*100)):0;
+      return '<div class="dcr"><div class="dcn"><b>'+esc(lineLabel(l)||"全作業")+'</b>'+(over?'<span class="tag ice">契約回数を超過</span>':'')+'</div>'+
+        (canAdmin?'<div class="dcp">'+(l.unitPrice>0?'<b class="num">'+yen(l.unitPrice)+'</b><small> / '+(l.unit==="時間"?"時間":"回")+'</small>':'<span class="muted">単価 未登録</span>')+'</div>':'')+
+        '<div class="dcb">'+(l.count?'<div class="bar'+(over?' over':'')+'"><i style="width:'+pc+'%"></i></div><div class="bt">'+(m==null?'':'出動 <b class="num">'+m+'</b>回 / ')+'契約 <b class="num">'+l.count+'</b>回</div>':'<div class="bt muted">'+(m==null?'契約回数なし':'出動 <b class="num">'+m+'</b>回(契約回数の設定なし)')+'</div>')+'</div></div>';
+    }).join("")+'</div>';
     h+=siteDrawSec(s)+sitePhotoSec(s);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
-    h+='<div class="sec"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
+    h+='<div class="sec" id="dvRp"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
     h+=reps.length?'<div class="stack">'+reps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>この現場の日報はまだありません</b></div>';
     var phs=[]; reps.forEach(function(r){(r.photos||[]).forEach(function(p){phs.push({id:p.id,kind:p.kind,cap:(r.date||"")})})});
     detailPhotos=phs.slice(0,18);
     if(detailPhotos.length)h+='<div class="sec"><h2>日報の写真<span class="gc num">'+phs.length+'枚</span></h2></div>'+photoGrid(detailPhotos,"detail");
     var nts=notes.filter(function(x){return x.siteId===s.id});
-    h+='<div class="sec"><h2>この現場への連絡</h2></div>';
+    h+='<div class="sec" id="dvNt"><h2>この現場への連絡</h2></div>';
     h+=nts.length?'<div class="stack">'+nts.slice(0,5).map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はありません</b></div>';
-    return h;
+    return h+'</div>';
   }
   var detailPhotos=[], sitePh=[];
   var PQD={light:{n:"軽量",side:1000,q:60,kb:110},std:{n:"標準",side:1600,q:78,kb:260},high:{n:"高画質",side:2000,q:85,kb:520}};
@@ -349,25 +348,19 @@
   function fmtSize(n){n=+n||0;return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.max(1,Math.round(n/1024))+"KB"}
   function siteDrawSec(s){
     var ds=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)&&x.kind==="drawing"}).sort(function(a,b){return (b.at||0)-(a.at||0)});
-    var can=canPhoto&&assets, h='<div class="sec"><h2>図面<span class="gc num">'+ds.length+'件</span></h2></div>';
-    if(can){
-      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><div class="help">PDFまたは画像を載せられます(PDFは4MBまで。画像は自動で軽くします)。</div>'+
-        '<button class="btn primary" type="button" data-act="dwadd" data-id="'+esc(s.id)+'">図面を追加</button></div><div class="help" id="dwMsg" role="status" style="margin-top:6px"></div></div>';
-    }
+    var can=canPhoto&&assets, h='<div class="sec" id="dvDw"><h2>図面<span class="gc num">'+ds.length+'件</span></h2>'+(can?'<button class="btn sm primary" type="button" data-act="dwadd" data-id="'+esc(s.id)+'">＋ 図面を追加</button>':'')+'</div>';
+    if(can)h+='<div class="help dvhelp" id="dwMsg" role="status">PDFまたは画像(PDFは4MBまで。画像は自動で軽くします)</div>';
     if(!ds.length)return h+'<div class="empty"><b>この案件の図面はまだありません</b></div>';
     return h+'<div class="stack">'+ds.map(function(p){
       var pdf=p.type==="application/pdf";
-      return '<div class="card2" style="display:flex;gap:10px;align-items:center;padding:10px 12px"><div style="flex:1;min-width:0"><b style="word-break:break-all">'+esc(p.name||"図面")+'</b><div class="muted" style="font-size:.82rem">'+(pdf?"PDF":"画像")+(p.size?" ・ "+fmtSize(p.size):"")+(p.at?" ・ "+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
+      return '<div class="card2 dvd"><span class="fi '+(pdf?'pdf':'img')+'" aria-hidden="true">'+(pdf?'PDF':'画像')+'</span><div class="fn"><b>'+esc(p.name||"図面")+'</b><div class="muted">'+(p.size?fmtSize(p.size):"")+(p.at?" ・ "+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
         '<button class="btn sm" type="button" data-act="dwopen" data-id="'+esc(p.id)+'">開く</button>'+(can?'<button class="btn sm" type="button" data-act="dwdel" data-id="'+esc(p.id)+'" aria-label="この図面を削除">削除</button>':'')+'</div>';
     }).join("")+'</div>';
   }
   function sitePhotoSec(s){
     sitePh=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)&&x.kind!=="drawing"});
-    var can=canPhoto&&assets, h='<div class="sec"><h2>案件の写真<span class="gc num">'+sitePh.length+'枚</span></h2></div>';
-    if(can){
-      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><div class="help">保存時の画質:<b>'+esc(PQD[pqKey()].n)+'</b>(管理者が設定で決めています)</div>'+
-        '<button class="btn primary" type="button" data-act="spadd" data-id="'+esc(s.id)+'">写真を追加</button></div><div class="help" id="spMsg" role="status" style="margin-top:6px">保存するときに、自動で軽くします。</div></div>';
-    }
+    var can=canPhoto&&assets, h='<div class="sec" id="dvPh"><h2>案件の写真<span class="gc num">'+sitePh.length+'枚</span></h2>'+(can?'<button class="btn sm primary" type="button" data-act="spadd" data-id="'+esc(s.id)+'">＋ 写真を追加</button>':'')+'</div>';
+    if(can)h+='<div class="help dvhelp" id="spMsg" role="status">保存時の画質:'+esc(PQD[pqKey()].n)+'(管理者が設定で決めています)。保存するとき自動で軽くします。</div>';
     if(!sitePh.length)return h+'<div class="empty"><b>この案件の写真はまだありません</b></div>';
     return h+'<div class="ph">'+sitePh.map(function(p,i){
       return '<div class="phb"><button type="button" data-act="photo" data-g="site" data-i="'+i+'" style="border:0;padding:0;background:none;width:100%;height:100%;cursor:pointer" aria-label="写真を大きく表示"><img src="'+esc(blobUrl(p.id))+'" alt="案件の写真" loading="lazy"></button><span class="pk">'+esc(p.at?fmtDT(p.at).split(" ")[0]:"")+'</span>'+(can?'<button class="px" type="button" data-act="spdel" data-id="'+esc(p.id)+'" aria-label="この写真を削除">×</button>':'')+'</div>';
