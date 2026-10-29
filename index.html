@@ -569,6 +569,44 @@ tbody tr:last-child td{border-bottom:0}
   #admTools .fields{grid-template-columns:1fr}
   #v-sites .bar select,#admTools select{text-overflow:clip}
 }
+
+/* ---- スマホ版を見やすく(横幅640px以下) ---- */
+#filtBtn{display:none}
+.tabbar .ts{display:none}
+@media (max-width:899px){.tabbar .tf{display:none}.tabbar .ts{display:inline}}
+@media (max-width:640px){
+  .appbar{padding:8px 12px;gap:8px}
+  .appbar>div:first-child{min-width:0;flex:1}
+  .appbar h1{font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .appbar h1 img{display:inline-block;height:24px;vertical-align:middle;margin-right:6px}
+  .appbar .sub{font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+  .appbar .sub:not(.meline)+.meline{margin-top:0}
+  .abr{gap:4px}
+  .ab-btn{min-height:40px;padding:4px 12px;font-size:.84rem}
+  .bellbtn{width:40px;height:40px}
+  .bell-dot{top:-1px;right:-3px;font-size:9px;padding:0 4px}
+  #lnkGenba{display:none}
+  .tabbar{gap:0;padding:2px 2px calc(2px + env(safe-area-inset-bottom,0px))}
+  .tabbar button{min-height:54px;padding:6px 0 4px;font-size:.7rem;gap:3px;min-width:0}
+  .tabbar button .ico{width:22px;height:22px}
+  .fab{min-height:46px;padding:0 16px;font-size:.95rem;bottom:calc(68px + env(safe-area-inset-bottom,0px));right:12px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+  .fab .ico{width:20px;height:20px}
+  main{padding-bottom:140px}
+  #v-home .tiles{grid-template-columns:repeat(4,1fr);gap:6px}
+  #v-home .tile{padding:10px 4px;align-items:center;text-align:center;min-height:76px;justify-content:center}
+  #v-home .tile .n{font-size:1.7rem}
+  #v-home .tile .l{font-size:.72rem;line-height:1.3}
+  #statsBody .tile{padding:10px 12px}
+  #statsBody .tile .n{font-size:1.7rem}
+  /* 絞り込み・並べ替えは、ボタンで開く */
+  #filtBtn{display:inline-flex;align-items:center;gap:6px;min-height:44px;white-space:nowrap;font-weight:700}
+  #filtBtn .fcnt{background:var(--accent);color:#fff;border-radius:999px;min-width:20px;height:20px;padding:0 6px;display:inline-grid;place-items:center;font-size:.78rem}
+  #v-sites .bar .r21{grid-template-columns:minmax(0,1fr) auto!important}
+  #v-sites:not(.fopen) #areaSel,#v-sites:not(.fopen) .bar .r:not(.r21){display:none}
+  #v-sites.fopen #areaSel{grid-column:1/-1;order:3}
+  #v-sites.fopen .bar .r:not(.r21){padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}
+}
+@media (max-width:360px){.tabbar button{font-size:.66rem}}
 </style>
 </head><body>
 
@@ -602,6 +640,7 @@ tbody tr:last-child td{border-bottom:0}
     <div class="bar"><div class="r r21">
       <input type="search" id="query" placeholder="現場名・地区・担当班で探す" aria-label="現場を探す" autocomplete="off">
       <select id="areaSel" aria-label="地区で絞り込み"><option value="">すべての地区</option></select>
+      <button type="button" class="btn sm" id="filtBtn" aria-expanded="false">絞り込み</button>
     </div>
     <div class="r" style="margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
       <select id="crewSel" aria-label="担当班で絞り込み"><option value="">すべての担当班</option></select>
@@ -1500,6 +1539,8 @@ tbody tr:last-child td{border-bottom:0}
     $("areaSel").value=areaF;
   }
   function renderSites(){
+    (function(){var n=[areaF,crewF,stF].filter(Boolean).length+(sortK!=="manual"?1:0), open=$("v-sites").classList.contains("fopen");
+      $("filtBtn").innerHTML=(open?"閉じる":"絞り込み")+(n?'<span class="fcnt">'+n+'</span>':'');$("filtBtn").setAttribute("aria-expanded",open?"true":"false")})();
     var items=sites.map(function(s){return {s:s,a:assess(s)}});
     var cnt={all:items.length,l3:0,l2:0,l1:0,out:0};
     items.forEach(function(x){if(x.a.lv===3)cnt.l3++;else if(x.a.lv===2)cnt.l2++;else if(x.a.lv===1)cnt.l1++; if(stOf(x.s)==="out")cnt.out++});
@@ -2105,7 +2146,7 @@ tbody tr:last-child td{border-bottom:0}
     if(canAdmin){NAV.push(["members","メンバー管理"]);NAV.push(["admin","設定"])}
     $("tabbar").innerHTML=NAV.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):view===t[0];
-      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg>'+t[1]+'</button>';
+      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー"}[t[0]]||t[1])+'</span></button>';
     }).join("");
     TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
@@ -2120,6 +2161,7 @@ tbody tr:last-child td{border-bottom:0}
     renderBell();
     renderDetail(); renderRepView();
   }
+  $("filtBtn").addEventListener("click",function(){var v=$("v-sites");v.classList.toggle("fopen");render()});
   $("query").addEventListener("input",function(e){query=e.target.value;render()});
   $("areaSel").addEventListener("change",function(e){areaF=e.target.value;render()});
   $("crewSel").addEventListener("change",function(e){crewF=e.target.value;render()});
@@ -2796,7 +2838,7 @@ tbody tr:last-child td{border-bottom:0}
         return '<button type="button" class="nt-row" data-notice="'+p[1]+'"><span class="ic">'+IC[g]+'</span><span style="flex:1;min-width:0"><span class="tt">'+esc(p[0].title)+'</span><span class="sb'+(p[0].urgent?' urg':'')+'">'+esc(p[0].sub)+'</span></span></button>';
       }).join("");
     });
-    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">アプリ・通知</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
+    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">アプリ・通知</button>':'')+'<a class="btn gb-link" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener" style="text-decoration:none">現場管理アプリ</a>'+'<button class="btn" type="button" data-mclose>閉じる</button>');
   }
   function openAnnView(id){
     var a=announcements.filter(function(x){return x.id===id})[0]; if(!a){closeModal();return}

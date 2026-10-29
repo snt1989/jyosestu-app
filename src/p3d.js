@@ -27,7 +27,7 @@
     if(canAdmin){NAV.push(["members","メンバー管理"]);NAV.push(["admin","設定"])}
     $("tabbar").innerHTML=NAV.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):view===t[0];
-      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg>'+t[1]+'</button>';
+      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー"}[t[0]]||t[1])+'</span></button>';
     }).join("");
     TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
@@ -42,6 +42,7 @@
     renderBell();
     renderDetail(); renderRepView();
   }
+  $("filtBtn").addEventListener("click",function(){var v=$("v-sites");v.classList.toggle("fopen");render()});
   $("query").addEventListener("input",function(e){query=e.target.value;render()});
   $("areaSel").addEventListener("change",function(e){areaF=e.target.value;render()});
   $("crewSel").addEventListener("change",function(e){crewF=e.target.value;render()});
@@ -718,7 +719,7 @@
         return '<button type="button" class="nt-row" data-notice="'+p[1]+'"><span class="ic">'+IC[g]+'</span><span style="flex:1;min-width:0"><span class="tt">'+esc(p[0].title)+'</span><span class="sb'+(p[0].urgent?' urg':'')+'">'+esc(p[0].sub)+'</span></span></button>';
       }).join("");
     });
-    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">アプリ・通知</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
+    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">アプリ・通知</button>':'')+'<a class="btn gb-link" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener" style="text-decoration:none">現場管理アプリ</a>'+'<button class="btn" type="button" data-mclose>閉じる</button>');
   }
   function openAnnView(id){
     var a=announcements.filter(function(x){return x.id===id})[0]; if(!a){closeModal();return}

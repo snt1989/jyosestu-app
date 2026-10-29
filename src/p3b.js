@@ -290,6 +290,8 @@
     $("areaSel").value=areaF;
   }
   function renderSites(){
+    (function(){var n=[areaF,crewF,stF].filter(Boolean).length+(sortK!=="manual"?1:0), open=$("v-sites").classList.contains("fopen");
+      $("filtBtn").innerHTML=(open?"閉じる":"絞り込み")+(n?'<span class="fcnt">'+n+'</span>':'');$("filtBtn").setAttribute("aria-expanded",open?"true":"false")})();
     var items=sites.map(function(s){return {s:s,a:assess(s)}});
     var cnt={all:items.length,l3:0,l2:0,l1:0,out:0};
     items.forEach(function(x){if(x.a.lv===3)cnt.l3++;else if(x.a.lv===2)cnt.l2++;else if(x.a.lv===1)cnt.l1++; if(stOf(x.s)==="out")cnt.out++});
