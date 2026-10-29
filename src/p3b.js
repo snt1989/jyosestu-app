@@ -327,7 +327,7 @@
       }).join('<br>')+'</dd>';
     }else h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
     h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(s.note?esc(s.note):'なし')+'</dd></dl></div>';
-    h+=sitePhotoSec(s);
+    h+=siteDrawSec(s)+sitePhotoSec(s);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
     h+='<div class="sec"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
     h+=reps.length?'<div class="stack">'+reps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>この現場の日報はまだありません</b></div>';
@@ -346,8 +346,23 @@
     return {n:d.n,side:side,q:q/100,limit:Math.round(kb*1365)}}
   function pqKey(){var k=settings.photo&&settings.photo.level;return PQD[k]?k:"std"}
   window.__PQ=function(){return pql(pqKey())};
+  function fmtSize(n){n=+n||0;return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.max(1,Math.round(n/1024))+"KB"}
+  function siteDrawSec(s){
+    var ds=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)&&x.kind==="drawing"}).sort(function(a,b){return (b.at||0)-(a.at||0)});
+    var can=canPhoto&&assets, h='<div class="sec"><h2>図面<span class="gc num">'+ds.length+'件</span></h2></div>';
+    if(can){
+      h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><div class="help">PDFまたは画像を載せられます(PDFは4MBまで。画像は自動で軽くします)。</div>'+
+        '<button class="btn primary" type="button" data-act="dwadd" data-id="'+esc(s.id)+'">図面を追加</button></div><div class="help" id="dwMsg" role="status" style="margin-top:6px"></div></div>';
+    }
+    if(!ds.length)return h+'<div class="empty"><b>この案件の図面はまだありません</b></div>';
+    return h+'<div class="stack">'+ds.map(function(p){
+      var pdf=p.type==="application/pdf";
+      return '<div class="card2" style="display:flex;gap:10px;align-items:center;padding:10px 12px"><div style="flex:1;min-width:0"><b style="word-break:break-all">'+esc(p.name||"図面")+'</b><div class="muted" style="font-size:.82rem">'+(pdf?"PDF":"画像")+(p.size?" ・ "+fmtSize(p.size):"")+(p.at?" ・ "+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
+        '<button class="btn sm" type="button" data-act="dwopen" data-id="'+esc(p.id)+'">開く</button>'+(can?'<button class="btn sm" type="button" data-act="dwdel" data-id="'+esc(p.id)+'" aria-label="この図面を削除">削除</button>':'')+'</div>';
+    }).join("")+'</div>';
+  }
   function sitePhotoSec(s){
-    sitePh=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)});
+    sitePh=sphotos.filter(function(x){return x.siteId===s.id&&okId(x.id)&&x.kind!=="drawing"});
     var can=canPhoto&&assets, h='<div class="sec"><h2>案件の写真<span class="gc num">'+sitePh.length+'枚</span></h2></div>';
     if(can){
       h+='<div class="card2" style="margin-bottom:8px"><div class="two" style="align-items:end"><div class="help">保存時の画質:<b>'+esc(PQD[pqKey()].n)+'</b>(管理者が設定で決めています)</div>'+

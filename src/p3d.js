@@ -111,6 +111,18 @@
     }
     else if(act==="photo"){openLb(d.g,+d.i)}
     else if(act==="spadd"){spSite=id;$("spFile").click()}
+    else if(act==="dwadd"){spSite=id;$("dwFile").click()}
+    else if(act==="dwopen"){
+      var w=window.open("","_blank"), dm=$("dwMsg");
+      try{
+        var u=window.__fileUrl?await window.__fileUrl(id):("/_blob/"+id);
+        if(w)w.location.href=u; else location.href=u;
+      }catch(err){if(w)w.close();toast("図面を開けませんでした。")}
+    }
+    else if(act==="dwdel"){
+      if(!arm("dwdel:"+id,t,"削除"))return;
+      try{await db.doc("sphotos/"+id).delete();try{await assets.delete(id)}catch(e1){}toast("図面を削除しました。")}catch(err){toast("削除できませんでした。")}
+    }
     else if(act==="spdel"){
       if(!arm("spdel:"+id,t,"×"))return;
       try{await db.doc("sphotos/"+id).delete();try{await assets.delete(id)}catch(e1){}toast("写真を削除しました。")}catch(err){toast("削除できませんでした。")}
@@ -318,7 +330,7 @@
   var phSel={}, phPage=0, phPS=24, phBusy=false;
   function allPhotos(){
     var out=[];
-    sphotos.forEach(function(x){if(okId(x.id))out.push({id:x.id,src:"site",siteId:x.siteId,at:x.at||0,rid:""})});
+    sphotos.forEach(function(x){if(okId(x.id)&&x.kind!=="drawing")out.push({id:x.id,src:"site",siteId:x.siteId,at:x.at||0,rid:""})});
     reports.forEach(function(r){(r.photos||[]).forEach(function(p){if(okId(p.id))out.push({id:p.id,src:"rep",siteId:r.siteId,at:r.at||0,rid:r.id,date:r.date||""})})});
     out.sort(function(a,b){return b.at-a.at});
     return out;
@@ -447,6 +459,24 @@
   $("setTabs").addEventListener("click",function(e){var b=e.target.closest("button[data-sg]");if(!b)return;setTab=b.dataset.sg;showSetTab()});
   var spSite="";
   document.addEventListener("change",function(e){var t=e.target;if(t&&t.dataset&&t.dataset.pq){try{localStorage.setItem("josetsu.pq",t.value)}catch(e1){}}});
+  $("dwFile").addEventListener("change",async function(e){
+    var files=Array.prototype.slice.call(e.target.files||[]); e.target.value="";
+    var sid=spSite; if(!sid||!assets||!db||!files.length)return;
+    var msg=function(t){var m=$("dwMsg");if(m)m.textContent=t}, ok=0, bad=[];
+    for(var i=0;i<files.length;i++){
+      var f=files[i], isPdf=f.type==="application/pdf"||/\.pdf$/i.test(f.name), isImg=/^image\//.test(f.type);
+      if(!isPdf&&!isImg){bad.push(f.name+"(PDFか画像だけ載せられます)");continue}
+      if(isPdf&&f.size>4*1024*1024){bad.push(f.name+"(PDFは4MBまでです)");continue}
+      msg("図面を保存しています…("+(i+1)+"/"+files.length+")");
+      try{
+        var up=isPdf&&f.type!=="application/pdf"?new Blob([f],{type:"application/pdf"}):f;
+        var res=await assets.upload(up,{drawing:true,type:isPdf?"application/pdf":f.type});
+        await db.doc("sphotos/"+res.id).set({siteId:sid,at:Date.now(),by:myId||"",kind:"drawing",name:String(f.name||"図面").slice(0,80),type:isPdf?"application/pdf":(res.contentType||f.type||"image/jpeg"),size:res.sizeBytes||f.size||0});
+        ok++;
+      }catch(err){bad.push(f.name+"(保存できませんでした)")}
+    }
+    msg((ok?ok+"件を保存しました。":"")+(bad.length?" 保存できなかったもの: "+bad.join("、"):""));
+  });
   $("spFile").addEventListener("change",async function(e){
     var files=Array.prototype.slice.call(e.target.files||[]); e.target.value="";
     var sid=spSite; if(!sid||!assets||!db||!files.length)return;

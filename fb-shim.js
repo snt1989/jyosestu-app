@@ -59,12 +59,20 @@
     }
     return "";
   };
-  function shrinkTo(blob,limit){
+  // 図面など、小分けに保存したファイルを つなげて 開けるURLにする
+  window.__fileUrl=async function(id){
+    var d=await fs.doc("photos/"+id).get(); if(!d.exists)throw new Error("not_found");
+    var o=d.data(), n=o.n||1, parts=[o.data];
+    for(var i=1;i<n;i++){var x=await fs.doc("photos/"+id+"_"+i).get(); parts.push(x.exists?x.data().data:"")}
+    var b=await (await fetch(parts.join(""))).blob();
+    return URL.createObjectURL(b);
+  };
+  function shrinkTo(blob,limit,PP){
     return new Promise(function(resolve,reject){
       var img=new Image(), u=URL.createObjectURL(blob);
       img.onload=function(){
         URL.revokeObjectURL(u);
-        var P=(window.__PQ?window.__PQ():{side:1200,q:0.78}), side=P.side, q=P.q;
+        var P=PP||(window.__PQ?window.__PQ():{side:1200,q:0.78}), side=P.side, q=P.q;
         for(var i=0;i<8;i++){
           var k=Math.min(1,side/Math.max(img.width,img.height)), c=document.createElement("canvas");
           c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k));
@@ -229,12 +237,24 @@
       return {
         upload:async function(blob,o){
           var id=(crypto.randomUUID?crypto.randomUUID().replace(/-/g,""):String(Date.now())+Math.random().toString(36).slice(2));
-          var url=await shrinkTo(blob,(window.__PQ?window.__PQ().limit:700000));
+          if(blob.type==="application/pdf"){   // 図面(PDF): 1つの文書は約1MBまでなので、小分けにして保存する(最大4MB)
+            if(blob.size>4*1024*1024)throw new Error("too_large");
+            var full=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result)};fr.onerror=rej;fr.readAsDataURL(blob)});
+            var CH=700000, parts=[]; for(var p0=0;p0<full.length;p0+=CH)parts.push(full.slice(p0,p0+CH));
+            var at0=Date.now();
+            await Promise.all(parts.map(function(c,i){return fs.doc("photos/"+(i?id+"_"+i:id)).set({data:c,type:"application/pdf",at:at0,by:s0.u.uid,n:parts.length,i:i})}));
+            return {id:id,url:"",sizeBytes:blob.size,contentType:"application/pdf"};
+          }
+          var url=await shrinkTo(blob,(o&&o.drawing?900000:(window.__PQ?window.__PQ().limit:700000)),(o&&o.drawing?{side:2400,q:0.85}:null));
           await fs.doc("photos/"+id).set({data:url,type:"image/jpeg",at:Date.now(),by:s0.u.uid});
           pcache[id]=url;
           return {id:id,url:url,sizeBytes:url.length,contentType:"image/jpeg"};
         },
-        delete:function(id){delete pcache[id];return fs.doc("photos/"+id).delete()}
+        delete:async function(id){
+          delete pcache[id];
+          try{var d=await fs.doc("photos/"+id).get(), n=d.exists&&d.data().n||1; for(var i=1;i<n;i++)await fs.doc("photos/"+id+"_"+i).delete()}catch(e){}
+          return fs.doc("photos/"+id).delete();
+        }
       };
     },
     downloads:async function(){
