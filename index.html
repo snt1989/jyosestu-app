@@ -649,7 +649,7 @@ tbody tr:last-child td{border-bottom:0}
       </form>
       <div class="admtools mbtools"><input id="mbQ" type="search" placeholder="氏名・担当班・電話で検索" aria-label="メンバーを検索"><select id="mbF" aria-label="絞り込み"></select></div>
       <div id="mbList"></div>
-      <p class="legend">ここは社内の名簿です。アプリを開ける人・編集できる人は、このページの「共有」で決まります。「全体設定」でログインの制限を「する」にすると、ログインアカウントを連携したメンバーだけが画面を使えます(画面上の制限です)。電話番号などの個人情報は、管理者だけが見られます。</p>
+      <p class="legend" id="mbLegend">ここは社内の名簿です。アプリを開ける人・編集できる人は、このページの「共有」で決まります。「全体設定」でログインの制限を「する」にすると、ログインアカウントを連携したメンバーだけが画面を使えます(画面上の制限です)。電話番号などの個人情報は、管理者だけが見られます。</p>
     </div>
 
     <div id="adm-photos" hidden>
@@ -1925,6 +1925,7 @@ tbody tr:last-child td{border-bottom:0}
     $("mbMsg").textContent=""; $("mbForm").hidden=false; $("mbName").focus();
   }
   var mbUid="";
+  if(window.__FB&&window.__FB.createAccount&&$("mbLegend"))$("mbLegend").textContent="ここは社内の名簿です。メンバーの電話番号とパスワードを決めると、その人はこのアプリにログインできます。パスワードを忘れた人は、編集からパスワードを決め直してください。「全体設定」でログインの制限を「する」にすると、メンバー登録された人だけが画面を使えます。電話番号などの個人情報は、管理者だけが見られます。";
   async function mbAcctShow(){
     $("mbAcctClr").hidden=!mbUid; var t="未連携";
     if(mbUid){t="連携済";try{var ps=user&&user.profiles?await user.profiles([mbUid]):null;if(ps&&ps[mbUid]&&ps[mbUid].name)t="連携済:"+ps[mbUid].name}catch(e){}}

@@ -260,6 +260,7 @@
     $("mbMsg").textContent=""; $("mbForm").hidden=false; $("mbName").focus();
   }
   var mbUid="";
+  if(window.__FB&&window.__FB.createAccount&&$("mbLegend"))$("mbLegend").textContent="ここは社内の名簿です。メンバーの電話番号とパスワードを決めると、その人はこのアプリにログインできます。パスワードを忘れた人は、編集からパスワードを決め直してください。「全体設定」でログインの制限を「する」にすると、メンバー登録された人だけが画面を使えます。電話番号などの個人情報は、管理者だけが見られます。";
   async function mbAcctShow(){
     $("mbAcctClr").hidden=!mbUid; var t="未連携";
     if(mbUid){t="連携済";try{var ps=user&&user.profiles?await user.profiles([mbUid]):null;if(ps&&ps[mbUid]&&ps[mbUid].name)t="連携済:"+ps[mbUid].name}catch(e){}}
