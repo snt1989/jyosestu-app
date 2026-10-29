@@ -13,7 +13,8 @@
   var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
   var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
   var dbState="loading", busy={}, lastAt=0, mcpState="loading", lastAreaKey="";
-  var masters={areas:[],crews:[],machines:DEFMACH.slice()};
+  var DEFWORK=[{name:"除雪",kind:"joset",unit:"回"},{name:"排雪",kind:"hai",unit:"回"}];
+  var masters={areas:[],crews:[],machines:DEFMACH.slice(),works:DEFWORK.map(function(w){return Object.assign({},w)})};
   var nameMap={}, askedNames={}, prices={};
   function priceOf(id){return prices[id]||null}
   // 契約・金額は「作業内容ごとの行」。sites.lines=[{work,kind,count}] と prices/{id}.lines=[{unitPrice,unit}] を同じ並びで持つ(単価は管理者のみ)。

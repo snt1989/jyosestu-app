@@ -607,7 +607,7 @@ tbody tr:last-child td{border-bottom:0}
 
     <div id="adm-master" hidden>
       <div class="muted" id="mMsg" role="status" style="min-height:1.5em"></div>
-      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="mach" aria-pressed="false">使用機械</button></div>
+      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="mach" aria-pressed="false">使用機械</button><button type="button" class="admtab" data-mt="work" aria-pressed="false">作業内容</button></div>
       <div id="mp-area">
       <h2 class="ah">地区マスタ</h2>
       <p class="muted" style="margin:0 0 8px;max-width:80ch">地区ごとに代表地点(緯度・経度)を登録しておくと、現場に場所が入っていないとき、その地点の天気を表示します。現場を登録するときの地区の選択肢にもなります。</p>
@@ -639,6 +639,24 @@ tbody tr:last-child td{border-bottom:0}
         <div class="ctags" id="mtags"></div>
         <div class="fields"><label for="mmName">機械の名前<input id="mmName" maxlength="30" placeholder="例:除雪トラック"></label></div>
         <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="machines" data-in="mmName">機械を追加</button></div>
+      </div>
+      </div>
+      <div id="mp-work" hidden>
+      <h2 class="ah">作業内容マスタ</h2>
+      <p class="muted" style="margin:0 0 8px;max-width:80ch">現場の「契約・金額」で選べる作業内容を登録します。「集計の対象」と「単価の単位」を決めておくと、現場で選んだときに自動で入ります(単価は現場ごとに入力します。単価はここには登録しません)。</p>
+      <div class="tw">
+        <table style="min-width:640px">
+          <thead><tr><th>作業内容</th><th>集計の対象</th><th>単価の単位</th><th></th></tr></thead>
+          <tbody id="wtbody"></tbody>
+        </table>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div class="fields">
+          <label for="mwName">作業内容<input id="mwName" maxlength="30" placeholder="例:機械除雪(ローダー)"></label>
+          <label for="mwKind">集計の対象<select id="mwKind"><option value="all">すべての日報</option><option value="joset">除雪(排雪なしの日報)</option><option value="hai">排雪(排雪ありの日報)</option><option value="other">その他(自動集計しない)</option></select></label>
+          <label for="mwUnit">単価の単位<select id="mwUnit"><option value="回">1回あたり</option><option value="時間">1時間あたり</option></select></label>
+        </div>
+        <div class="row2"><button class="btn primary" type="button" id="mwAdd">作業内容を追加</button></div>
       </div>
       </div>
       <h2 class="ah" id="mBulkT">一括編集・CSV</h2>
@@ -848,7 +866,7 @@ tbody tr:last-child td{border-bottom:0}
       <p class="help" style="margin:0 0 8px">作業内容ごとに行を分けて登録できます(例:除雪・排雪)。「集計の対象」で、どの日報を数えるかを決めます。</p>
       <div id="fLines"></div>
       <button class="btn sm" type="button" id="fLineAdd" style="margin-top:8px">＋ 行を追加</button>
-      <datalist id="dlWork"><option value="除雪"><option value="排雪"><option value="歩道除雪"><option value="運搬排雪"><option value="融雪剤散布"></datalist>
+      <datalist id="dlWork"></datalist>
     </div></div>
     <div class="err" id="fErr" role="alert"></div>
     <div class="row2" style="margin-top:8px">
@@ -883,7 +901,8 @@ tbody tr:last-child td{border-bottom:0}
   var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
   var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
   var dbState="loading", busy={}, lastAt=0, mcpState="loading", lastAreaKey="";
-  var masters={areas:[],crews:[],machines:DEFMACH.slice()};
+  var DEFWORK=[{name:"除雪",kind:"joset",unit:"回"},{name:"排雪",kind:"hai",unit:"回"}];
+  var masters={areas:[],crews:[],machines:DEFMACH.slice(),works:DEFWORK.map(function(w){return Object.assign({},w)})};
   var nameMap={}, askedNames={}, prices={};
   function priceOf(id){return prices[id]||null}
   // 契約・金額は「作業内容ごとの行」。sites.lines=[{work,kind,count}] と prices/{id}.lines=[{unitPrice,unit}] を同じ並びで持つ(単価は管理者のみ)。
@@ -1994,6 +2013,12 @@ tbody tr:last-child td{border-bottom:0}
     fLines.push({work:hasHai?"":"排雪",kind:hasHai?"other":"hai",count:0,unitPrice:0,unit:"回"});
     drawLines();
   });
+  $("fLines").addEventListener("change",function(e){
+    var t=e.target; if(!t||t.getAttribute("data-f")!=="work")return;
+    var m=masters.works.filter(function(w){return w.name===t.value.trim()})[0], row=t.closest(".cl"); if(!m||!row)return;
+    var k=row.querySelector('[data-f="kind"]'), u=row.querySelector('[data-f="unit"]');
+    if(k)k.value=m.kind; if(u)u.value=m.unit;
+  });
   $("fLines").addEventListener("click",function(e){
     var b=e.target.closest("[data-lrm]"); if(!b)return;
     readLines(); fLines.splice(+b.dataset.lrm,1); drawLines();
@@ -2489,7 +2514,7 @@ tbody tr:last-child td{border-bottom:0}
     Array.prototype.forEach.call($("siteTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.st===stab))});
     Array.prototype.forEach.call($("mTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.mt===mtab))});
     $("adm-s-list").hidden=stab!=="list"; $("adm-s-csv").hidden=stab!=="csv";
-    $("mp-area").hidden=mtab!=="area"; $("mp-crew").hidden=mtab!=="crew"; $("mp-mach").hidden=mtab!=="mach";
+    $("mp-area").hidden=mtab!=="area"; $("mp-crew").hidden=mtab!=="crew"; $("mp-mach").hidden=mtab!=="mach"; $("mp-work").hidden=mtab!=="work";
     $("adm-sites").hidden=sub!=="sites"; $("adm-master").hidden=sub!=="master"; $("adm-set").hidden=sub!=="set"; $("adm-members").hidden=sub!=="members"; $("adm-photos").hidden=sub!=="photos";
     if(sub==="sites")renderAdmin();
     else if(sub==="master")renderMaster(false);
@@ -2718,6 +2743,8 @@ tbody tr:last-child td{border-bottom:0}
     var mo=function(l){return l.map(function(c){return '<option value="'+esc(c)+'"></option>'}).join("")};
     $("dlAreas").innerHTML=mo(uniq(ar).sort(ja));
     $("dlCrews").innerHTML=mo(uniq(cr).sort(ja));
+    var wk=masters.works.map(function(w){return w.name}); sites.forEach(function(s){(Array.isArray(s.lines)?s.lines:[]).forEach(function(l){if(l.work)wk.push(l.work)})});
+    $("dlWork").innerHTML=mo(uniq(wk));
   }
   function tagList(list,key,empty){
     return list.length?list.map(function(c,i){
@@ -2733,6 +2760,7 @@ tbody tr:last-child td{border-bottom:0}
     }).join(""):'<tr><td colspan="4" class="muted">地区が登録されていません。下の欄から追加してください。</td></tr>';
     $("ctags").innerHTML=tagList(masters.crews,"crews","担当班が登録されていません。");
     $("mtags").innerHTML=tagList(masters.machines,"machines","使用機械が登録されていません。");
+    renderWorkMaster();
     mFill(false);
   }
   async function saveAreas(items){await db.doc("masters/areas").set({items:items});masters.areas=items;fillLists();}
@@ -2810,23 +2838,67 @@ tbody tr:last-child td{border-bottom:0}
   });
 
 
+
+  /* ---------- 作業内容マスタ(契約・金額で選ぶ作業内容。単価はここに入れない) ---------- */
+  var KW={all:"すべて",joset:"除雪",hai:"排雪",other:"その他"};
+  function kindOf(v){v=String(v||"").trim();if(LKIND[v])return v;for(var k in KW){if(KW[k]===v||v===LSHORT[k])return k}return "all"}
+  function cleanWork(w){return {name:String(w.name||"").trim(),kind:kindOf(w.kind),unit:w.unit==="時間"?"時間":"回"}}
+  function kindOpts(sel){return Object.keys(LKIND).map(function(k){return '<option value="'+k+'"'+(sel===k?' selected':'')+'>'+esc(LKIND[k])+'</option>'}).join("")}
+  function renderWorkMaster(){
+    $("wtbody").innerHTML=masters.works.length?masters.works.map(function(w,i){
+      return '<tr><td><input data-wn="'+i+'" value="'+esc(w.name)+'" maxlength="30" aria-label="作業内容"></td>'+
+        '<td><select data-wk="'+i+'" aria-label="集計の対象">'+kindOpts(w.kind)+'</select></td>'+
+        '<td><select data-wu="'+i+'" aria-label="単価の単位"><option value="回"'+(w.unit==="時間"?'':' selected')+'>1回あたり</option><option value="時間"'+(w.unit==="時間"?' selected':'')+'>1時間あたり</option></select></td>'+
+        '<td style="white-space:nowrap"><button class="btn sm" type="button" data-wact="save" data-i="'+i+'">保存</button> <button class="btn sm" type="button" data-wact="del" data-i="'+i+'">削除</button></td></tr>';
+    }).join(""):'<tr><td colspan="4" class="muted">作業内容が登録されていません。下の欄から追加してください。</td></tr>';
+  }
+  async function saveWorks(items){await db.doc("masters/works").set({items:items});masters.works=items;fillLists();}
+  $("mwAdd").addEventListener("click",async function(){
+    if(!db)return;
+    var w=cleanWork({name:$("mwName").value,kind:$("mwKind").value,unit:$("mwUnit").value});
+    if(!w.name){mflash("作業内容の名前を入力してください。");return}
+    if(masters.works.some(function(x){return x.name===w.name})){mflash("同じ名前の作業内容がすでにあります。");return}
+    try{await saveWorks(masters.works.concat([w]));$("mwName").value="";renderMaster(true);mflash("「"+w.name+"」を追加しました。")}
+    catch(err){mflash("保存できませんでした。編集権限を確認してください。")}
+  });
+  var wArmed="";
+  $("wtbody").addEventListener("click",async function(e){
+    var b=e.target.closest("[data-wact]"); if(!b||!db)return;
+    var i=+b.dataset.i, row=b.closest("tr");
+    try{
+      if(b.dataset.wact==="save"){
+        var w=cleanWork({name:row.querySelector("[data-wn]").value,kind:row.querySelector("[data-wk]").value,unit:row.querySelector("[data-wu]").value});
+        if(!w.name){mflash("作業内容の名前を入力してください。");return}
+        if(masters.works.some(function(x,j){return j!==i&&x.name===w.name})){mflash("同じ名前の作業内容がすでにあります。");return}
+        var items=masters.works.slice(); items[i]=w; await saveWorks(items); renderMaster(true);
+        mflash("保存しました。すでに現場に入っている作業内容は変わりません(新しく選ぶときから、この設定が入ります)。");
+      }else{
+        if(wArmed!=="d"+i){wArmed="d"+i;var o=b.textContent;b.textContent="もう一度押すと削除";setTimeout(function(){if(wArmed==="d"+i){wArmed="";b.textContent=o}},4000);return}
+        wArmed=""; var nm=masters.works[i].name;
+        await saveWorks(masters.works.filter(function(x,j){return j!==i})); renderMaster(true);
+        mflash("「"+nm+"」を削除しました。すでに現場に入っている作業内容は変わりません。");
+      }
+    }catch(err){mflash("保存できませんでした。編集権限を確認してください。")}
+  });
+
   /* ---------- マスタの一括編集・CSV(いま開いている種類が対象) ---------- */
-  var MK={area:{key:"areas",name:"地区",head:"地区名",max:30},crew:{key:"crews",name:"担当班",head:"班の名前",max:40},mach:{key:"machines",name:"使用機械",head:"機械の名前",max:30}};
+  var MK={area:{key:"areas",name:"地区",head:"地区名",max:30},crew:{key:"crews",name:"担当班",head:"班の名前",max:40},mach:{key:"machines",name:"使用機械",head:"機械の名前",max:30},work:{key:"works",name:"作業内容",head:"作業内容",max:30}};
   var mDirty=false, mPending="";
-  function mItems(){return mtab==="area"?masters.areas.map(function(a){return {name:a.name,loc:a.loc||""}}):masters[MK[mtab].key].map(function(n){return {name:n}})}
-  function mText(){return mItems().map(function(x){return mtab==="area"&&x.loc?x.name+","+x.loc:x.name}).join("\n")}
+  function mItems(){return mtab==="area"?masters.areas.map(function(a){return {name:a.name,loc:a.loc||""}}):mtab==="work"?masters.works.map(function(w){return {name:w.name,kind:w.kind,unit:w.unit}}):masters[MK[mtab].key].map(function(n){return {name:n}})}
+  function mText(){return mItems().map(function(x){return mtab==="area"?(x.loc?x.name+","+x.loc:x.name):mtab==="work"?x.name+","+KW[x.kind]+","+x.unit:x.name}).join("\n")}
   function mFill(force){
     var k=MK[mtab];
     $("mBulkT").textContent=k.name+"マスタの一括編集・CSV";
     $("mBulkL").textContent=k.name+"を1行に1つずつ書きます";
-    $("mBulkH").textContent=mtab==="area"?"書き方:「地区名,緯度, 経度」(代表地点は省略できます。例:盛岡南,39.70, 141.13)。地区名を変えても、現場の地区名は自動では変わりません(現場の地区は、上の表で名前を変えたときだけ更新されます)。":"書き方:1行に1つ。空の行は無視し、同じ名前は1つにまとめます。";
-    $("mCsvH").textContent="CSVの1行目は項目名("+(mtab==="area"?"地区名,代表地点":k.head)+")です。"+(mtab==="area"?"代表地点は「39.70, 141.13」のように書きます。":"");
+    $("mBulkH").textContent=mtab==="work"?"書き方:「作業内容,集計の対象,単位」(例:機械除雪(ローダー),除雪,時間)。集計の対象は すべて/除雪/排雪/その他、単位は 回/時間 です(省略すると すべて・回)。":mtab==="area"?"書き方:「地区名,緯度, 経度」(代表地点は省略できます。例:盛岡南,39.70, 141.13)。地区名を変えても、現場の地区名は自動では変わりません(現場の地区は、上の表で名前を変えたときだけ更新されます)。":"書き方:1行に1つ。空の行は無視し、同じ名前は1つにまとめます。";
+    $("mCsvH").textContent="CSVの1行目は項目名("+(mtab==="area"?"地区名,代表地点":mtab==="work"?"作業内容,集計の対象,単価の単位":k.head)+")です。"+(mtab==="work"?"集計の対象は すべて/除雪/排雪/その他、単位は 回/時間 です。":"")+(mtab==="area"?"代表地点は「39.70, 141.13」のように書きます。":"");
     if(force||!mDirty){$("mBulk").value=mText();mDirty=false;mPending=""}
   }
   function mClean(list){
     var seen={},out=[],bad="";
     list.forEach(function(x){
       var nm=String(x.name||"").trim(), loc=String(x.loc||"").trim(); if(!nm||seen[nm])return; seen[nm]=1;
+      if(mtab==="work"){if(nm.length>MK[mtab].max)bad="「"+nm.slice(0,12)+"…」は名前が長すぎます("+MK[mtab].max+"文字まで)。";out.push({name:nm,kind:kindOf(x.kind),unit:String(x.unit||"").trim()==="時間"?"時間":"回"});return}
       if(nm.length>MK[mtab].max)bad="「"+nm.slice(0,12)+"…」は名前が長すぎます("+MK[mtab].max+"文字まで)。";
       if(loc.length>80)bad="代表地点が長すぎます(80文字まで)。";
       out.push(mtab==="area"?{name:nm,loc:loc}:nm);
@@ -2835,19 +2907,21 @@ tbody tr:last-child td{border-bottom:0}
   }
   function mCompare(next){
     var cur=mtab==="area"?masters.areas:masters[MK[mtab].key], by={};
-    cur.forEach(function(x){by[mtab==="area"?x.name:x]=x});
+    var nk=function(x){return mtab==="area"||mtab==="work"?x.name:x};
+    cur.forEach(function(x){by[nk(x)]=x});
     var add=0,chg=0,names={};
-    next.forEach(function(x){var n=mtab==="area"?x.name:x; names[n]=1; if(!by[n])add++; else if(mtab==="area"&&(by[n].loc||"")!==x.loc)chg++});
+    next.forEach(function(x){var n=nk(x); names[n]=1; if(!by[n])add++; else if(mtab==="area"&&(by[n].loc||"")!==x.loc)chg++; else if(mtab==="work"&&(by[n].kind!==x.kind||by[n].unit!==x.unit))chg++});
     var del=Object.keys(by).filter(function(n){return !names[n]}).length;
     return {add:add,chg:chg,del:del};
   }
-  async function mSave(items){return mtab==="area"?saveAreas(items):saveList(MK[mtab].key,items)}
+  async function mSave(items){return mtab==="area"?saveAreas(items):mtab==="work"?saveWorks(items):saveList(MK[mtab].key,items)}
   $("mBulk").addEventListener("input",function(){mDirty=true;mPending=""});
   $("mBulkReset").addEventListener("click",function(){mFill(true);mflash("元に戻しました。")});
   $("mBulkGo").addEventListener("click",async function(){
     if(!db)return;
     var lines=$("mBulk").value.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean);
     var res=mClean(lines.map(function(l){
+      if(mtab==="work"){var p=l.split(/[,，\t]/).map(function(x){return x.trim()});return {name:p[0],kind:p[1]||"",unit:p[2]||""}}
       if(mtab!=="area")return {name:l};
       var i=l.search(/[,，\t]/); return i<0?{name:l,loc:""}:{name:l.slice(0,i),loc:l.slice(i+1)};
     }));
@@ -2861,13 +2935,13 @@ tbody tr:last-child td{border-bottom:0}
     catch(err){mflash("保存できませんでした。編集権限を確認してください。")}
   });
   $("mCsvOut").addEventListener("click",function(){
-    var hd=mtab==="area"?["地区名","代表地点"]:[MK[mtab].head], lines=[hd.map(csvCell2).join(",")];
-    mItems().forEach(function(x){lines.push((mtab==="area"?[x.name,x.loc]:[x.name]).map(csvCell2).join(","))});
+    var hd=mtab==="area"?["地区名","代表地点"]:mtab==="work"?["作業内容","集計の対象","単価の単位"]:[MK[mtab].head], lines=[hd.map(csvCell2).join(",")];
+    mItems().forEach(function(x){lines.push((mtab==="area"?[x.name,x.loc]:mtab==="work"?[x.name,KW[x.kind],x.unit]:[x.name]).map(csvCell2).join(","))});
     csvSave("マスタ_"+MK[mtab].name+"_"+todayStr()+".csv",lines,"mMsg");
   });
   $("mCsvTpl").addEventListener("click",function(){
-    var ex=mtab==="area"?[["盛岡南","39.70, 141.13"],["滝沢西",""]]:mtab==="crew"?[["A班 山田"],["B班 佐藤"]]:[["除雪トラック"],["ローダ"]];
-    csvSave("マスタ取り込み見本_"+MK[mtab].name+".csv",[(mtab==="area"?["地区名","代表地点"]:[MK[mtab].head]).map(csvCell2).join(",")].concat(ex.map(function(r){return r.map(csvCell2).join(",")})),"mMsg");
+    var ex=mtab==="area"?[["盛岡南","39.70, 141.13"],["滝沢西",""]]:mtab==="crew"?[["A班 山田"],["B班 佐藤"]]:mtab==="work"?[["機械除雪(ローダー)","除雪","時間"],["運搬排雪","排雪","回"]]:[["除雪トラック"],["ローダ"]];
+    csvSave("マスタ取り込み見本_"+MK[mtab].name+".csv",[(mtab==="area"?["地区名","代表地点"]:mtab==="work"?["作業内容","集計の対象","単価の単位"]:[MK[mtab].head]).map(csvCell2).join(",")].concat(ex.map(function(r){return r.map(csvCell2).join(",")})),"mMsg");
   });
   $("mCsvIn").addEventListener("change",async function(e){
     var f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f||!db)return;
@@ -2876,16 +2950,17 @@ tbody tr:last-child td{border-bottom:0}
     var first=String(rows[0]&&rows[0][0]||"").trim();
     if(first===(mtab==="area"?"地区名":MK[mtab].head)||first==="名前")rows=rows.slice(1);
     if(!rows.length){mflash("取り込める行がありません。1行目に項目名、2行目以降にデータを入れてください。");return}
-    var inc=mClean(rows.map(function(r){return {name:r[0],loc:r[1]}}));
+    var inc=mClean(rows.map(function(r){return {name:r[0],loc:r[1],kind:r[1],unit:r[2]}}));
     if(inc.bad){mflash(inc.bad);return}
-    var del=$("mCsvDel").checked, base=mtab==="area"?masters.areas:masters[MK[mtab].key], next;
+    var del=$("mCsvDel").checked, base=mtab==="area"?masters.areas:masters[MK[mtab].key], next, nk2=function(x){return mtab==="area"||mtab==="work"?x.name:x};
     if(del)next=inc.items;
     else{
-      var idx={}; base.forEach(function(x,i){idx[mtab==="area"?x.name:x]=i});
+      var idx={}; base.forEach(function(x,i){idx[nk2(x)]=i});
       next=base.slice();
       inc.items.forEach(function(x){
-        var n=mtab==="area"?x.name:x;
+        var n=nk2(x);
         if(idx[n]==null){idx[n]=next.length;next.push(x)}
+        else if(mtab==="work")next[idx[n]]=x;
         else if(mtab==="area"&&x.loc)next[idx[n]]={name:n,loc:x.loc};
       });
     }
@@ -3052,6 +3127,11 @@ tbody tr:last-child td{border-bottom:0}
       db.doc("masters/crews").onSnapshot(function(snap){
         var d=snap.exists?snap.data():{};
         masters.crews=Array.isArray(d.items)?d.items:[];
+        fillLists(); render();
+      },function(){});
+      db.doc("masters/works").onSnapshot(function(snap){
+        var d=snap.exists?snap.data():null;
+        masters.works=d&&Array.isArray(d.items)?d.items.map(cleanWork).filter(function(w){return w.name}):DEFWORK.map(function(w){return Object.assign({},w)});
         fillLists(); render();
       },function(){});
       db.doc("masters/machines").onSnapshot(function(snap){

@@ -156,7 +156,7 @@
 
     <div id="adm-master" hidden>
       <div class="muted" id="mMsg" role="status" style="min-height:1.5em"></div>
-      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="mach" aria-pressed="false">使用機械</button></div>
+      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="mach" aria-pressed="false">使用機械</button><button type="button" class="admtab" data-mt="work" aria-pressed="false">作業内容</button></div>
       <div id="mp-area">
       <h2 class="ah">地区マスタ</h2>
       <p class="muted" style="margin:0 0 8px;max-width:80ch">地区ごとに代表地点(緯度・経度)を登録しておくと、現場に場所が入っていないとき、その地点の天気を表示します。現場を登録するときの地区の選択肢にもなります。</p>
@@ -188,6 +188,24 @@
         <div class="ctags" id="mtags"></div>
         <div class="fields"><label for="mmName">機械の名前<input id="mmName" maxlength="30" placeholder="例:除雪トラック"></label></div>
         <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="machines" data-in="mmName">機械を追加</button></div>
+      </div>
+      </div>
+      <div id="mp-work" hidden>
+      <h2 class="ah">作業内容マスタ</h2>
+      <p class="muted" style="margin:0 0 8px;max-width:80ch">現場の「契約・金額」で選べる作業内容を登録します。「集計の対象」と「単価の単位」を決めておくと、現場で選んだときに自動で入ります(単価は現場ごとに入力します。単価はここには登録しません)。</p>
+      <div class="tw">
+        <table style="min-width:640px">
+          <thead><tr><th>作業内容</th><th>集計の対象</th><th>単価の単位</th><th></th></tr></thead>
+          <tbody id="wtbody"></tbody>
+        </table>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div class="fields">
+          <label for="mwName">作業内容<input id="mwName" maxlength="30" placeholder="例:機械除雪(ローダー)"></label>
+          <label for="mwKind">集計の対象<select id="mwKind"><option value="all">すべての日報</option><option value="joset">除雪(排雪なしの日報)</option><option value="hai">排雪(排雪ありの日報)</option><option value="other">その他(自動集計しない)</option></select></label>
+          <label for="mwUnit">単価の単位<select id="mwUnit"><option value="回">1回あたり</option><option value="時間">1時間あたり</option></select></label>
+        </div>
+        <div class="row2"><button class="btn primary" type="button" id="mwAdd">作業内容を追加</button></div>
       </div>
       </div>
       <h2 class="ah" id="mBulkT">一括編集・CSV</h2>
@@ -397,7 +415,7 @@
       <p class="help" style="margin:0 0 8px">作業内容ごとに行を分けて登録できます(例:除雪・排雪)。「集計の対象」で、どの日報を数えるかを決めます。</p>
       <div id="fLines"></div>
       <button class="btn sm" type="button" id="fLineAdd" style="margin-top:8px">＋ 行を追加</button>
-      <datalist id="dlWork"><option value="除雪"><option value="排雪"><option value="歩道除雪"><option value="運搬排雪"><option value="融雪剤散布"></datalist>
+      <datalist id="dlWork"></datalist>
     </div></div>
     <div class="err" id="fErr" role="alert"></div>
     <div class="row2" style="margin-top:8px">
