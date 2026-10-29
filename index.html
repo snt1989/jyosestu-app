@@ -449,7 +449,7 @@ tbody tr:last-child td{border-bottom:0}
     <div class="gate-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
     <h2 id="gateT">ログインできません</h2>
     <p id="gateWho" class="gate-who"></p>
-    <p>このアプリは、メンバー登録された人だけが使えます。管理者に、メンバーへの登録とログインアカウントの紐づけを依頼してください。</p>
+    <p>このアプリは、メンバー登録された人だけが使えます。ログインできないときは、管理者に連絡してください。</p>
     <button class="btn primary" type="button" id="gateRetry">もう一度確認する</button>
   </div>
 </div>
@@ -631,9 +631,10 @@ tbody tr:last-child td{border-bottom:0}
         <div class="form-row"><label for="mbName">氏名<span class="req">必須</span></label><div><input id="mbName" maxlength="40" required placeholder="例:山田 太郎"></div></div>
         <div class="form-row"><label for="mbCrew">担当班</label><div><input id="mbCrew" list="dlCrews" maxlength="40" placeholder="例:A班"></div></div>
         <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option></select></div></div>
-        <div class="form-row"><label for="mbTel">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
+        <div class="form-row"><label for="mbTel" id="mbTelLab">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
         <div class="form-row"><label for="mbNote">備考</label><div><input id="mbNote" maxlength="100" placeholder="例:大型除雪機の資格あり"></div></div>
-        <div class="form-row"><label for="mbAcctQ">ログインアカウント</label><div>
+        <div class="form-row" id="mbPwRow" hidden><label for="mbPw">ログインパスワード</label><div><input id="mbPw" type="text" maxlength="60" autocomplete="off" placeholder="6文字以上"><span class="help" id="mbPwHelp">この電話番号と、このパスワードでログインします。</span></div></div>
+        <div class="form-row" id="mbAcctRow"><label for="mbAcctQ">ログインアカウント</label><div>
           <div class="mbacct"><span id="mbAcctNow" class="mbacct-now">未連携</span><button class="btn sm" type="button" id="mbAcctMe">自分を連携</button><button class="btn sm" type="button" id="mbAcctClr" hidden>解除</button></div>
           <input id="mbAcctQ" type="search" maxlength="40" placeholder="名前で探して連携" autocomplete="off"><div id="mbAcctRes" class="mbres"></div>
           <span class="help">連携した人がこのアプリにログインすると、このメンバーとして表示されます。</span>
@@ -681,7 +682,7 @@ tbody tr:last-child td{border-bottom:0}
         <div class="form-row"><label for="sMult">降雪量の換算倍率</label><div><input id="sMult" type="number" min="0.3" max="3" step="0.1" value="1"><span class="help">標準は1.0。予報より積もりやすい地域は大きくします。</span></div></div>
         </div>
         <div data-sg-box="lg" hidden>
-        <div class="form-row"><label for="sReq">ログインの制限</label><div><select id="sReq"><option value="0">しない(共有された人は誰でも使える)</option><option value="1">する(連携したメンバーだけ使える)</option></select><span class="help">「する」にすると、ログインアカウントを連携していない人には、利用できない画面を表示します。管理者は常に使えます。連携したメンバーが1人もいないあいだは制限されません。</span></div></div>
+        <div class="form-row"><label for="sReq">ログインの制限</label><div><select id="sReq"><option value="0">しない(共有された人は誰でも使える)</option><option value="1">する(メンバー登録された人だけ使える)</option></select><span class="help">「する」にすると、メンバー登録されていない人には、利用できない画面を表示します。管理者は常に使えます。</span></div></div>
         <div class="form-row"><label for="sRefresh">天気の自動更新</label><div><select id="sRefresh"><option value="5">5分ごと</option><option value="10">10分ごと</option><option value="30">30分ごと</option><option value="60">60分ごと</option></select><span class="help">画面を開いている間だけ更新します。</span></div></div>
         </div>
         <div data-sg-box="ph" hidden>
@@ -1906,7 +1907,7 @@ tbody tr:last-child td{border-bottom:0}
       var id=esc(m.id), askDel=mbDel===m.id;
       return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc([m.crew||"担当班 未設定",m.role||"現場スタッフ"].join(" ・ "))+'</span></div>'+
         '<div class="ed"><button class="btn sm" type="button" data-mb="edit" data-id="'+id+'">編集</button><button class="btn sm'+(askDel?' danger':'')+'" type="button" data-mb="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div>'+
-        '<div class="kvs">'+(m.active===false?'<span class="k">休止中</span>':'')+'<span class="k">'+(m.uid?'ログイン連携済':'ログイン未連携')+'</span>'+(m.phone?'<span class="k">電話 <a href="tel:'+esc(String(m.phone).replace(/[^0-9+]/g,""))+'">'+esc(m.phone)+'</a></span>':'')+(m.note?'<span class="k">'+esc(m.note)+'</span>':'')+'</div></article>';
+        '<div class="kvs">'+(m.active===false?'<span class="k">休止中</span>':'')+'<span class="k">'+(window.__FB&&window.__FB.createAccount?(m.uid?'ログインできます':'ログイン未設定'):(m.uid?'ログイン連携済':'ログイン未連携'))+'</span>'+(m.phone?'<span class="k">電話 <a href="tel:'+esc(String(m.phone).replace(/[^0-9+]/g,""))+'">'+esc(m.phone)+'</a></span>':'')+(m.note?'<span class="k">'+esc(m.note)+'</span>':'')+'</div></article>';
     }).join(""):'<div class="empty"><b>'+(members.length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(members.length?'':'「メンバーを追加」から登録してください。')+'</div>';
   }
   function mbOpen(m){
@@ -1914,6 +1915,13 @@ tbody tr:last-child td{border-bottom:0}
     $("mbName").value=m?m.name:""; $("mbCrew").value=m&&m.crew||""; $("mbRole").value=m&&m.role||"現場スタッフ";
     $("mbTel").value=m&&m.phone||""; $("mbNote").value=m&&m.note||""; $("mbActive").value=m&&m.active===false?"0":"1";
     mbUid=m&&m.uid||""; mbAcctShow(); $("mbAcctQ").value=""; $("mbAcctRes").innerHTML="";
+    var simple=!!(window.__FB&&window.__FB.createAccount);
+    $("mbAcctRow").hidden=simple; $("mbPwRow").hidden=!simple; $("mbPw").value="";
+    if(simple){
+      $("mbTelLab").innerHTML='電話番号(ログインID)<span class="req">必須</span>';
+      $("mbPw").placeholder=mbUid?"変える場合だけ入力":"6文字以上";
+      $("mbPwHelp").textContent=mbUid?"パスワードを忘れた人は、ここで新しく決め直せます。変えないときは空のままにします。":"この電話番号と、このパスワードでログインします。本人に伝えてください。";
+    }
     $("mbMsg").textContent=""; $("mbForm").hidden=false; $("mbName").focus();
   }
   var mbUid="";
@@ -2087,7 +2095,7 @@ tbody tr:last-child td{border-bottom:0}
     var mb=function(n){return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.round(n/1024)+"KB"};
     msg(ok?(ok+"枚を保存しました(元 "+mb(before)+" → 約 "+mb(window.__blobUrl?after*0.75:after)+")"+(fails?("。"+fails+"枚は保存できませんでした。"):"")):"写真を保存できませんでした。");
   });
-  var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)またはメールアドレスを入力してください。","auth/email-already-exists":"そのIDは、すでにほかの人が使っています。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
+  var CERR={not_configured:"サーバーの設定がまだです(サービスアカウントの鍵が未登録)。",bad_service_account:"サービスアカウントの鍵が正しくありません。",forbidden:"管理者だけが変更できます。",weak_password:"パスワードは6文字以上にしてください。",bad_id:"電話番号(数字9〜15桁)を入力してください。","auth/email-already-exists":"この電話番号は、すでにログイン用に使われています。",cannot_delete_admin:"管理者のアカウントは削除できません。","auth/user-not-found":"アカウントが見つかりません。",nothing:"変更する項目を入力してください。"};
   $("mbCredGo").addEventListener("click",async function(){
     var id=$("mbCredId").value.trim(), pw=$("mbCredPw").value;
     if(!id&&!pw){$("mbCredMsg").textContent=CERR.nothing;return}
@@ -2117,10 +2125,25 @@ tbody tr:last-child td{border-bottom:0}
     var name=$("mbName").value.trim(); if(!name){$("mbMsg").textContent="氏名を入力してください。";return}
     var data={name:name,crew:$("mbCrew").value.trim(),role:$("mbRole").value,phone:$("mbTel").value.trim(),note:$("mbNote").value.trim(),active:$("mbActive").value==="1"};
     if(!db){$("mbMsg").textContent="保存できませんでした。";return}
-    if(mbUid&&members.some(function(x){return x.uid===mbUid&&x.id!==mbEdit})){$("mbMsg").textContent="このアカウントは、ほかのメンバーに連携されています。";return}
-    data.uid=mbUid;
+    var simple=!!(window.__FB&&window.__FB.createAccount), pw=simple?$("mbPw").value:"";
+    if(simple){
+      var digits=data.phone.replace(/[^0-9０-９]/g,"").replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248)});
+      if(!/^\d{9,15}$/.test(digits)){$("mbMsg").textContent="電話番号を、数字9〜15桁で入力してください。";return}
+      if(members.some(function(x){return x.id!==mbEdit&&String(x.phone||"").replace(/[^0-9]/g,"")===digits})){$("mbMsg").textContent="この電話番号は、ほかのメンバーに登録されています。";return}
+      if(!mbUid&&pw.length<6){$("mbMsg").textContent="ログインパスワードを6文字以上で入力してください。";return}
+      if(mbUid&&pw&&pw.length<6){$("mbMsg").textContent="パスワードは6文字以上にしてください。";return}
+    }else if(mbUid&&members.some(function(x){return x.uid===mbUid&&x.id!==mbEdit})){$("mbMsg").textContent="このアカウントは、ほかのメンバーに連携されています。";return}
     $("mbSave").disabled=true;
     try{
+      if(simple){
+        var o0=mbEdit?members.filter(function(x){return x.id===mbEdit})[0]:null, EM={create:"作成",upd:"更新"};
+        if(!mbUid){mbUid=await window.__FB.createAccount({id:data.phone,password:pw,name:data.name,active:data.active})}
+        else{
+          var changed=!o0||String(o0.phone||"").replace(/[^0-9]/g,"")!==digits;
+          await window.__FB.updateAccount(mbUid,{id:changed?data.phone:"",password:pw,name:data.name,active:data.active});
+        }
+      }
+      data.uid=mbUid;
       var old=mbEdit?members.filter(function(x){return x.id===mbEdit})[0]:null, mid=mbEdit;
       if(mbEdit){await db.doc("members/"+mbEdit).update(data)}
       else{data.createdAt=Date.now();var ref=await db.collection("members").add(data);mid=ref&&ref.id||""}
@@ -2128,7 +2151,7 @@ tbody tr:last-child td{border-bottom:0}
       if(mbUid&&window.__FB)await window.__FB.setRole(mbUid,data.active?"member":"pending");
       if(mbUid)await db.doc("access/"+mbUid).set({memberId:mid,name:data.name,crew:data.crew,role:data.role,active:data.active});
       $("mbForm").hidden=true; mbEdit=null; toast("メンバーを保存しました。");
-    }catch(err){$("mbMsg").textContent="保存できませんでした。編集権限を確認してください。"}
+    }catch(err){$("mbMsg").textContent=(CERR[err&&err.message]||"")||"保存できませんでした。編集権限を確認してください。"}
     $("mbSave").disabled=false;
   });
   $("mbList").addEventListener("click",async function(e){
@@ -2137,7 +2160,8 @@ tbody tr:last-child td{border-bottom:0}
     if(b.dataset.mb==="edit"){mbDel=null;mbOpen(m);window.scrollTo({top:0,behavior:"smooth"});return}
     if(mbDel!==id){mbDel=id;renderMembers();clearTimeout(mbOpen.t);mbOpen.t=setTimeout(function(){mbDel=null;renderMembers()},4000);return}
     mbDel=null;
-    try{await db.doc("members/"+id).delete();if(m.uid){try{await db.doc("access/"+m.uid).delete()}catch(e1){}if(window.__FB)try{await window.__FB.setRole(m.uid,"pending")}catch(e1){}}toast("「"+m.name+"」を削除しました。")}catch(err){toast("削除できませんでした。");renderMembers()}
+    try{if(m.uid&&window.__FB&&window.__FB.deleteAccount){try{await window.__FB.deleteAccount(m.uid)}catch(e0){if(e0&&e0.message==="cannot_delete_admin"){toast("管理者のアカウントは削除できません。");return}}}
+      await db.doc("members/"+id).delete();if(m.uid){try{await db.doc("access/"+m.uid).delete()}catch(e1){}if(window.__FB&&!window.__FB.deleteAccount)try{await window.__FB.setRole(m.uid,"pending")}catch(e1){}}toast("「"+m.name+"」を削除しました。")}catch(err){toast("削除できませんでした。");renderMembers()}
   });
 
   /* ---------- お知らせ(ベル) ---------- */

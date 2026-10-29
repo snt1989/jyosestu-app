@@ -17,7 +17,7 @@
     <div class="gate-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
     <h2 id="gateT">ログインできません</h2>
     <p id="gateWho" class="gate-who"></p>
-    <p>このアプリは、メンバー登録された人だけが使えます。管理者に、メンバーへの登録とログインアカウントの紐づけを依頼してください。</p>
+    <p>このアプリは、メンバー登録された人だけが使えます。ログインできないときは、管理者に連絡してください。</p>
     <button class="btn primary" type="button" id="gateRetry">もう一度確認する</button>
   </div>
 </div>
@@ -199,9 +199,10 @@
         <div class="form-row"><label for="mbName">氏名<span class="req">必須</span></label><div><input id="mbName" maxlength="40" required placeholder="例:山田 太郎"></div></div>
         <div class="form-row"><label for="mbCrew">担当班</label><div><input id="mbCrew" list="dlCrews" maxlength="40" placeholder="例:A班"></div></div>
         <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option></select></div></div>
-        <div class="form-row"><label for="mbTel">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
+        <div class="form-row"><label for="mbTel" id="mbTelLab">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
         <div class="form-row"><label for="mbNote">備考</label><div><input id="mbNote" maxlength="100" placeholder="例:大型除雪機の資格あり"></div></div>
-        <div class="form-row"><label for="mbAcctQ">ログインアカウント</label><div>
+        <div class="form-row" id="mbPwRow" hidden><label for="mbPw">ログインパスワード</label><div><input id="mbPw" type="text" maxlength="60" autocomplete="off" placeholder="6文字以上"><span class="help" id="mbPwHelp">この電話番号と、このパスワードでログインします。</span></div></div>
+        <div class="form-row" id="mbAcctRow"><label for="mbAcctQ">ログインアカウント</label><div>
           <div class="mbacct"><span id="mbAcctNow" class="mbacct-now">未連携</span><button class="btn sm" type="button" id="mbAcctMe">自分を連携</button><button class="btn sm" type="button" id="mbAcctClr" hidden>解除</button></div>
           <input id="mbAcctQ" type="search" maxlength="40" placeholder="名前で探して連携" autocomplete="off"><div id="mbAcctRes" class="mbres"></div>
           <span class="help">連携した人がこのアプリにログインすると、このメンバーとして表示されます。</span>
@@ -249,7 +250,7 @@
         <div class="form-row"><label for="sMult">降雪量の換算倍率</label><div><input id="sMult" type="number" min="0.3" max="3" step="0.1" value="1"><span class="help">標準は1.0。予報より積もりやすい地域は大きくします。</span></div></div>
         </div>
         <div data-sg-box="lg" hidden>
-        <div class="form-row"><label for="sReq">ログインの制限</label><div><select id="sReq"><option value="0">しない(共有された人は誰でも使える)</option><option value="1">する(連携したメンバーだけ使える)</option></select><span class="help">「する」にすると、ログインアカウントを連携していない人には、利用できない画面を表示します。管理者は常に使えます。連携したメンバーが1人もいないあいだは制限されません。</span></div></div>
+        <div class="form-row"><label for="sReq">ログインの制限</label><div><select id="sReq"><option value="0">しない(共有された人は誰でも使える)</option><option value="1">する(メンバー登録された人だけ使える)</option></select><span class="help">「する」にすると、メンバー登録されていない人には、利用できない画面を表示します。管理者は常に使えます。</span></div></div>
         <div class="form-row"><label for="sRefresh">天気の自動更新</label><div><select id="sRefresh"><option value="5">5分ごと</option><option value="10">10分ごと</option><option value="30">30分ごと</option><option value="60">60分ごと</option></select><span class="help">画面を開いている間だけ更新します。</span></div></div>
         </div>
         <div data-sg-box="ph" hidden>

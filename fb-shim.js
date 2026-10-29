@@ -86,14 +86,17 @@
     },
     setPhotoCache:function(id,u){pcache[id]=u},
     accountId:async function(uid){var d=await fs.doc("users/"+uid).get();return d.exists?disp((d.data()||{}).email):""},
-    updateAccount:async function(uid,o){
+    callAccount:async function(body){
       var u=auth.currentUser; if(!u)throw new Error("login");
       var tok=await u.getIdToken();
-      var r=await fetch("/api/account",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify({uid:uid,id:o.id||"",password:o.password||""})});
+      var r=await fetch("/api/account",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify(body)});
       var j={};try{j=await r.json()}catch(e){}
       if(!r.ok)throw new Error(j.error||("http"+r.status));
-      return true;
-    }
+      return j;
+    },
+    createAccount:function(o){return window.__FB.callAccount({action:"create",id:o.id,password:o.password,name:o.name,active:o.active!==false}).then(function(j){return j.uid})},
+    updateAccount:function(uid,o){return window.__FB.callAccount({action:"update",uid:uid,id:o.id||"",password:o.password||"",name:o.name||"",active:o.active})},
+    deleteAccount:function(uid){return window.__FB.callAccount({action:"delete",uid:uid})}
   };
 
   var PD="@phone.josetsu-app.example";
@@ -111,10 +114,9 @@
         '<label style="font-size:.85rem;font-weight:700">パスワード'+(mode==='up'?'(6文字以上)':'')+'<input id="fbPw" type="password" autocomplete="'+(mode==="in"?"current-password":"new-password")+'" style="'+INPUT+'"></label>'+
         '<div id="fbMsg" role="status" style="min-height:1.4em;font-size:.85rem;color:'+(ok?"#1E6B45":"#C1443C")+';margin-bottom:8px">'+esc(msg||"")+'</div>'+
         '<button id="fbGo" type="button" style="'+BTN+'">'+(mode==="in"?"ログイン":"登録する")+'</button>'+
-        '<div style="text-align:center;margin-top:10px"><button id="fbSw" type="button" style="'+LINK+'">'+(mode==="in"?"はじめての方は新規登録":"ログインに戻る")+'</button>'+'</div>'+
-        (mode==="up"?'<p style="font-size:.8rem;color:#5C6459;line-height:1.6">登録後は、管理者が承認するまで使えません。</p>':''));
+        '<div style="text-align:center;margin-top:10px"></div>'+
+        (mode==="in"?'<p style="font-size:.8rem;color:#5C6459;line-height:1.6;text-align:center">ログインできないときは、管理者に連絡してください。</p>':''));
       var mail=el.querySelector("#fbMail"), pw=el.querySelector("#fbPw");
-      el.querySelector("#fbSw").onclick=function(){mode=mode==="in"?"up":"in";draw()};
       var rs=el.querySelector("#fbRs"); if(rs)rs.onclick=function(){
         var m=toId(mail.value); if(!m||m.slice(-PD.length)===PD){draw(m?"電話番号のパスワード再設定は、管理者に依頼してください。":"メールアドレスを入力してください。");return}
         auth.sendPasswordResetEmail(m).then(function(){draw("再設定のメールを送りました。",true)},function(e){draw(ERR[e.code]||"送信できませんでした。")});
@@ -135,7 +137,7 @@
     draw();
   }
   function showPending(email,msg){
-    var el=overlay(title("承認待ち")+'<p style="line-height:1.7;font-size:.92rem">'+esc(msg||"登録ありがとうございます。管理者が承認すると、使えるようになります。")+'</p><p style="font-size:.85rem;color:#5C6459;word-break:break-all">'+esc(disp(email))+'</p>'+
+    var el=overlay(title("ご利用できません")+'<p style="line-height:1.7;font-size:.92rem">'+esc(msg||"このアカウントは、いま使えません。管理者に連絡してください。")+'</p><p style="font-size:.85rem;color:#5C6459;word-break:break-all">'+esc(disp(email))+'</p>'+
       '<button id="fbRe" type="button" style="'+BTN+'">もう一度確認する</button><div style="text-align:center;margin-top:8px"><button id="fbOut" type="button" style="'+LINK+'">ログアウト</button></div>');
     el.querySelector("#fbRe").onclick=function(){location.reload()};
     el.querySelector("#fbOut").onclick=function(){window.__FB.signOut()};
