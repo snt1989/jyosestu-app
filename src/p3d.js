@@ -66,7 +66,7 @@
     if(d.nav){goto(d.nav,d.f);return}
     if(d.filter){filter=d.filter;render();return}
     var act=d.act, id=d.id, s=id?siteById(id):null;
-    if(act==="mv"){moveSite(id,+d.d,$("siteList").__ids||[])}
+    if(act==="mv"){moveSite(id,+d.d,(t.closest("#admList")?$("admList"):$("siteList")).__ids||[])}
     else if(act==="open"){if(s)openDetail(id)}
     else if(act==="open2"){closeSheet("rview");if(s)openDetail(id)}
     else if(act==="close"){closeSheet(d.sheet)}
@@ -660,6 +660,7 @@
     var jp2=function(a,b){return String(a||"").localeCompare(String(b||""),"ja")};
     var rows=sites.filter(function(s){return !q||[s.name,s.area,s.crew,s.address].join(" ").toLowerCase().indexOf(q)>=0});
     rows.sort(function(a,b){
+      if(k==="manual")return manKey(a)-manKey(b)||jp2(a.name,b.name);
       if(k==="name")return jp2(a.name,b.name);
       if(k==="crew")return jp2(a.crew||"~",b.crew||"~")||jp2(a.name,b.name);
       if(k==="th")return (b.threshold||0)-(a.threshold||0)||jp2(a.name,b.name);
@@ -683,7 +684,8 @@
   function renderAdmin(){
     var all=adminRows(), pages=Math.max(1,Math.ceil(all.length/pgSize));
     if(pg>=pages)pg=pages-1;
-    var rows=all.slice(pg*pgSize,pg*pgSize+pgSize);
+    var rows=all.slice(pg*pgSize,pg*pgSize+pgSize), mv=($("admSort").value==="manual"&&canAdmin), aids=all.map(function(s){return s.id});
+    $("admList").__ids=aids;
     $("pager").innerHTML=all.length?'<button class="btn sm" type="button" data-pg="prev"'+(pg===0?' disabled':'')+'>‹ 前へ</button><span class="pg-info"><b class="num">'+(pg+1)+' / '+pages+'</b> ページ(全'+all.length+'件)</span><button class="btn sm" type="button" data-pg="next"'+(pg>=pages-1?' disabled':'')+'>次へ ›</button><select id="pgSize" aria-label="1ページの件数">'+[10,20,50].map(function(n){return '<option value="'+n+'"'+(n===pgSize?' selected':'')+'>'+n+'件ずつ</option>'}).join("")+'</select><button class="btn sm" type="button" data-pg="all">検索結果をすべて選択</button>':'';
     $("admList").innerHTML=rows.length?rows.map(function(s){
       var w=wx[s.id], id=esc(s.id), st=stOf(s);
@@ -697,7 +699,8 @@
         '<span class="k money'+(pt?'':' emp')+'"><small>単価 '+admBadge()+'</small><span class="num">'+(pt?'<span class="pf">単価 </span>':'')+esc(pt||"–")+'</span></span>'+
         '<span class="k'+(s.loc?'':' emp')+'"><small>位置</small><span>'+(s.loc?'<span class="pf">位置 </span>設定済':'未設定')+'</span></span>'+
         '<span class="k wide'+(s.address?'':' emp')+'" title="'+esc(s.address||"")+'"><small>住所</small><span class="tx">'+esc(s.address||"–")+'</span></span>'+
-        '<span class="k wide'+(s.note?'':' emp')+'" title="'+esc(s.note||"")+'"><small>備考</small><span class="tx">'+(s.note?'<span class="pf">備考 </span>':'')+esc(s.note||"–")+'</span></span></div></article>';
+        '<span class="k wide'+(s.note?'':' emp')+'" title="'+esc(s.note||"")+'"><small>備考</small><span class="tx">'+(s.note?'<span class="pf">備考 </span>':'')+esc(s.note||"–")+'</span></span></div>'+
+        (mv?'<span class="mvb"><button type="button" data-act="mv" data-d="-1" data-id="'+id+'" aria-label="上へ"'+(aids.indexOf(s.id)===0?' disabled':'')+'>↑</button><button type="button" data-act="mv" data-d="1" data-id="'+id+'" aria-label="下へ"'+(aids.indexOf(s.id)===aids.length-1?' disabled':'')+'>↓</button></span>':'')+'</article>';
     }).join(""):'<div class="empty"><b>該当する現場はありません</b>「現場を追加」から登録するか、検索を変えてください。</div>';
     var n=selIds().length;
     $("bulk").hidden=n===0; $("bulkN").textContent=n;
