@@ -743,6 +743,15 @@
     renderAdmin();
   });
   $("pager").addEventListener("change",function(e){if(e.target.id==="pgSize"){pgSize=+e.target.value||10;pg=0;renderAdmin()}});
+  // 契約・単価を、作業内容ごとに1行ずつ見せる
+  function ctHtml(s){
+    var ls=siteLines(s);
+    if(!ls.length)return '<div class="ct emp">契約・単価: 未登録</div>';
+    return '<div class="ct">'+ls.map(function(l){
+      return '<div class="cr"><span class="cw">'+esc(lineLabel(l)||"全体")+'</span><span class="cn">'+(l.count>0?'契約 '+l.count+'回':'')+'</span>'+
+        (canAdmin?'<span class="cp">'+(l.unitPrice>0?yen(l.unitPrice)+' / '+(l.unit==="時間"?"時間":"回"):'<span class="muted" style="font-weight:400">単価未登録</span>')+'</span>':'')+'</div>';
+    }).join("")+'</div>';
+  }
   function renderAdmin(){
     var all=adminRows(), pages=Math.max(1,Math.ceil(all.length/pgSize));
     if(pg>=pages)pg=pages-1;
@@ -756,12 +765,11 @@
       return '<article class="ar"><label class="ck"><input type="checkbox" data-sel="'+id+'"'+(sel[s.id]?' checked':'')+' aria-label="'+esc(s.name)+'を選択"></label>'+
         '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div>'+
         '<span class="ed edb">'+(mv?'<button class="btn sm" type="button" data-act="mv" data-d="-1" data-id="'+id+'" aria-label="上へ"'+(aids.indexOf(s.id)===0?' disabled':'')+'>↑</button><button class="btn sm" type="button" data-act="mv" data-d="1" data-id="'+id+'" aria-label="下へ"'+(aids.indexOf(s.id)===aids.length-1?' disabled':'')+'>↓</button>':'')+'<button class="btn sm" type="button" data-act="copy" data-id="'+id+'" aria-label="'+esc(s.name)+'をコピー">コピー</button><button class="btn sm" type="button" data-act="edit" data-id="'+id+'">編集</button></span>'+
-        '<div class="kvs"><span class="k"><small>出動基準</small><span class="num"><span class="pf">基準 </span>'+esc(s.threshold||"–")+'cm</span></span>'+
-        '<span class="k'+(s.contractCount>0?'':' emp')+'"><small>契約回数</small><span class="num">'+(s.contractCount>0?'<span class="pf">契約 </span>'+esc(s.contractCount)+'回':'–')+'</span></span>'+
-        '<span class="k money'+(pt?'':' emp')+'"><small>単価 '+admBadge()+'</small><span class="num">'+(pt?'<span class="pf">単価 </span>':'')+(pt?esc(pt).split(" ・ ").join("<br>"):"–")+'</span></span>'+
-        '<span class="k'+(s.loc?'':' emp')+'"><small>位置</small><span>'+(s.loc?'<span class="pf">位置 </span>設定済':'未設定')+'</span></span>'+
-        '<span class="k wide'+(s.address?'':' emp')+'" title="'+esc(s.address||"")+'"><small>住所</small><span class="tx">'+esc(s.address||"–")+'</span></span>'+
-        '<span class="k wide'+(s.note?'':' emp')+'" title="'+esc(s.note||"")+'"><small>備考</small><span class="tx">'+(s.note?'<span class="pf">備考 </span>':'')+esc(s.note||"–")+'</span></span></div>'+
+        '<div class="kvs"><span class="k"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></span>'+
+        '<span class="k'+(s.loc?'':' emp')+'"><small>位置</small><span>'+(s.loc?'設定済':'未設定')+'</span></span>'+
+        '<span class="k wide'+(s.address?'':' emp')+'"><small>住所</small><span class="tx">'+esc(s.address||"–")+'</span></span>'+
+        '<span class="k wide'+(s.note?'':' emp')+'"><small>備考</small><span class="tx">'+esc(s.note||"–")+'</span></span></div>'+
+        ctHtml(s)+
         '</article>';
     }).join(""):'<div class="empty"><b>該当する現場はありません</b>「現場を追加」から登録するか、検索を変えてください。</div>';
     var n=selIds().length;
