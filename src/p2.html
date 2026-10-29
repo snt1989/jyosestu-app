@@ -379,11 +379,10 @@
     </div></div>
     <h2 class="ah" id="fs4">契約・金額</h2>
     <div class="panel"><div class="grp">
-      <label for="fContract">契約回数(任意)<input id="fContract" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="例:10"></label>
-      <div class="two" id="fPriceBox">
-        <label for="fPrice">単価(円・任意)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>管理者のみ</span><input id="fPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="例:20000"></label>
-        <label for="fUnit">単価の単位<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>管理者のみ</span><select id="fUnit"><option value="回">1回あたり</option><option value="時間">1時間あたり</option></select></label>
-      </div>
+      <p class="help" style="margin:0 0 8px">作業内容ごとに行を分けて登録できます(例:除雪・排雪)。「集計の対象」で、どの日報を数えるかを決めます。</p>
+      <div id="fLines"></div>
+      <button class="btn sm" type="button" id="fLineAdd" style="margin-top:8px">＋ 行を追加</button>
+      <datalist id="dlWork"><option value="除雪"><option value="排雪"><option value="歩道除雪"><option value="運搬排雪"><option value="融雪剤散布"></datalist>
     </div></div>
     <div class="err" id="fErr" role="alert"></div>
     <div class="row2" style="margin-top:8px">

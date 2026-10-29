@@ -16,6 +16,31 @@
   var masters={areas:[],crews:[],machines:DEFMACH.slice()};
   var nameMap={}, askedNames={}, prices={};
   function priceOf(id){return prices[id]||null}
+  // 契約・金額は「作業内容ごとの行」。sites.lines=[{work,kind,count}] と prices/{id}.lines=[{unitPrice,unit}] を同じ並びで持つ(単価は管理者のみ)。
+  // 行がない現場は、従来の契約回数・単価(1組)をそのまま1行として扱う。
+  var LKIND={all:"すべての日報",joset:"除雪(排雪なしの日報)",hai:"排雪(排雪ありの日報)",other:"その他(自動集計しない)"};
+  var LSHORT={all:"全体",joset:"除雪",hai:"排雪",other:"その他"};
+  function siteLines(s){
+    if(!s)return [];
+    var pz=canAdmin?priceOf(s.id):null;
+    if(Array.isArray(s.lines)&&s.lines.length){
+      return s.lines.map(function(l,i){
+        var p=pz&&Array.isArray(pz.lines)?pz.lines[i]:null;
+        return {work:l.work||"",kind:LKIND[l.kind]?l.kind:"all",count:+l.count||0,unitPrice:p&&+p.unitPrice>0?+p.unitPrice:0,unit:p&&p.unit==="時間"?"時間":"回"};
+      });
+    }
+    var ct=+s.contractCount||0, up=pz&&pz.unitPrice>0?+pz.unitPrice:0;
+    return (ct>0||up>0)?[{work:"",kind:"all",count:ct,unitPrice:up,unit:pz&&pz.unit==="時間"?"時間":"回"}]:[];
+  }
+  function lineLabel(l){return l.work||LSHORT[l.kind]||""}
+  function lineMatch(kind,r){return kind==="all"?true:kind==="joset"?!r.haisetsu:kind==="hai"?!!r.haisetsu:false}
+  // 行の一覧から、保存用のデータ(現場側・単価側)を作る
+  function lineSave(ls){
+    var site={lines:ls.map(function(l){return {work:l.work,kind:l.kind,count:l.count}}),contractCount:ls.reduce(function(a,l){return a+(l.count||0)},0)};
+    var fp=ls.filter(function(l){return l.unitPrice>0})[0];
+    var price=fp?{unitPrice:fp.unitPrice,unit:fp.unit,lines:ls.map(function(l){return {unitPrice:l.unitPrice>0?l.unitPrice:0,unit:l.unit==="時間"?"時間":"回"}})}:null;
+    return {site:site,price:price};
+  }
   var detailId=null, rf=null, lb={list:[],i:0}, repFilter={period:"7d",site:""}, ntF="all";
   var stS={mode:"month",y:0,m:0,sy:0};
   function stOf(s){var o=ops[s.id];return (o&&o.status)||"standby"}

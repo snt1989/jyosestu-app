@@ -270,19 +270,20 @@
     reports.forEach(function(r){
       if(!r.date||r.date<rg.a||r.date>rg.b)return;
       var k=r.siteId||("n:"+r.siteName);
-      var o=by[k]||(by[k]={id:r.siteId,name:r.siteName||"",n:0,h:0,hai:0,noTime:0});
+      var o=by[k]||(by[k]={id:r.siteId,name:r.siteName||"",n:0,h:0,hai:0,noTime:0,kn:{all:0,joset:0,hai:0},kh:{all:0,joset:0,hai:0}});
       var hr=hoursOf(r);
       o.n++; if(hr==null)o.noTime++; else o.h+=hr;
       if(r.haisetsu)o.hai++;
+      ["all",r.haisetsu?"hai":"joset"].forEach(function(kk){o.kn[kk]++; o.kh[kk]+=(hr==null?0:hr)});
     });
     var tot={n:0,h:0,hai:0,amt:0,noPrice:0,noTime:0};
     Object.keys(by).forEach(function(k){
       var o=by[k], s=o.id?siteById(o.id):null;
       if(s)o.name=s.name;
-      o.area=s?s.area||"":""; var pz=canAdmin&&s?priceOf(s.id):null; o.price=pz&&pz.unitPrice>0?+pz.unitPrice:0; o.unit=pz&&pz.unit==="時間"?"時間":"回"; o.contract=s?(+s.contractCount||0):0;
-      o.amt=o.price?(o.unit==="時間"?o.price*o.h:o.price*o.n):null;
+      o.area=s?s.area||"":""; var sl=s?siteLines(s):[], pl=sl.filter(function(l){return l.unitPrice>0&&l.kind!=="other"}); o.price=pl.length?pl[0].unitPrice:0; o.unit=pl.length?pl[0].unit:"回"; o.contract=sl.reduce(function(a,l){return a+l.count},0);
+      o.amt=pl.length?pl.reduce(function(a,l){return a+l.unitPrice*(l.unit==="時間"?o.kh[l.kind]:o.kn[l.kind])},0):null;
       if(o.amt==null&&canAdmin)tot.noPrice++; else tot.amt+=o.amt;
-      if(o.price&&o.unit==="時間")tot.noTime+=o.noTime;
+      if(pl.some(function(l){return l.unit==="時間"}))tot.noTime+=o.noTime;
       tot.n+=o.n; tot.h+=o.h; tot.hai+=o.hai;
       rows.push(o);
     });

@@ -113,6 +113,11 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
 .banner{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.92rem}
 
 /* site card */
+.cl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);margin-top:8px}
+.cl label{display:block;font-size:.82rem;font-weight:700}
+.cl .wide{grid-column:1/-1}
+.cl input,.cl select{width:100%;margin-top:2px}
+.cl .cl-rm{grid-column:1/-1;justify-self:end}
 .mvb{display:flex;gap:6px;justify-content:flex-end;grid-column:1/-1}
 .sc>.mvb{padding:0 10px 10px}
 .mvb button{width:36px;height:36px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}
@@ -820,11 +825,10 @@ tbody tr:last-child td{border-bottom:0}
     </div></div>
     <h2 class="ah" id="fs4">契約・金額</h2>
     <div class="panel"><div class="grp">
-      <label for="fContract">契約回数(任意)<input id="fContract" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="例:10"></label>
-      <div class="two" id="fPriceBox">
-        <label for="fPrice">単価(円・任意)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>管理者のみ</span><input id="fPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="例:20000"></label>
-        <label for="fUnit">単価の単位<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>管理者のみ</span><select id="fUnit"><option value="回">1回あたり</option><option value="時間">1時間あたり</option></select></label>
-      </div>
+      <p class="help" style="margin:0 0 8px">作業内容ごとに行を分けて登録できます(例:除雪・排雪)。「集計の対象」で、どの日報を数えるかを決めます。</p>
+      <div id="fLines"></div>
+      <button class="btn sm" type="button" id="fLineAdd" style="margin-top:8px">＋ 行を追加</button>
+      <datalist id="dlWork"><option value="除雪"><option value="排雪"><option value="歩道除雪"><option value="運搬排雪"><option value="融雪剤散布"></datalist>
     </div></div>
     <div class="err" id="fErr" role="alert"></div>
     <div class="row2" style="margin-top:8px">
@@ -861,6 +865,31 @@ tbody tr:last-child td{border-bottom:0}
   var masters={areas:[],crews:[],machines:DEFMACH.slice()};
   var nameMap={}, askedNames={}, prices={};
   function priceOf(id){return prices[id]||null}
+  // 契約・金額は「作業内容ごとの行」。sites.lines=[{work,kind,count}] と prices/{id}.lines=[{unitPrice,unit}] を同じ並びで持つ(単価は管理者のみ)。
+  // 行がない現場は、従来の契約回数・単価(1組)をそのまま1行として扱う。
+  var LKIND={all:"すべての日報",joset:"除雪(排雪なしの日報)",hai:"排雪(排雪ありの日報)",other:"その他(自動集計しない)"};
+  var LSHORT={all:"全体",joset:"除雪",hai:"排雪",other:"その他"};
+  function siteLines(s){
+    if(!s)return [];
+    var pz=canAdmin?priceOf(s.id):null;
+    if(Array.isArray(s.lines)&&s.lines.length){
+      return s.lines.map(function(l,i){
+        var p=pz&&Array.isArray(pz.lines)?pz.lines[i]:null;
+        return {work:l.work||"",kind:LKIND[l.kind]?l.kind:"all",count:+l.count||0,unitPrice:p&&+p.unitPrice>0?+p.unitPrice:0,unit:p&&p.unit==="時間"?"時間":"回"};
+      });
+    }
+    var ct=+s.contractCount||0, up=pz&&pz.unitPrice>0?+pz.unitPrice:0;
+    return (ct>0||up>0)?[{work:"",kind:"all",count:ct,unitPrice:up,unit:pz&&pz.unit==="時間"?"時間":"回"}]:[];
+  }
+  function lineLabel(l){return l.work||LSHORT[l.kind]||""}
+  function lineMatch(kind,r){return kind==="all"?true:kind==="joset"?!r.haisetsu:kind==="hai"?!!r.haisetsu:false}
+  // 行の一覧から、保存用のデータ(現場側・単価側)を作る
+  function lineSave(ls){
+    var site={lines:ls.map(function(l){return {work:l.work,kind:l.kind,count:l.count}}),contractCount:ls.reduce(function(a,l){return a+(l.count||0)},0)};
+    var fp=ls.filter(function(l){return l.unitPrice>0})[0];
+    var price=fp?{unitPrice:fp.unitPrice,unit:fp.unit,lines:ls.map(function(l){return {unitPrice:l.unitPrice>0?l.unitPrice:0,unit:l.unit==="時間"?"時間":"回"}})}:null;
+    return {site:site,price:price};
+  }
   var detailId=null, rf=null, lb={list:[],i:0}, repFilter={period:"7d",site:""}, ntF="all";
   var stS={mode:"month",y:0,m:0,sy:0};
   function stOf(s){var o=ops[s.id];return (o&&o.status)||"standby"}
@@ -1298,7 +1327,14 @@ tbody tr:last-child td{border-bottom:0}
   }
   var LOCK='<svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
   function admBadge(){return '<span class="adm-badge">'+LOCK+'管理者のみ</span>'}
-  function unitText(s){var p=canAdmin?priceOf(s.id):null;return p&&p.unitPrice>0?(yen(p.unitPrice)+" / "+(p.unit==="時間"?"時間":"回")):""}
+  function unitText(s){
+    var ls=siteLines(s).filter(function(l){return l.unitPrice>0}), multi=siteLines(s).length>1;
+    return ls.map(function(l){return (multi?lineLabel(l)+" ":"")+yen(l.unitPrice)+" / "+(l.unit==="時間"?"時間":"回")}).join(" ・ ");
+  }
+  function siteSeasonCountK(id,kind){
+    var sy=seasonOf(todayStr()), r=seasonRange(sy);
+    return reports.filter(function(x){return x.siteId===id&&x.date>=r[0]&&x.date<=r[1]&&lineMatch(kind,x)}).length;
+  }
   function detailHtml(s){
     var a=assess(s), w=wx[s.id], id=esc(s.id), h="";
     var bad=wxState(s);
@@ -1312,12 +1348,18 @@ tbody tr:last-child td{border-bottom:0}
     h+='</div>';
     h+='<div class="sec"><h2>作業状況</h2><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s);
     h+='<div class="row2" style="margin-top:12px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div>';
-    var n=siteSeasonCount(s.id), cc=+s.contractCount||0;
+    var n=siteSeasonCount(s.id), sl=siteLines(s), cc=sl.reduce(function(a,l){return a+l.count},0), multiL=sl.length>1||(sl.length===1&&sl[0].kind!=="all");
     h+='<div class="sec"><h2>現場の情報</h2></div><div class="card2"><dl class="dl">';
     h+='<dt>住所</dt><dd>'+(s.address?esc(s.address)+' <a class="linka" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図</a>':'未登録')+'</dd>';
     h+='<dt>出動基準</dt><dd class="num">降雪 '+esc(s.threshold||10)+' cm</dd>';
     if(canAdmin)h+='<dt>単価'+admBadge()+'</dt><dd>'+(unitText(s)?'<span class="num">'+esc(unitText(s))+'</span>':'未登録')+'</dd>';
-    h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
+    if(multiL){
+      h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動</dd>';
+      h+='<dt>契約内容</dt><dd>'+sl.map(function(l){
+        var m=l.kind==="other"?null:siteSeasonCountK(s.id,l.kind);
+        return esc(lineLabel(l))+(l.count?' 契約 <span class="num">'+l.count+'回</span>':'')+(m==null?'':' 中 <span class="num">'+m+'回</span> 出動')+(m!=null&&l.count&&m>l.count?' <span class="tag ice">契約回数を超過</span>':'');
+      }).join('<br>')+'</dd>';
+    }else h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
     h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(s.note?esc(s.note):'なし')+'</dd></dl></div>';
     h+=sitePhotoSec(s);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
@@ -1641,19 +1683,20 @@ tbody tr:last-child td{border-bottom:0}
     reports.forEach(function(r){
       if(!r.date||r.date<rg.a||r.date>rg.b)return;
       var k=r.siteId||("n:"+r.siteName);
-      var o=by[k]||(by[k]={id:r.siteId,name:r.siteName||"",n:0,h:0,hai:0,noTime:0});
+      var o=by[k]||(by[k]={id:r.siteId,name:r.siteName||"",n:0,h:0,hai:0,noTime:0,kn:{all:0,joset:0,hai:0},kh:{all:0,joset:0,hai:0}});
       var hr=hoursOf(r);
       o.n++; if(hr==null)o.noTime++; else o.h+=hr;
       if(r.haisetsu)o.hai++;
+      ["all",r.haisetsu?"hai":"joset"].forEach(function(kk){o.kn[kk]++; o.kh[kk]+=(hr==null?0:hr)});
     });
     var tot={n:0,h:0,hai:0,amt:0,noPrice:0,noTime:0};
     Object.keys(by).forEach(function(k){
       var o=by[k], s=o.id?siteById(o.id):null;
       if(s)o.name=s.name;
-      o.area=s?s.area||"":""; var pz=canAdmin&&s?priceOf(s.id):null; o.price=pz&&pz.unitPrice>0?+pz.unitPrice:0; o.unit=pz&&pz.unit==="時間"?"時間":"回"; o.contract=s?(+s.contractCount||0):0;
-      o.amt=o.price?(o.unit==="時間"?o.price*o.h:o.price*o.n):null;
+      o.area=s?s.area||"":""; var sl=s?siteLines(s):[], pl=sl.filter(function(l){return l.unitPrice>0&&l.kind!=="other"}); o.price=pl.length?pl[0].unitPrice:0; o.unit=pl.length?pl[0].unit:"回"; o.contract=sl.reduce(function(a,l){return a+l.count},0);
+      o.amt=pl.length?pl.reduce(function(a,l){return a+l.unitPrice*(l.unit==="時間"?o.kh[l.kind]:o.kn[l.kind])},0):null;
       if(o.amt==null&&canAdmin)tot.noPrice++; else tot.amt+=o.amt;
-      if(o.price&&o.unit==="時間")tot.noTime+=o.noTime;
+      if(pl.some(function(l){return l.unit==="時間"}))tot.noTime+=o.noTime;
       tot.n+=o.n; tot.h+=o.h; tot.hai+=o.hai;
       rows.push(o);
     });
@@ -1866,8 +1909,8 @@ tbody tr:last-child td{border-bottom:0}
     $("dlgTitle").textContent=s?"現場を編集":"現場を追加";
     $("fName").value=s?s.name:""; $("fArea").value=s&&s.area||""; $("fLoc").value=s?s.loc:"";
     $("fTh").value=s&&s.threshold||settings.defaultTh||10; $("fCrew").value=s&&s.crew||""; $("fNote").value=s&&s.note||"";
-    var pz=s?priceOf(s.id):null; $("fPrice").value=pz&&pz.unitPrice>0?pz.unitPrice:""; $("fUnit").value=pz&&pz.unit==="時間"?"時間":"回"; $("fContract").value=s&&s.contractCount>0?s.contractCount:"";
-    $("fStatus").value=s?stOf(s):"standby"; $("fPriceBox").hidden=!canAdmin;
+    fLines=s?siteLines(s).map(function(l){return Object.assign({},l)}):[]; if(!fLines.length)fLines=[{work:"",kind:"all",count:0,unitPrice:0,unit:"回"}]; drawLines();
+    $("fStatus").value=s?stOf(s):"standby";
     var w0=s?wx[s.id]:null; $("fWxState").textContent=!s?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
     $("fDel").hidden=!s; $("fDel").textContent="削除"; $("fErr").textContent="";
     updLocHint();
@@ -1875,14 +1918,45 @@ tbody tr:last-child td{border-bottom:0}
     openSheet("sform"); setTimeout(function(){$("fName").focus()},0);
   }
   function closeDlg(){$("sform").hidden=true;editingId=null;lockBody()}
+  /* ---------- 契約・金額(作業内容ごとの行) ---------- */
+  var fLines=[];
+  function drawLines(){
+    $("fLines").innerHTML=fLines.map(function(l,i){
+      return '<div class="cl" data-i="'+i+'"><label class="wide">作業内容<input data-f="work" list="dlWork" maxlength="30" placeholder="例:除雪" value="'+esc(l.work)+'"></label>'+
+        '<label class="wide">集計の対象<select data-f="kind">'+Object.keys(LKIND).map(function(k){return '<option value="'+k+'"'+(l.kind===k?' selected':'')+'>'+esc(LKIND[k])+'</option>'}).join("")+'</select></label>'+
+        '<label>契約回数<input data-f="count" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="例:10" value="'+(l.count>0?l.count:"")+'"></label>'+
+        (canAdmin?'<label>単価(円)'+admBadge()+'<input data-f="unitPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="例:20000" value="'+(l.unitPrice>0?l.unitPrice:"")+'"></label>'+
+        '<label class="wide">単価の単位'+admBadge()+'<select data-f="unit"><option value="回"'+(l.unit==="時間"?'':' selected')+'>1回あたり</option><option value="時間"'+(l.unit==="時間"?' selected':'')+'>1時間あたり</option></select></label>':'')+
+        (fLines.length>1?'<button type="button" class="btn sm cl-rm" data-lrm="'+i+'">この行を削除</button>':'')+'</div>';
+    }).join("");
+  }
+  function readLines(){
+    Array.prototype.forEach.call($("fLines").querySelectorAll(".cl"),function(el){
+      var l=fLines[+el.dataset.i]; if(!l)return;
+      var g=function(f){var x=el.querySelector('[data-f="'+f+'"]');return x?x.value:null};
+      l.work=String(g("work")||"").trim(); l.kind=g("kind")||"all"; l.count=Math.max(0,parseInt(g("count"),10)||0);
+      if(canAdmin){l.unitPrice=Math.max(0,parseInt(g("unitPrice"),10)||0); l.unit=g("unit")==="時間"?"時間":"回"}
+    });
+  }
+  $("fLineAdd").addEventListener("click",function(){
+    readLines();
+    if(fLines.length===1&&fLines[0].kind==="all")fLines[0].kind="joset";
+    var hasHai=fLines.some(function(l){return l.kind==="hai"});
+    fLines.push({work:hasHai?"":"排雪",kind:hasHai?"other":"hai",count:0,unitPrice:0,unit:"回"});
+    drawLines();
+  });
+  $("fLines").addEventListener("click",function(e){
+    var b=e.target.closest("[data-lrm]"); if(!b)return;
+    readLines(); fLines.splice(+b.dataset.lrm,1); drawLines();
+  });
   $("form").addEventListener("submit",async function(e){
     e.preventDefault();
     if(!db)return;
     var th=parseInt($("fTh").value,10); if(!(th>0))th=10;
-    var pr=parseInt($("fPrice").value,10), ct=parseInt($("fContract").value,10);
+    readLines(); var kept=fLines.filter(function(l){return l.work||l.count>0||l.unitPrice>0}), ls=lineSave(kept);
     var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
-      contractCount:ct>0?ct:0};
-    var priceData={unitPrice:pr>0?pr:0,unit:$("fUnit").value==="時間"?"時間":"回"};
+      lines:ls.site.lines,contractCount:ls.site.contractCount};
+    var priceData=ls.price;
     data.locSrc=data.loc?(data.loc===geoLoc?"city":"manual"):"";
     if(!data.name||(!data.loc&&!areaLoc(data.area))){$("fErr").textContent="現場名と天気を調べる場所を入力してください。場所を空欄にする場合は、代表地点を登録した地区を選んでください。";return}
     $("fSave").disabled=true;
@@ -1894,7 +1968,7 @@ tbody tr:last-child td{border-bottom:0}
         var ref=await db.collection("sites").add(data); sid=ref&&ref.id;
       }
       if(sid&&canAdmin){
-        try{if(priceData.unitPrice>0)await db.doc("prices/"+sid).set(priceData);else if(prices[sid])await db.doc("prices/"+sid).delete()}
+        try{if(priceData)await db.doc("prices/"+sid).set(priceData);else if(prices[sid])await db.doc("prices/"+sid).delete()}
         catch(e3){toast("現場は保存しましたが、単価を保存できませんでした。")}
       }
       if(sid&&canWrite()){var cur=editingId?stOf(siteById(editingId)||{id:sid}):"standby"; var nv=$("fStatus").value; if(nv!==cur||!editingId){try{if(nv!=="standby"||editingId)await db.doc("ops/"+sid).set({status:nv,statusAt:Date.now()})}catch(e4){}}}
@@ -2451,8 +2525,16 @@ tbody tr:last-child td{border-bottom:0}
     var ok=0;
     for(var i=0;i<ids.length;i++){
       try{
-        if(Object.keys(data).length)await db.doc("sites/"+ids[i]).update(data);
-        if(Object.keys(pdata).length&&canAdmin){var old=prices[ids[i]]||{unitPrice:0,unit:"回"};await db.doc("prices/"+ids[i]).set(Object.assign({},old,pdata))}
+        var bs=siteById(ids[i]), hasL=bs&&Array.isArray(bs.lines)&&bs.lines.length;
+        if(hasL&&(data.contractCount!=null||pdata.unitPrice!=null||pdata.unit)){   // 行がある現場は、先頭の行に反映する
+          var bl=siteLines(bs); if(data.contractCount!=null)bl[0].count=data.contractCount; if(canAdmin){if(pdata.unitPrice!=null)bl[0].unitPrice=pdata.unitPrice; if(pdata.unit)bl[0].unit=pdata.unit}
+          var sv=lineSave(bl), d2=Object.assign({},data); d2.lines=sv.site.lines; d2.contractCount=sv.site.contractCount;
+          await db.doc("sites/"+ids[i]).update(d2);
+          if(canAdmin&&(pdata.unitPrice!=null||pdata.unit)){if(sv.price)await db.doc("prices/"+ids[i]).set(sv.price);else if(prices[ids[i]])await db.doc("prices/"+ids[i]).delete()}
+        }else{
+          if(Object.keys(data).length)await db.doc("sites/"+ids[i]).update(data);
+          if(Object.keys(pdata).length&&canAdmin){var old=prices[ids[i]]||{unitPrice:0,unit:"回"};await db.doc("prices/"+ids[i]).set(Object.assign({},old,pdata))}
+        }
         ok++;
       }catch(e){}
     }
@@ -2653,14 +2735,23 @@ tbody tr:last-child td{border-bottom:0}
       var pr=parseInt(g("単価(円)"),10), un=g("単価の単位")==="時間"?"時間":(g("単価の単位")==="回"?"回":"");
       try{
         var ex=byName[norm(name)], sid;
-        if(ex){sid=ex.id; if(Object.keys(d).length)await db.doc("sites/"+sid).update(d); upd++}
+        if(ex){
+          sid=ex.id; var es=siteById(sid), lineSite=es&&Array.isArray(es.lines)&&es.lines.length, lineDone=false;
+          if(lineSite&&(d.contractCount!=null||((pr>=0||un)&&canAdmin))){   // 行がある現場は、先頭の行に反映する
+            var el=siteLines(es); if(d.contractCount!=null)el[0].count=d.contractCount; if(canAdmin){if(pr>=0)el[0].unitPrice=pr; if(un)el[0].unit=un}
+            var sv=lineSave(el); d.lines=sv.site.lines; d.contractCount=sv.site.contractCount;
+            if(canAdmin){if(sv.price)await db.doc("prices/"+sid).set(sv.price);else if(prices[sid])await db.doc("prices/"+sid).delete()}
+            lineDone=true;
+          }
+          if(Object.keys(d).length)await db.doc("sites/"+sid).update(d); upd++;
+        }
         else{
           var nd=Object.assign({name:name,area:"",address:"",loc:"",crew:"",note:"",threshold:settings.defaultTh||10,contractCount:0,createdAt:Date.now()+r},d);
           if(!nd.loc&&nd.address){var gg=geoFromAddress(nd.address);if(gg){nd.loc=gg.loc;nd.locSrc="city"}}
           var ref=await db.collection("sites").add(nd); sid=ref&&ref.id; add++;
           byName[norm(name)]={id:sid,name:name};
         }
-        if(sid&&canAdmin&&(pr>=0||un)){var old=prices[sid]||{unitPrice:0,unit:"回"};await db.doc("prices/"+sid).set({unitPrice:pr>=0?pr:old.unitPrice,unit:un||old.unit})}
+        if(sid&&canAdmin&&(pr>=0||un)&&!(ex&&lineDone)){var old=prices[sid]||{unitPrice:0,unit:"回"};await db.doc("prices/"+sid).set({unitPrice:pr>=0?pr:old.unitPrice,unit:un||old.unit})}
       }catch(err){skip++}
     }
     $("csvIn").disabled=false;

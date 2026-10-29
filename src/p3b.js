@@ -293,7 +293,14 @@
   }
   var LOCK='<svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
   function admBadge(){return '<span class="adm-badge">'+LOCK+'管理者のみ</span>'}
-  function unitText(s){var p=canAdmin?priceOf(s.id):null;return p&&p.unitPrice>0?(yen(p.unitPrice)+" / "+(p.unit==="時間"?"時間":"回")):""}
+  function unitText(s){
+    var ls=siteLines(s).filter(function(l){return l.unitPrice>0}), multi=siteLines(s).length>1;
+    return ls.map(function(l){return (multi?lineLabel(l)+" ":"")+yen(l.unitPrice)+" / "+(l.unit==="時間"?"時間":"回")}).join(" ・ ");
+  }
+  function siteSeasonCountK(id,kind){
+    var sy=seasonOf(todayStr()), r=seasonRange(sy);
+    return reports.filter(function(x){return x.siteId===id&&x.date>=r[0]&&x.date<=r[1]&&lineMatch(kind,x)}).length;
+  }
   function detailHtml(s){
     var a=assess(s), w=wx[s.id], id=esc(s.id), h="";
     var bad=wxState(s);
@@ -307,12 +314,18 @@
     h+='</div>';
     h+='<div class="sec"><h2>作業状況</h2><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s);
     h+='<div class="row2" style="margin-top:12px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div>';
-    var n=siteSeasonCount(s.id), cc=+s.contractCount||0;
+    var n=siteSeasonCount(s.id), sl=siteLines(s), cc=sl.reduce(function(a,l){return a+l.count},0), multiL=sl.length>1||(sl.length===1&&sl[0].kind!=="all");
     h+='<div class="sec"><h2>現場の情報</h2></div><div class="card2"><dl class="dl">';
     h+='<dt>住所</dt><dd>'+(s.address?esc(s.address)+' <a class="linka" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図</a>':'未登録')+'</dd>';
     h+='<dt>出動基準</dt><dd class="num">降雪 '+esc(s.threshold||10)+' cm</dd>';
     if(canAdmin)h+='<dt>単価'+admBadge()+'</dt><dd>'+(unitText(s)?'<span class="num">'+esc(unitText(s))+'</span>':'未登録')+'</dd>';
-    h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
+    if(multiL){
+      h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動</dd>';
+      h+='<dt>契約内容</dt><dd>'+sl.map(function(l){
+        var m=l.kind==="other"?null:siteSeasonCountK(s.id,l.kind);
+        return esc(lineLabel(l))+(l.count?' 契約 <span class="num">'+l.count+'回</span>':'')+(m==null?'':' 中 <span class="num">'+m+'回</span> 出動')+(m!=null&&l.count&&m>l.count?' <span class="tag ice">契約回数を超過</span>':'');
+      }).join('<br>')+'</dd>';
+    }else h+='<dt>今シーズン</dt><dd><span class="num">'+n+'回</span> 出動'+(cc?' / 契約 <span class="num">'+cc+'回</span>'+(n>cc?' <span class="tag ice">契約回数を超過</span>':''):'')+'</dd>';
     h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(s.note?esc(s.note):'なし')+'</dd></dl></div>';
     h+=sitePhotoSec(s);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));

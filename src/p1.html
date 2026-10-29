@@ -108,6 +108,11 @@ input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
 .banner{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.92rem}
 
 /* site card */
+.cl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);margin-top:8px}
+.cl label{display:block;font-size:.82rem;font-weight:700}
+.cl .wide{grid-column:1/-1}
+.cl input,.cl select{width:100%;margin-top:2px}
+.cl .cl-rm{grid-column:1/-1;justify-self:end}
 .mvb{display:flex;gap:6px;justify-content:flex-end;grid-column:1/-1}
 .sc>.mvb{padding:0 10px 10px}
 .mvb button{width:36px;height:36px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer}

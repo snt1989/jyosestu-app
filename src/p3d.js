@@ -162,8 +162,8 @@
     $("dlgTitle").textContent=s?"現場を編集":"現場を追加";
     $("fName").value=s?s.name:""; $("fArea").value=s&&s.area||""; $("fLoc").value=s?s.loc:"";
     $("fTh").value=s&&s.threshold||settings.defaultTh||10; $("fCrew").value=s&&s.crew||""; $("fNote").value=s&&s.note||"";
-    var pz=s?priceOf(s.id):null; $("fPrice").value=pz&&pz.unitPrice>0?pz.unitPrice:""; $("fUnit").value=pz&&pz.unit==="時間"?"時間":"回"; $("fContract").value=s&&s.contractCount>0?s.contractCount:"";
-    $("fStatus").value=s?stOf(s):"standby"; $("fPriceBox").hidden=!canAdmin;
+    fLines=s?siteLines(s).map(function(l){return Object.assign({},l)}):[]; if(!fLines.length)fLines=[{work:"",kind:"all",count:0,unitPrice:0,unit:"回"}]; drawLines();
+    $("fStatus").value=s?stOf(s):"standby";
     var w0=s?wx[s.id]:null; $("fWxState").textContent=!s?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
     $("fDel").hidden=!s; $("fDel").textContent="削除"; $("fErr").textContent="";
     updLocHint();
@@ -171,14 +171,45 @@
     openSheet("sform"); setTimeout(function(){$("fName").focus()},0);
   }
   function closeDlg(){$("sform").hidden=true;editingId=null;lockBody()}
+  /* ---------- 契約・金額(作業内容ごとの行) ---------- */
+  var fLines=[];
+  function drawLines(){
+    $("fLines").innerHTML=fLines.map(function(l,i){
+      return '<div class="cl" data-i="'+i+'"><label class="wide">作業内容<input data-f="work" list="dlWork" maxlength="30" placeholder="例:除雪" value="'+esc(l.work)+'"></label>'+
+        '<label class="wide">集計の対象<select data-f="kind">'+Object.keys(LKIND).map(function(k){return '<option value="'+k+'"'+(l.kind===k?' selected':'')+'>'+esc(LKIND[k])+'</option>'}).join("")+'</select></label>'+
+        '<label>契約回数<input data-f="count" type="number" min="0" max="200" step="1" inputmode="numeric" placeholder="例:10" value="'+(l.count>0?l.count:"")+'"></label>'+
+        (canAdmin?'<label>単価(円)'+admBadge()+'<input data-f="unitPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="例:20000" value="'+(l.unitPrice>0?l.unitPrice:"")+'"></label>'+
+        '<label class="wide">単価の単位'+admBadge()+'<select data-f="unit"><option value="回"'+(l.unit==="時間"?'':' selected')+'>1回あたり</option><option value="時間"'+(l.unit==="時間"?' selected':'')+'>1時間あたり</option></select></label>':'')+
+        (fLines.length>1?'<button type="button" class="btn sm cl-rm" data-lrm="'+i+'">この行を削除</button>':'')+'</div>';
+    }).join("");
+  }
+  function readLines(){
+    Array.prototype.forEach.call($("fLines").querySelectorAll(".cl"),function(el){
+      var l=fLines[+el.dataset.i]; if(!l)return;
+      var g=function(f){var x=el.querySelector('[data-f="'+f+'"]');return x?x.value:null};
+      l.work=String(g("work")||"").trim(); l.kind=g("kind")||"all"; l.count=Math.max(0,parseInt(g("count"),10)||0);
+      if(canAdmin){l.unitPrice=Math.max(0,parseInt(g("unitPrice"),10)||0); l.unit=g("unit")==="時間"?"時間":"回"}
+    });
+  }
+  $("fLineAdd").addEventListener("click",function(){
+    readLines();
+    if(fLines.length===1&&fLines[0].kind==="all")fLines[0].kind="joset";
+    var hasHai=fLines.some(function(l){return l.kind==="hai"});
+    fLines.push({work:hasHai?"":"排雪",kind:hasHai?"other":"hai",count:0,unitPrice:0,unit:"回"});
+    drawLines();
+  });
+  $("fLines").addEventListener("click",function(e){
+    var b=e.target.closest("[data-lrm]"); if(!b)return;
+    readLines(); fLines.splice(+b.dataset.lrm,1); drawLines();
+  });
   $("form").addEventListener("submit",async function(e){
     e.preventDefault();
     if(!db)return;
     var th=parseInt($("fTh").value,10); if(!(th>0))th=10;
-    var pr=parseInt($("fPrice").value,10), ct=parseInt($("fContract").value,10);
+    readLines(); var kept=fLines.filter(function(l){return l.work||l.count>0||l.unitPrice>0}), ls=lineSave(kept);
     var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
-      contractCount:ct>0?ct:0};
-    var priceData={unitPrice:pr>0?pr:0,unit:$("fUnit").value==="時間"?"時間":"回"};
+      lines:ls.site.lines,contractCount:ls.site.contractCount};
+    var priceData=ls.price;
     data.locSrc=data.loc?(data.loc===geoLoc?"city":"manual"):"";
     if(!data.name||(!data.loc&&!areaLoc(data.area))){$("fErr").textContent="現場名と天気を調べる場所を入力してください。場所を空欄にする場合は、代表地点を登録した地区を選んでください。";return}
     $("fSave").disabled=true;
@@ -190,7 +221,7 @@
         var ref=await db.collection("sites").add(data); sid=ref&&ref.id;
       }
       if(sid&&canAdmin){
-        try{if(priceData.unitPrice>0)await db.doc("prices/"+sid).set(priceData);else if(prices[sid])await db.doc("prices/"+sid).delete()}
+        try{if(priceData)await db.doc("prices/"+sid).set(priceData);else if(prices[sid])await db.doc("prices/"+sid).delete()}
         catch(e3){toast("現場は保存しましたが、単価を保存できませんでした。")}
       }
       if(sid&&canWrite()){var cur=editingId?stOf(siteById(editingId)||{id:sid}):"standby"; var nv=$("fStatus").value; if(nv!==cur||!editingId){try{if(nv!=="standby"||editingId)await db.doc("ops/"+sid).set({status:nv,statusAt:Date.now()})}catch(e4){}}}
@@ -747,8 +778,16 @@
     var ok=0;
     for(var i=0;i<ids.length;i++){
       try{
-        if(Object.keys(data).length)await db.doc("sites/"+ids[i]).update(data);
-        if(Object.keys(pdata).length&&canAdmin){var old=prices[ids[i]]||{unitPrice:0,unit:"回"};await db.doc("prices/"+ids[i]).set(Object.assign({},old,pdata))}
+        var bs=siteById(ids[i]), hasL=bs&&Array.isArray(bs.lines)&&bs.lines.length;
+        if(hasL&&(data.contractCount!=null||pdata.unitPrice!=null||pdata.unit)){   // 行がある現場は、先頭の行に反映する
+          var bl=siteLines(bs); if(data.contractCount!=null)bl[0].count=data.contractCount; if(canAdmin){if(pdata.unitPrice!=null)bl[0].unitPrice=pdata.unitPrice; if(pdata.unit)bl[0].unit=pdata.unit}
+          var sv=lineSave(bl), d2=Object.assign({},data); d2.lines=sv.site.lines; d2.contractCount=sv.site.contractCount;
+          await db.doc("sites/"+ids[i]).update(d2);
+          if(canAdmin&&(pdata.unitPrice!=null||pdata.unit)){if(sv.price)await db.doc("prices/"+ids[i]).set(sv.price);else if(prices[ids[i]])await db.doc("prices/"+ids[i]).delete()}
+        }else{
+          if(Object.keys(data).length)await db.doc("sites/"+ids[i]).update(data);
+          if(Object.keys(pdata).length&&canAdmin){var old=prices[ids[i]]||{unitPrice:0,unit:"回"};await db.doc("prices/"+ids[i]).set(Object.assign({},old,pdata))}
+        }
         ok++;
       }catch(e){}
     }
@@ -949,14 +988,23 @@
       var pr=parseInt(g("単価(円)"),10), un=g("単価の単位")==="時間"?"時間":(g("単価の単位")==="回"?"回":"");
       try{
         var ex=byName[norm(name)], sid;
-        if(ex){sid=ex.id; if(Object.keys(d).length)await db.doc("sites/"+sid).update(d); upd++}
+        if(ex){
+          sid=ex.id; var es=siteById(sid), lineSite=es&&Array.isArray(es.lines)&&es.lines.length, lineDone=false;
+          if(lineSite&&(d.contractCount!=null||((pr>=0||un)&&canAdmin))){   // 行がある現場は、先頭の行に反映する
+            var el=siteLines(es); if(d.contractCount!=null)el[0].count=d.contractCount; if(canAdmin){if(pr>=0)el[0].unitPrice=pr; if(un)el[0].unit=un}
+            var sv=lineSave(el); d.lines=sv.site.lines; d.contractCount=sv.site.contractCount;
+            if(canAdmin){if(sv.price)await db.doc("prices/"+sid).set(sv.price);else if(prices[sid])await db.doc("prices/"+sid).delete()}
+            lineDone=true;
+          }
+          if(Object.keys(d).length)await db.doc("sites/"+sid).update(d); upd++;
+        }
         else{
           var nd=Object.assign({name:name,area:"",address:"",loc:"",crew:"",note:"",threshold:settings.defaultTh||10,contractCount:0,createdAt:Date.now()+r},d);
           if(!nd.loc&&nd.address){var gg=geoFromAddress(nd.address);if(gg){nd.loc=gg.loc;nd.locSrc="city"}}
           var ref=await db.collection("sites").add(nd); sid=ref&&ref.id; add++;
           byName[norm(name)]={id:sid,name:name};
         }
-        if(sid&&canAdmin&&(pr>=0||un)){var old=prices[sid]||{unitPrice:0,unit:"回"};await db.doc("prices/"+sid).set({unitPrice:pr>=0?pr:old.unitPrice,unit:un||old.unit})}
+        if(sid&&canAdmin&&(pr>=0||un)&&!(ex&&lineDone)){var old=prices[sid]||{unitPrice:0,unit:"回"};await db.doc("prices/"+sid).set({unitPrice:pr>=0?pr:old.unitPrice,unit:un||old.unit})}
       }catch(err){skip++}
     }
     $("csvIn").disabled=false;
