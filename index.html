@@ -432,6 +432,11 @@ tbody tr:last-child td{border-bottom:0}
   .page{padding:22px 26px}
 }
 @media (prefers-reduced-motion: no-preference){.fill{transition:width .4s}}
+@media (max-width:640px){
+  #v-sites .bar .r{grid-template-columns:1fr!important}
+  #admTools .fields{grid-template-columns:1fr}
+  #v-sites .bar select,#admTools select{text-overflow:clip}
+}
 </style>
 </head><body>
 
