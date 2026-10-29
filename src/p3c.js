@@ -181,6 +181,89 @@
     el.innerHTML=h;
   }
 
+  /* ---------- 全体マップ ---------- */
+  var SM={map:null,layer:null,vsig:"",fsig:"",loading:null,me:null,pins:[]};
+  var LEAF="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/";
+  function parseLL(s){var m=/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(String(s||""));if(!m)return null;var a=+m[1],b=+m[2];return Math.abs(a)<=90&&Math.abs(b)<=180?[a,b]:null}
+  function loadLeaflet(){
+    if(window.L&&window.L.map)return Promise.resolve();
+    if(SM.loading)return SM.loading;
+    SM.loading=new Promise(function(res,rej){
+      var l=document.createElement("link"); l.rel="stylesheet"; l.href=LEAF+"leaflet.min.css"; document.head.appendChild(l);
+      var sc=document.createElement("script"); sc.src=LEAF+"leaflet.min.js";
+      sc.onload=function(){window.L&&window.L.map?res():(SM.loading=null,rej(new Error("leaflet")))};
+      sc.onerror=function(){SM.loading=null;rej(new Error("load"))};
+      document.head.appendChild(sc);
+    });
+    return SM.loading;
+  }
+  var MPC={3:"#C1443C",2:"#D79A1B",1:"#1E8449",0:"#7B8794"};
+  function pinIcon(p){
+    var out=stOf(p.s)==="out", lv=p.a.lv;
+    return L.divIcon({className:"mpin-w",iconSize:[30,40],iconAnchor:[15,38],popupAnchor:[0,-34],
+      html:'<div class="mpin l'+lv+(out?' out':'')+'"><i></i><span class="pl">'+esc(p.s.name)+'</span></div>'});
+  }
+  function pinPopup(p){
+    var s=p.s, a=p.a, st=stOf(s);
+    return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</div>'+
+      '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
+      (a.lv>0?'<div>降雪目安 <b>約'+fmt(a.snow2,0)+'cm</b> / 基準'+esc(s.threshold||10)+'cm</div>':'')+
+      (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
+      '<button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button></div>';
+  }
+  function mapFit(){
+    if(!SM.map||!SM.pins.length)return;
+    if(SM.pins.length===1)SM.map.setView(SM.pins[0].ll,14);
+    else SM.map.fitBounds(L.latLngBounds(SM.pins.map(function(p){return p.ll})),{padding:[44,44],maxZoom:15});
+  }
+  function mapLbl(){if(SM.map)$("siteMap").classList.toggle("z-lbl",SM.map.getZoom()>=12)}
+  function renderSiteMap(items){
+    var pins=[], un=[];
+    items.forEach(function(x){var ll=parseLL(effLoc(x.s)); if(ll)pins.push({s:x.s,a:x.a,ll:ll}); else un.push(x.s)});
+    SM.pins=pins;
+    var cnt={3:0,2:0,1:0,0:0}; pins.forEach(function(p){cnt[p.a.lv]++});
+    $("mpLeg").innerHTML=[[3,"出動目安"],[2,"警戒"],[1,"平常"],[0,"未取得"]].map(function(g){return '<span class="lg"><i style="background:'+MPC[g[0]]+'"></i>'+g[1]+' <b class="num">'+cnt[g[0]]+'</b></span>'}).join("")+'<span class="lg"><i class="ring"></i>出動中</span>';
+    $("mpUn").innerHTML=un.length?'<div class="mp-un"><b>地図に出せない現場('+un.length+'件)</b>:'+un.map(function(s){return esc(s.name)}).join("、")+'<div class="muted">「設定」の現場編集で、天気を調べる場所(位置)を登録すると表示されます。</div></div>':'';
+    var vsig=pins.map(function(p){return [p.s.id,p.ll.join(),p.a.lv,p.a.label,stOf(p.s),p.s.name,p.a.snow2].join("~")}).join("|");
+    if(SM.map&&vsig===SM.vsig){SM.map.invalidateSize();return}
+    $("mpMsg").textContent=SM.map?"":"地図を読み込み中…";
+    loadLeaflet().then(function(){
+      if(layout!=="map")return;
+      if(!SM.map){
+        SM.map=L.map("siteMap",{zoomControl:true,worldCopyJump:false}).setView([39.7,141.15],10);
+        L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",{maxZoom:18,attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'}).addTo(SM.map);
+        SM.layer=L.layerGroup().addTo(SM.map);
+        SM.map.on("zoomend",mapLbl);
+        SM.map.on("popupopen",function(e){var el=e.popup.getElement(), b=el&&el.querySelector("[data-mopen]"); if(b)b.addEventListener("click",function(){SM.map.closePopup();openDetail(b.dataset.mopen)})});
+      }
+      SM.map.invalidateSize();
+      SM.layer.clearLayers();
+      SM.pins.forEach(function(p){
+        L.marker(p.ll,{icon:pinIcon(p),title:p.s.name,riseOnHover:true,zIndexOffset:p.a.lv*100+(stOf(p.s)==="out"?1000:0)}).bindPopup(pinPopup(p),{maxWidth:260}).addTo(SM.layer);
+      });
+      SM.vsig=vsig;
+      var fsig=SM.pins.map(function(p){return p.s.id}).join("|");
+      if(fsig!==SM.fsig){SM.fsig=fsig;mapFit()}
+      mapLbl(); $("mpMsg").textContent="";
+    }).catch(function(){
+      $("mpMsg").textContent="";
+      $("siteMap").innerHTML='<div class="empty" style="margin:12px"><b>地図を読み込めませんでした</b>通信状態を確かめて、もう一度お試しください。</div>';
+      SM.map=null;
+    });
+  }
+  $("mpFit").addEventListener("click",function(){mapFit()});
+  $("mpMe").addEventListener("click",function(){
+    if(!SM.map)return;
+    if(!navigator.geolocation){$("mpMsg").textContent="この端末では現在地を取得できません。";return}
+    $("mpMsg").textContent="現在地を調べています…";
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var ll=[pos.coords.latitude,pos.coords.longitude];
+      if(SM.me)SM.me.remove();
+      SM.me=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#2F6FA8",fillOpacity:1}).addTo(SM.map);
+      SM.map.setView(ll,Math.max(SM.map.getZoom(),13)); $("mpMsg").textContent="";
+    },function(){$("mpMsg").textContent="現在地を取得できませんでした。位置情報の許可をご確認ください。"},{enableHighAccuracy:true,timeout:10000});
+  });
+
   /* ---------- 機械・備品の稼働ボード ---------- */
   function mchRuns(m,day){
     // その機械を使った日報(日付が一致するもの)

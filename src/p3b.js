@@ -205,6 +205,7 @@
       '<button type="button" class="tile" data-nav="sites" data-f="out"><span class="n">'+out+'</span><span class="l">出動中</span></button>'+
       '<button type="button" class="tile" data-nav="reports"><span class="n">'+todayReps.length+'</span><span class="l">本日の日報</span></button></div>';
     h+=whoHtml();
+    h+='<button class="btn mp-home" type="button" data-act="openmap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>全体マップで現場を見る</button>';
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
     h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return siteCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
@@ -315,6 +316,8 @@
     if(sortK==="prio")prioritySort(shown); else flatSort(shown);
     $("siteCount").textContent=shown.length+"件を表示";
     $("banner").innerHTML=banners();
+    var mapOn=layout==="map"; $("siteMapBox").hidden=!mapOn;
+    if(mapOn){$("siteList").innerHTML="";renderSiteMap(shown);return}
     if(!sites.length){
       $("siteList").innerHTML='<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"現場がまだ登録されていません")+'</b>'+(dbState==="loading"?"":(canAdmin?"「設定」の「現場を追加」から、現場名と天気を調べる場所を登録してください。":"登録された現場がここに表示されます。"))+'</div>';
     }else if(!shown.length){

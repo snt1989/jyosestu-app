@@ -650,4 +650,32 @@ tbody tr:last-child td{border-bottom:0}
   .rd-s{grid-template-columns:repeat(4,1fr)!important}
   .rd-p{grid-template-columns:repeat(3,1fr)!important}
 }
+
+/* ---- 全体マップ ---- */
+#layoutT{grid-template-columns:repeat(3,auto)}
+#layoutT button{padding:8px 10px;white-space:nowrap}
+#siteMap{height:min(64vh,560px);min-height:340px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#e8eef0;z-index:0}
+@media (min-width:900px){#siteMap{height:min(70vh,680px)}}
+.mp-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.mp-leg{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:.88rem;margin-bottom:8px}
+.mp-leg .lg{display:inline-flex;align-items:center;gap:6px}
+.mp-leg i{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px #999}
+.mp-leg i.ring{background:#fff;box-shadow:none;border:3px solid var(--ok)}
+.mp-un{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-size:.9rem;line-height:1.6}
+.mp-un .muted{color:var(--warn);opacity:.85;margin-top:2px}
+.mp-home{width:100%;margin-top:12px;justify-content:center;gap:8px;min-height:48px;font-weight:700}
+.mpin-w{background:none;border:0}
+.mpin{position:relative;width:30px;height:40px}
+.mpin i{position:absolute;left:1px;top:0;display:block;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#7B8794;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);box-sizing:border-box}
+.mpin i::after{content:"";position:absolute;left:7px;top:7px;width:10px;height:10px;border-radius:50%;background:#fff}
+.mpin.l3 i{background:#C1443C}.mpin.l2 i{background:#D79A1B}.mpin.l1 i{background:#1E8449}
+.mpin .pl{position:absolute;left:50%;top:41px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;line-height:1.3;color:#111;background:rgba(255,255,255,.92);padding:1px 6px;border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,.3);display:none;pointer-events:none}
+.z-lbl .mpin .pl,.mpin.l3 .pl,.mpin.out .pl{display:block}
+.mpin.out::before{content:"";position:absolute;left:-6px;top:-6px;width:42px;height:42px;border-radius:50%;border:3px solid var(--ok);box-sizing:border-box;animation:mpp 1.6s ease-out infinite}
+@keyframes mpp{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.25);opacity:0}}
+@media (prefers-reduced-motion:reduce){.mpin.out::before{animation:none}}
+.mpp{display:flex;flex-direction:column;gap:6px;min-width:180px;font-size:.9rem;line-height:1.5}
+.mpp b{font-size:1rem}
+.mpp-r{display:flex;gap:6px;align-items:center}
+.mpp .btn{margin-top:2px}
 </style>

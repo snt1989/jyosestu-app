@@ -66,7 +66,8 @@
     if(e.target.closest("select"))return;
     var t=e.target.closest("[data-act],[data-nav],[data-filter],[data-layout]"); if(!t||t.disabled)return;
     var d=t.dataset;
-    if(d.layout){layout=d.layout;try{localStorage.setItem("josetsu.layout2",layout)}catch(e2){}render();return}
+    if(d.layout){layout=d.layout;if(layout!=="map"){try{localStorage.setItem("josetsu.layout2",layout)}catch(e2){}}render();return}
+    if(d.act==="openmap"){layout="map";goto("sites");return}
     if(d.nav){goto(d.nav,d.f);return}
     if(d.filter){filter=d.filter;render();return}
     var act=d.act, id=d.id, s=id?siteById(id):null;

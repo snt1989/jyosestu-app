@@ -656,6 +656,34 @@ tbody tr:last-child td{border-bottom:0}
   .rd-s{grid-template-columns:repeat(4,1fr)!important}
   .rd-p{grid-template-columns:repeat(3,1fr)!important}
 }
+
+/* ---- 全体マップ ---- */
+#layoutT{grid-template-columns:repeat(3,auto)}
+#layoutT button{padding:8px 10px;white-space:nowrap}
+#siteMap{height:min(64vh,560px);min-height:340px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#e8eef0;z-index:0}
+@media (min-width:900px){#siteMap{height:min(70vh,680px)}}
+.mp-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.mp-leg{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:.88rem;margin-bottom:8px}
+.mp-leg .lg{display:inline-flex;align-items:center;gap:6px}
+.mp-leg i{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px #999}
+.mp-leg i.ring{background:#fff;box-shadow:none;border:3px solid var(--ok)}
+.mp-un{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-size:.9rem;line-height:1.6}
+.mp-un .muted{color:var(--warn);opacity:.85;margin-top:2px}
+.mp-home{width:100%;margin-top:12px;justify-content:center;gap:8px;min-height:48px;font-weight:700}
+.mpin-w{background:none;border:0}
+.mpin{position:relative;width:30px;height:40px}
+.mpin i{position:absolute;left:1px;top:0;display:block;width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#7B8794;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);box-sizing:border-box}
+.mpin i::after{content:"";position:absolute;left:7px;top:7px;width:10px;height:10px;border-radius:50%;background:#fff}
+.mpin.l3 i{background:#C1443C}.mpin.l2 i{background:#D79A1B}.mpin.l1 i{background:#1E8449}
+.mpin .pl{position:absolute;left:50%;top:41px;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;line-height:1.3;color:#111;background:rgba(255,255,255,.92);padding:1px 6px;border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,.3);display:none;pointer-events:none}
+.z-lbl .mpin .pl,.mpin.l3 .pl,.mpin.out .pl{display:block}
+.mpin.out::before{content:"";position:absolute;left:-6px;top:-6px;width:42px;height:42px;border-radius:50%;border:3px solid var(--ok);box-sizing:border-box;animation:mpp 1.6s ease-out infinite}
+@keyframes mpp{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.25);opacity:0}}
+@media (prefers-reduced-motion:reduce){.mpin.out::before{animation:none}}
+.mpp{display:flex;flex-direction:column;gap:6px;min-width:180px;font-size:.9rem;line-height:1.5}
+.mpp b{font-size:1rem}
+.mpp-r{display:flex;gap:6px;align-items:center}
+.mpp .btn{margin-top:2px}
 </style>
 </head><body>
 
@@ -698,9 +726,15 @@ tbody tr:last-child td{border-bottom:0}
       <button type="button" class="btn sm" id="sortDir" aria-label="昇順・降順の切り替え">昇順 ↑</button>
       <button type="button" class="btn sm" id="siteReset">条件をクリア</button>
     </div></div>
-    <div class="row2" style="justify-content:space-between;margin-bottom:6px"><span class="muted" id="siteCount"></span><div class="vt vt-sm" id="layoutT" role="group" aria-label="表示の切り替え"><button type="button" data-layout="row" aria-pressed="true">一覧表示</button><button type="button" data-layout="card" aria-pressed="false">カード表示</button></div></div>
+    <div class="row2" style="justify-content:space-between;margin-bottom:6px"><span class="muted" id="siteCount"></span><div class="vt vt-sm" id="layoutT" role="group" aria-label="表示の切り替え"><button type="button" data-layout="row" aria-pressed="true">一覧表示</button><button type="button" data-layout="card" aria-pressed="false">カード表示</button><button type="button" data-layout="map" aria-pressed="false">マップ</button></div></div>
     <div class="chips" id="siteChips" role="group" aria-label="状態で絞り込み"></div>
     <div id="banner"></div>
+    <div id="siteMapBox" hidden>
+      <div id="siteMap" role="region" aria-label="現場の全体マップ"></div>
+      <div class="mp-bar"><button class="btn sm" type="button" id="mpFit">全体を表示</button><button class="btn sm" type="button" id="mpMe">現在地</button><span class="muted" id="mpMsg" role="status"></span></div>
+      <div class="mp-leg" id="mpLeg"></div>
+      <div id="mpUn"></div>
+    </div>
     <div id="siteList"></div>
     <p class="legend">出動目安は、今後2日間の予報降水量と最低気温から計算した降雪量の目安(降水1mm≒雪1cm前後)が、現場ごとの出動基準を超えたとき、または警報・注意報が出ていて降雪が見込まれるときに表示します。実際の積雪量ではないため、出動の最終判断は現地の状況を見て行ってください。最低気温が設定した温度以下の予報は凍結注意として表示します。</p>
   </section>
@@ -1513,6 +1547,7 @@ tbody tr:last-child td{border-bottom:0}
       '<button type="button" class="tile" data-nav="sites" data-f="out"><span class="n">'+out+'</span><span class="l">出動中</span></button>'+
       '<button type="button" class="tile" data-nav="reports"><span class="n">'+todayReps.length+'</span><span class="l">本日の日報</span></button></div>';
     h+=whoHtml();
+    h+='<button class="btn mp-home" type="button" data-act="openmap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>全体マップで現場を見る</button>';
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
     h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return siteCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
@@ -1623,6 +1658,8 @@ tbody tr:last-child td{border-bottom:0}
     if(sortK==="prio")prioritySort(shown); else flatSort(shown);
     $("siteCount").textContent=shown.length+"件を表示";
     $("banner").innerHTML=banners();
+    var mapOn=layout==="map"; $("siteMapBox").hidden=!mapOn;
+    if(mapOn){$("siteList").innerHTML="";renderSiteMap(shown);return}
     if(!sites.length){
       $("siteList").innerHTML='<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"現場がまだ登録されていません")+'</b>'+(dbState==="loading"?"":(canAdmin?"「設定」の「現場を追加」から、現場名と天気を調べる場所を登録してください。":"登録された現場がここに表示されます。"))+'</div>';
     }else if(!shown.length){
@@ -1961,6 +1998,89 @@ tbody tr:last-child td{border-bottom:0}
     h+='<div class="rd-f">'+(rpt.by?'作成者: '+esc(rpt.by):'')+'</div></article>';
     el.innerHTML=h;
   }
+
+  /* ---------- 全体マップ ---------- */
+  var SM={map:null,layer:null,vsig:"",fsig:"",loading:null,me:null,pins:[]};
+  var LEAF="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/";
+  function parseLL(s){var m=/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(String(s||""));if(!m)return null;var a=+m[1],b=+m[2];return Math.abs(a)<=90&&Math.abs(b)<=180?[a,b]:null}
+  function loadLeaflet(){
+    if(window.L&&window.L.map)return Promise.resolve();
+    if(SM.loading)return SM.loading;
+    SM.loading=new Promise(function(res,rej){
+      var l=document.createElement("link"); l.rel="stylesheet"; l.href=LEAF+"leaflet.min.css"; document.head.appendChild(l);
+      var sc=document.createElement("script"); sc.src=LEAF+"leaflet.min.js";
+      sc.onload=function(){window.L&&window.L.map?res():(SM.loading=null,rej(new Error("leaflet")))};
+      sc.onerror=function(){SM.loading=null;rej(new Error("load"))};
+      document.head.appendChild(sc);
+    });
+    return SM.loading;
+  }
+  var MPC={3:"#C1443C",2:"#D79A1B",1:"#1E8449",0:"#7B8794"};
+  function pinIcon(p){
+    var out=stOf(p.s)==="out", lv=p.a.lv;
+    return L.divIcon({className:"mpin-w",iconSize:[30,40],iconAnchor:[15,38],popupAnchor:[0,-34],
+      html:'<div class="mpin l'+lv+(out?' out':'')+'"><i></i><span class="pl">'+esc(p.s.name)+'</span></div>'});
+  }
+  function pinPopup(p){
+    var s=p.s, a=p.a, st=stOf(s);
+    return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</div>'+
+      '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
+      (a.lv>0?'<div>降雪目安 <b>約'+fmt(a.snow2,0)+'cm</b> / 基準'+esc(s.threshold||10)+'cm</div>':'')+
+      (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
+      '<button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button></div>';
+  }
+  function mapFit(){
+    if(!SM.map||!SM.pins.length)return;
+    if(SM.pins.length===1)SM.map.setView(SM.pins[0].ll,14);
+    else SM.map.fitBounds(L.latLngBounds(SM.pins.map(function(p){return p.ll})),{padding:[44,44],maxZoom:15});
+  }
+  function mapLbl(){if(SM.map)$("siteMap").classList.toggle("z-lbl",SM.map.getZoom()>=12)}
+  function renderSiteMap(items){
+    var pins=[], un=[];
+    items.forEach(function(x){var ll=parseLL(effLoc(x.s)); if(ll)pins.push({s:x.s,a:x.a,ll:ll}); else un.push(x.s)});
+    SM.pins=pins;
+    var cnt={3:0,2:0,1:0,0:0}; pins.forEach(function(p){cnt[p.a.lv]++});
+    $("mpLeg").innerHTML=[[3,"出動目安"],[2,"警戒"],[1,"平常"],[0,"未取得"]].map(function(g){return '<span class="lg"><i style="background:'+MPC[g[0]]+'"></i>'+g[1]+' <b class="num">'+cnt[g[0]]+'</b></span>'}).join("")+'<span class="lg"><i class="ring"></i>出動中</span>';
+    $("mpUn").innerHTML=un.length?'<div class="mp-un"><b>地図に出せない現場('+un.length+'件)</b>:'+un.map(function(s){return esc(s.name)}).join("、")+'<div class="muted">「設定」の現場編集で、天気を調べる場所(位置)を登録すると表示されます。</div></div>':'';
+    var vsig=pins.map(function(p){return [p.s.id,p.ll.join(),p.a.lv,p.a.label,stOf(p.s),p.s.name,p.a.snow2].join("~")}).join("|");
+    if(SM.map&&vsig===SM.vsig){SM.map.invalidateSize();return}
+    $("mpMsg").textContent=SM.map?"":"地図を読み込み中…";
+    loadLeaflet().then(function(){
+      if(layout!=="map")return;
+      if(!SM.map){
+        SM.map=L.map("siteMap",{zoomControl:true,worldCopyJump:false}).setView([39.7,141.15],10);
+        L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",{maxZoom:18,attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>'}).addTo(SM.map);
+        SM.layer=L.layerGroup().addTo(SM.map);
+        SM.map.on("zoomend",mapLbl);
+        SM.map.on("popupopen",function(e){var el=e.popup.getElement(), b=el&&el.querySelector("[data-mopen]"); if(b)b.addEventListener("click",function(){SM.map.closePopup();openDetail(b.dataset.mopen)})});
+      }
+      SM.map.invalidateSize();
+      SM.layer.clearLayers();
+      SM.pins.forEach(function(p){
+        L.marker(p.ll,{icon:pinIcon(p),title:p.s.name,riseOnHover:true,zIndexOffset:p.a.lv*100+(stOf(p.s)==="out"?1000:0)}).bindPopup(pinPopup(p),{maxWidth:260}).addTo(SM.layer);
+      });
+      SM.vsig=vsig;
+      var fsig=SM.pins.map(function(p){return p.s.id}).join("|");
+      if(fsig!==SM.fsig){SM.fsig=fsig;mapFit()}
+      mapLbl(); $("mpMsg").textContent="";
+    }).catch(function(){
+      $("mpMsg").textContent="";
+      $("siteMap").innerHTML='<div class="empty" style="margin:12px"><b>地図を読み込めませんでした</b>通信状態を確かめて、もう一度お試しください。</div>';
+      SM.map=null;
+    });
+  }
+  $("mpFit").addEventListener("click",function(){mapFit()});
+  $("mpMe").addEventListener("click",function(){
+    if(!SM.map)return;
+    if(!navigator.geolocation){$("mpMsg").textContent="この端末では現在地を取得できません。";return}
+    $("mpMsg").textContent="現在地を調べています…";
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var ll=[pos.coords.latitude,pos.coords.longitude];
+      if(SM.me)SM.me.remove();
+      SM.me=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#2F6FA8",fillOpacity:1}).addTo(SM.map);
+      SM.map.setView(ll,Math.max(SM.map.getZoom(),13)); $("mpMsg").textContent="";
+    },function(){$("mpMsg").textContent="現在地を取得できませんでした。位置情報の許可をご確認ください。"},{enableHighAccuracy:true,timeout:10000});
+  });
 
   /* ---------- 機械・備品の稼働ボード ---------- */
   function mchRuns(m,day){
@@ -2332,7 +2452,8 @@ tbody tr:last-child td{border-bottom:0}
     if(e.target.closest("select"))return;
     var t=e.target.closest("[data-act],[data-nav],[data-filter],[data-layout]"); if(!t||t.disabled)return;
     var d=t.dataset;
-    if(d.layout){layout=d.layout;try{localStorage.setItem("josetsu.layout2",layout)}catch(e2){}render();return}
+    if(d.layout){layout=d.layout;if(layout!=="map"){try{localStorage.setItem("josetsu.layout2",layout)}catch(e2){}}render();return}
+    if(d.act==="openmap"){layout="map";goto("sites");return}
     if(d.nav){goto(d.nav,d.f);return}
     if(d.filter){filter=d.filter;render();return}
     var act=d.act, id=d.id, s=id?siteById(id):null;

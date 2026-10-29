@@ -38,9 +38,15 @@
       <button type="button" class="btn sm" id="sortDir" aria-label="昇順・降順の切り替え">昇順 ↑</button>
       <button type="button" class="btn sm" id="siteReset">条件をクリア</button>
     </div></div>
-    <div class="row2" style="justify-content:space-between;margin-bottom:6px"><span class="muted" id="siteCount"></span><div class="vt vt-sm" id="layoutT" role="group" aria-label="表示の切り替え"><button type="button" data-layout="row" aria-pressed="true">一覧表示</button><button type="button" data-layout="card" aria-pressed="false">カード表示</button></div></div>
+    <div class="row2" style="justify-content:space-between;margin-bottom:6px"><span class="muted" id="siteCount"></span><div class="vt vt-sm" id="layoutT" role="group" aria-label="表示の切り替え"><button type="button" data-layout="row" aria-pressed="true">一覧表示</button><button type="button" data-layout="card" aria-pressed="false">カード表示</button><button type="button" data-layout="map" aria-pressed="false">マップ</button></div></div>
     <div class="chips" id="siteChips" role="group" aria-label="状態で絞り込み"></div>
     <div id="banner"></div>
+    <div id="siteMapBox" hidden>
+      <div id="siteMap" role="region" aria-label="現場の全体マップ"></div>
+      <div class="mp-bar"><button class="btn sm" type="button" id="mpFit">全体を表示</button><button class="btn sm" type="button" id="mpMe">現在地</button><span class="muted" id="mpMsg" role="status"></span></div>
+      <div class="mp-leg" id="mpLeg"></div>
+      <div id="mpUn"></div>
+    </div>
     <div id="siteList"></div>
     <p class="legend">出動目安は、今後2日間の予報降水量と最低気温から計算した降雪量の目安(降水1mm≒雪1cm前後)が、現場ごとの出動基準を超えたとき、または警報・注意報が出ていて降雪が見込まれるときに表示します。実際の積雪量ではないため、出動の最終判断は現地の状況を見て行ってください。最低気温が設定した温度以下の予報は凍結注意として表示します。</p>
   </section>
