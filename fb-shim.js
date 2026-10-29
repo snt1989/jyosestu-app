@@ -107,12 +107,11 @@
     var mode="in";
     function draw(msg,ok){
       var el=overlay(title(mode==="in"?"ログイン":"新規登録")+
-        (mode==="up"?'<label style="font-size:.85rem;font-weight:700">お名前<input id="fbName" autocomplete="name" style="'+INPUT+'"></label>':'')+
-        '<label style="font-size:.85rem;font-weight:700">電話番号(またはメールアドレス)<input id="fbMail" type="text" inputmode="tel" autocomplete="username" placeholder="09012345678" style="'+INPUT+'"></label>'+
-        '<label style="font-size:.85rem;font-weight:700">パスワード<input id="fbPw" type="password" autocomplete="'+(mode==="in"?"current-password":"new-password")+'" style="'+INPUT+'"></label>'+
+        '<label style="font-size:.85rem;font-weight:700">電話番号<input id="fbMail" type="text" inputmode="tel" autocomplete="username" placeholder="例:09012345678" style="'+INPUT+'"></label>'+
+        '<label style="font-size:.85rem;font-weight:700">パスワード'+(mode==='up'?'(6文字以上)':'')+'<input id="fbPw" type="password" autocomplete="'+(mode==="in"?"current-password":"new-password")+'" style="'+INPUT+'"></label>'+
         '<div id="fbMsg" role="status" style="min-height:1.4em;font-size:.85rem;color:'+(ok?"#1E6B45":"#C1443C")+';margin-bottom:8px">'+esc(msg||"")+'</div>'+
         '<button id="fbGo" type="button" style="'+BTN+'">'+(mode==="in"?"ログイン":"登録する")+'</button>'+
-        '<div style="text-align:center;margin-top:10px"><button id="fbSw" type="button" style="'+LINK+'">'+(mode==="in"?"はじめての方は新規登録":"ログインに戻る")+'</button>'+(mode==="in"?'<button id="fbRs" type="button" style="'+LINK+'">パスワードを忘れた</button>':'')+'</div>'+
+        '<div style="text-align:center;margin-top:10px"><button id="fbSw" type="button" style="'+LINK+'">'+(mode==="in"?"はじめての方は新規登録":"ログインに戻る")+'</button>'+'</div>'+
         (mode==="up"?'<p style="font-size:.8rem;color:#5C6459;line-height:1.6">登録後は、管理者が承認するまで使えません。</p>':''));
       var mail=el.querySelector("#fbMail"), pw=el.querySelector("#fbPw");
       el.querySelector("#fbSw").onclick=function(){mode=mode==="in"?"up":"in";draw()};
@@ -121,11 +120,11 @@
         auth.sendPasswordResetEmail(m).then(function(){draw("再設定のメールを送りました。",true)},function(e){draw(ERR[e.code]||"送信できませんでした。")});
       };
       function go(){
-        var m=toId(mail.value), p=pw.value; if(!mail.value.trim()||!p){draw("電話番号とパスワードを入力してください。");return} if(!m){draw("電話番号は数字9〜15桁で入力してください。");return}
+        var m=toId(mail.value), p=pw.value; if(!mail.value.trim()||!p){draw("電話番号とパスワードを入力してください。");return} if(!m){draw("電話番号を、数字だけ(9〜15桁)で入力してください。");return}
         var b=el.querySelector("#fbGo"); b.disabled=true;
         if(mode==="in")auth.signInWithEmailAndPassword(m,p).then(function(){location.reload()},function(e){draw(ERR[e.code]||"ログインできませんでした。")});
         else{
-          var nm=(el.querySelector("#fbName").value||"").trim();
+          var nm="";
           auth.createUserWithEmailAndPassword(m,p).then(function(c){
             return c.user.updateProfile({displayName:nm||disp(m)}).catch(function(){});
           }).then(function(){location.reload()},function(e){draw(ERR[e.code]||"登録できませんでした。")});
