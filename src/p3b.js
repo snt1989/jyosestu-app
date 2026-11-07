@@ -154,8 +154,8 @@
     sites.forEach(function(s){
       var st=stOf(s), at=stAt(s), o=ops[s.id]||{};
       var isToday=at&&dstr(new Date(at))===td;
-      if(st==="out"||st==="prep")C(s.crew||"").act.push({s:s,st:st,at:at,by:o.statusBy||""});
-      else if(st==="done"&&isToday)C(s.crew||"").done.push({name:s.name,id:s.id,time:timeStr(at),by:o.statusBy||"",site:true});
+      if(st==="out"||st==="prep")C(siteCrews(s)[0]||"").act.push({s:s,st:st,at:at,by:o.statusBy||""});
+      else if(st==="done"&&isToday)C(siteCrews(s)[0]||"").done.push({name:s.name,id:s.id,time:timeStr(at),by:o.statusBy||"",site:true});
     });
     // 本日の日報(完了した作業)を、日報の班名から班に振り分ける
     var names=order.filter(Boolean);
@@ -224,7 +224,7 @@
   /* ---------- 現場一覧 ---------- */
   var crewF="", stF="", sortK="manual", sortDir=1, lastCrewKey="";
   function syncCrewSel(){
-    var set={}; sites.forEach(function(s){if(s.crew)set[s.crew]=1}); (masters.crews||[]).forEach(function(c){if(c)set[c]=1});
+    var set={}; sites.forEach(function(s){siteCrews(s).forEach(function(c){set[c]=1})}); (masters.crews||[]).forEach(function(c){if(c)set[c]=1});
     var list=Object.keys(set).sort(function(a,b){return a.localeCompare(b,"ja")}), key=list.join("|");
     if(key!==lastCrewKey){
       lastCrewKey=key; if(crewF&&!set[crewF])crewF="";
@@ -306,7 +306,7 @@
     var qs=query.trim().toLowerCase();
     var shown=items.filter(function(x){
       if(areaF&&(x.s.area||"")!==areaF)return false;
-      if(crewF&&(x.s.crew||"")!==crewF)return false;
+      if(crewF&&siteCrews(x.s).indexOf(crewF)<0)return false;
       if(stF&&stOf(x.s)!==stF)return false;
       if(qs&&[x.s.name,x.s.area,x.s.crew,x.s.address].join(" ").toLowerCase().indexOf(qs)<0)return false;
       if(filter==="all")return true;

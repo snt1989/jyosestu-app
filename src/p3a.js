@@ -58,10 +58,11 @@
   function areaLoc(name){var a=masters.areas.filter(function(x){return x.name===name})[0];return a&&a.loc?a.loc:""}
   function effLoc(s){return (s.loc&&String(s.loc).trim())||areaLoc(s.area)||""}
   /* 管理者以外は、自分の担当班の現場(とその日報・連絡・状況・写真)だけを扱う */
+  function siteCrews(s){return String(s&&s.crew||"").split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
   function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
   function applyScope(){
     var c=myCrewName(), vs={};
-    sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&String(s.crew||"").trim()===c);if(v)vs[s.id]=1;return v});
+    sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
     ops={};Object.keys(RAW.ops).forEach(function(k){if(canAdmin||vs[k])ops[k]=RAW.ops[k]});
     reports=RAW.reports.filter(function(r){return canAdmin||vs[r.siteId]});
     notes=RAW.notes.filter(function(n){return canAdmin||!n.siteId||vs[n.siteId]});

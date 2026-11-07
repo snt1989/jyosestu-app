@@ -187,7 +187,7 @@
     var s=id?siteById(id):null, isNew=!s||copy;
     $("dlgTitle").textContent=copy?"現場をコピーして追加":s?"現場を編集":"現場を追加";
     $("fName").value=s?s.name+(copy?"(コピー)":""):""; $("fArea").value=s&&s.area||""; $("fLoc").value=s?s.loc:"";
-    $("fTh").value=s&&s.threshold||settings.defaultTh||10; setCrewSel("fCrew",s&&s.crew||""); fHands=s?siteHands(s).map(function(h){return Object.assign({},h)}):[]; drawHands(); $("fNote").value=s&&s.note||"";
+    $("fTh").value=s&&s.threshold||settings.defaultTh||10; setCrewBox("fCrew",siteCrews(s)); fHands=s?siteHands(s).map(function(h){return Object.assign({},h)}):[]; drawHands(); $("fNote").value=s&&s.note||"";
     fLines=s?siteLines(s).map(function(l){return Object.assign({},l)}):[]; if(!fLines.length)fLines=[{work:"",kind:"all",count:0,unitPrice:0,unit:"回"}]; drawLines();
     $("fStatus").value=(s&&!copy)?stOf(s):"standby";
     var w0=(s&&!copy)?wx[s.id]:null; $("fWxState").textContent=isNew?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
@@ -250,7 +250,7 @@
     if(!db)return;
     var th=parseInt($("fTh").value,10); if(!(th>0))th=10;
     readLines(); var kept=fLines.filter(function(l){return l.work||l.count>0||l.unitPrice>0}), ls=lineSave(kept);
-    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,sqm:(function(v){v=parseFloat($("fSqm").value);return v>0?Math.round(v*100)/100:0})(),handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
+    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,sqm:(function(v){v=parseFloat($("fSqm").value);return v>0?Math.round(v*100)/100:0})(),handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:getCrewBox("fCrew").join("、"),note:$("fNote").value.trim(),
       lines:ls.site.lines,contractCount:ls.site.contractCount};
     var priceData=ls.price;
     data.locSrc=data.loc?(data.loc===geoLoc?geoSrc:"manual"):"";
@@ -920,7 +920,7 @@
   $("bApply").addEventListener("click",async function(){
     if(!db)return;
     var ids=selIds(); if(!ids.length)return;
-    var th=parseInt($("bTh").value,10), crew=$("bCrew").value.trim(), area=$("bArea").value.trim(), ct=$("bContract").value, data={};
+    var th=parseInt($("bTh").value,10), crew=getCrewBox("bCrew").join("、"), area=$("bArea").value.trim(), ct=$("bContract").value, data={};
     var pr=parseInt($("bPrice").value,10), un=$("bUnit").value, pdata={};
     if(th>0)data.threshold=th;
     if(crew)data.crew=crew;
@@ -947,7 +947,7 @@
       }catch(e){}
     }
     $("bApply").disabled=false;
-    ["bTh","bCrew","bArea","bContract","bPrice"].forEach(function(x){$(x).value=""});$("bUnit").value="";
+    ["bTh","bArea","bContract","bPrice"].forEach(function(x){$(x).value=""});setCrewBox("bCrew",[]);$("bUnit").value="";
     flash("bMsg",ok+"件に反映しました"+(ok<ids.length?("("+(ids.length-ok)+"件は保存できませんでした)"):""));
   });
   twoStep($("bDel"),"選択した現場を削除",async function(){
@@ -1043,6 +1043,13 @@
 
   /* ---------- 設定:マスタ ---------- */
   function mflash(txt){flash("mMsg",txt)}
+  var CREWL=[];
+  function crewBoxHtml(id,checked){
+    var all=CREWL.concat(checked.filter(function(c){return CREWL.indexOf(c)<0}));
+    return all.length?all.map(function(c){return '<label class="cb"><input type="checkbox" value="'+esc(c)+'"'+(checked.indexOf(c)>=0?' checked':'')+'><span>'+esc(c)+(CREWL.indexOf(c)<0?'(マスタ未登録)':'')+'</span></label>'}).join(""):'<span class="muted">担当班マスタに班を登録すると選べます。</span>';
+  }
+  function getCrewBox(id){return Array.prototype.map.call($(id).querySelectorAll("input:checked"),function(i){return i.value})}
+  function setCrewBox(id,list){$(id).innerHTML=crewBoxHtml(id,list)}
   function setCrewSel(id,v){
     var sel=$(id); v=String(v||"").trim();
     if(v&&!Array.prototype.some.call(sel.options,function(o){return o.value===v})){var o=document.createElement("option");o.value=v;o.textContent=v+"(マスタ未登録)";sel.appendChild(o)}
@@ -1052,11 +1059,13 @@
     // 候補 = マスタ + すでに現場で使われている名前
     var ja=function(x,y){return x.localeCompare(y,"ja")}, uniq=function(arr){var o={};return arr.filter(function(v){v=String(v||"").trim();if(!v||o[v])return false;o[v]=1;return true})};
     var ar=masters.areas.map(function(a){return a.name}), cr=masters.crews.slice();
-    sites.forEach(function(s){if(s.area)ar.push(s.area); if(s.crew)cr.push(s.crew)});
+    sites.forEach(function(s){if(s.area)ar.push(s.area); siteCrews(s).forEach(function(c){cr.push(c)})});
     var mo=function(l){return l.map(function(c){return '<option value="'+esc(c)+'"></option>'}).join("")};
     $("dlAreas").innerHTML=mo(uniq(ar).sort(ja));
     $("dlCrews").innerHTML=mo(uniq(cr).sort(ja));
     var crl=uniq(cr).sort(ja);
+    CREWL=crl.slice();
+    Array.prototype.forEach.call(document.querySelectorAll("[data-crewbox]"),function(bx){bx.innerHTML=crewBoxHtml(bx.id,Array.prototype.map.call(bx.querySelectorAll("input:checked"),function(i){return i.value}))});
     Array.prototype.forEach.call(document.querySelectorAll("select[data-crew]"),function(sel){
       var cur=sel.value, keep=sel.dataset.crew==="keep";
       sel.innerHTML='<option value="">'+(keep?"変更しない":"未設定")+'</option>'+crl.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join("");
@@ -1337,7 +1346,7 @@
       var g=function(h){var i=ix[h];return i>=0?String(rows[r][i]==null?"":rows[r][i]).trim():""};
       var name=g("現場名"); if(!name){skip++;continue}
       var d={};
-      if(g("地区"))d.area=g("地区"); if(g("住所"))d.address=g("住所"); if(g("担当班"))d.crew=g("担当班"); if(g("メモ"))d.note=g("メモ");
+      if(g("地区"))d.area=g("地区"); if(g("住所"))d.address=g("住所"); if(g("担当班"))d.crew=g("担当班").split(/[、,，\/／]/).map(function(x){return x.trim()}).filter(Boolean).join("、"); if(g("メモ"))d.note=g("メモ");
       if(g("天気を調べる場所")){d.loc=g("天気を調べる場所");d.locSrc="manual"}
       var th=parseInt(g("出動基準(cm)"),10); if(th>0)d.threshold=th;
       var sq=parseFloat(String(g("平米数")).normalize("NFKC").replace(/[,㎡m²\s]/g,"")); if(sq>0)d.sqm=Math.round(sq*100)/100;

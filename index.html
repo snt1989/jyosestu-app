@@ -685,6 +685,11 @@ tbody tr:last-child td{border-bottom:0}
 .mpp-r{display:flex;gap:6px;align-items:center}
 .mpp .btn{margin-top:2px}
 .mpp-n{font-size:.82rem;color:var(--warn);background:var(--warn-bg);border-radius:8px;padding:5px 8px}
+.cbw{min-width:0}.cbl{display:block;font-size:.9rem;color:var(--muted);margin-bottom:4px}
+.cbx{display:flex;flex-wrap:wrap;gap:8px}
+.cbx .cb{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:1rem;color:var(--ink);cursor:pointer}
+.cbx .cb input{width:20px;height:20px;margin:0;accent-color:var(--accent)}
+.cbx .cb:has(input:checked){background:var(--idle-bg);border-color:var(--accent);font-weight:700}
 .mp-seg{display:inline-grid;grid-template-columns:repeat(2,auto);min-width:150px}
 .mp-seg button{min-height:36px;padding:4px 12px;white-space:nowrap}
 #siteMap.is-photo{background:#2b3a2f}
@@ -818,7 +823,7 @@ tbody tr:last-child td{border-bottom:0}
         <div><b class="num" id="bulkN">0</b> 件を選択中。入力した項目だけを、選択した現場にまとめて反映します。</div>
         <div class="fields">
           <label for="bArea">地区<input id="bArea" data-combo="dlAreas" maxlength="40" placeholder="変更しない"></label>
-          <label for="bCrew">担当班<select id="bCrew" data-crew="keep"></select></label>
+          <div class="cbw"><span class="cbl">担当班(選んだ班に置き換え。未選択は変更しない)</span><div id="bCrew" class="cbx" data-crewbox></div></div>
           <label for="bTh">出動基準(cm)<input id="bTh" type="number" min="1" max="200" step="1" placeholder="変更しない"></label>
           <label for="bContract">契約回数<input id="bContract" type="number" min="0" max="200" step="1" placeholder="変更しない"></label>
           <label for="bPrice">単価(円)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span><input id="bPrice" type="number" min="0" step="1" placeholder="変更しない"></label>
@@ -1109,7 +1114,7 @@ tbody tr:last-child td{border-bottom:0}
         <div class="help" id="fGeoMsg" role="status"></div>
       </div>
       <label for="fSqm">平米数(㎡・任意)<input id="fSqm" type="number" inputmode="decimal" min="0" max="9999999" step="any" placeholder="例:1200"></label>
-      <label for="fCrew">担当班(任意)<select id="fCrew" data-crew="none"></select></label>
+      <div class="cbw"><span class="cbl">担当班(任意・複数選べます)</span><div id="fCrew" class="cbx" data-crewbox></div></div>
       <label for="fNote">メモ(任意)<textarea id="fNote" maxlength="200" placeholder="例:除雪機は倉庫横。排雪場所は北側。"></textarea></label>
     </div></div>
     <h2 class="ah" id="fs2">天気・位置</h2>
@@ -1214,10 +1219,11 @@ tbody tr:last-child td{border-bottom:0}
   function areaLoc(name){var a=masters.areas.filter(function(x){return x.name===name})[0];return a&&a.loc?a.loc:""}
   function effLoc(s){return (s.loc&&String(s.loc).trim())||areaLoc(s.area)||""}
   /* 管理者以外は、自分の担当班の現場(とその日報・連絡・状況・写真)だけを扱う */
+  function siteCrews(s){return String(s&&s.crew||"").split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
   function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
   function applyScope(){
     var c=myCrewName(), vs={};
-    sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&String(s.crew||"").trim()===c);if(v)vs[s.id]=1;return v});
+    sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
     ops={};Object.keys(RAW.ops).forEach(function(k){if(canAdmin||vs[k])ops[k]=RAW.ops[k]});
     reports=RAW.reports.filter(function(r){return canAdmin||vs[r.siteId]});
     notes=RAW.notes.filter(function(n){return canAdmin||!n.siteId||vs[n.siteId]});
@@ -1515,8 +1521,8 @@ tbody tr:last-child td{border-bottom:0}
     sites.forEach(function(s){
       var st=stOf(s), at=stAt(s), o=ops[s.id]||{};
       var isToday=at&&dstr(new Date(at))===td;
-      if(st==="out"||st==="prep")C(s.crew||"").act.push({s:s,st:st,at:at,by:o.statusBy||""});
-      else if(st==="done"&&isToday)C(s.crew||"").done.push({name:s.name,id:s.id,time:timeStr(at),by:o.statusBy||"",site:true});
+      if(st==="out"||st==="prep")C(siteCrews(s)[0]||"").act.push({s:s,st:st,at:at,by:o.statusBy||""});
+      else if(st==="done"&&isToday)C(siteCrews(s)[0]||"").done.push({name:s.name,id:s.id,time:timeStr(at),by:o.statusBy||"",site:true});
     });
     // 本日の日報(完了した作業)を、日報の班名から班に振り分ける
     var names=order.filter(Boolean);
@@ -1585,7 +1591,7 @@ tbody tr:last-child td{border-bottom:0}
   /* ---------- 現場一覧 ---------- */
   var crewF="", stF="", sortK="manual", sortDir=1, lastCrewKey="";
   function syncCrewSel(){
-    var set={}; sites.forEach(function(s){if(s.crew)set[s.crew]=1}); (masters.crews||[]).forEach(function(c){if(c)set[c]=1});
+    var set={}; sites.forEach(function(s){siteCrews(s).forEach(function(c){set[c]=1})}); (masters.crews||[]).forEach(function(c){if(c)set[c]=1});
     var list=Object.keys(set).sort(function(a,b){return a.localeCompare(b,"ja")}), key=list.join("|");
     if(key!==lastCrewKey){
       lastCrewKey=key; if(crewF&&!set[crewF])crewF="";
@@ -1667,7 +1673,7 @@ tbody tr:last-child td{border-bottom:0}
     var qs=query.trim().toLowerCase();
     var shown=items.filter(function(x){
       if(areaF&&(x.s.area||"")!==areaF)return false;
-      if(crewF&&(x.s.crew||"")!==crewF)return false;
+      if(crewF&&siteCrews(x.s).indexOf(crewF)<0)return false;
       if(stF&&stOf(x.s)!==stF)return false;
       if(qs&&[x.s.name,x.s.area,x.s.crew,x.s.address].join(" ").toLowerCase().indexOf(qs)<0)return false;
       if(filter==="all")return true;
@@ -2624,7 +2630,7 @@ tbody tr:last-child td{border-bottom:0}
     var s=id?siteById(id):null, isNew=!s||copy;
     $("dlgTitle").textContent=copy?"現場をコピーして追加":s?"現場を編集":"現場を追加";
     $("fName").value=s?s.name+(copy?"(コピー)":""):""; $("fArea").value=s&&s.area||""; $("fLoc").value=s?s.loc:"";
-    $("fTh").value=s&&s.threshold||settings.defaultTh||10; setCrewSel("fCrew",s&&s.crew||""); fHands=s?siteHands(s).map(function(h){return Object.assign({},h)}):[]; drawHands(); $("fNote").value=s&&s.note||"";
+    $("fTh").value=s&&s.threshold||settings.defaultTh||10; setCrewBox("fCrew",siteCrews(s)); fHands=s?siteHands(s).map(function(h){return Object.assign({},h)}):[]; drawHands(); $("fNote").value=s&&s.note||"";
     fLines=s?siteLines(s).map(function(l){return Object.assign({},l)}):[]; if(!fLines.length)fLines=[{work:"",kind:"all",count:0,unitPrice:0,unit:"回"}]; drawLines();
     $("fStatus").value=(s&&!copy)?stOf(s):"standby";
     var w0=(s&&!copy)?wx[s.id]:null; $("fWxState").textContent=isNew?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
@@ -2687,7 +2693,7 @@ tbody tr:last-child td{border-bottom:0}
     if(!db)return;
     var th=parseInt($("fTh").value,10); if(!(th>0))th=10;
     readLines(); var kept=fLines.filter(function(l){return l.work||l.count>0||l.unitPrice>0}), ls=lineSave(kept);
-    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,sqm:(function(v){v=parseFloat($("fSqm").value);return v>0?Math.round(v*100)/100:0})(),handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:$("fCrew").value.trim(),note:$("fNote").value.trim(),
+    var data={name:$("fName").value.trim(),area:$("fArea").value.trim(),address:$("fAddr").value.trim(),loc:$("fLoc").value.trim(),threshold:th,sqm:(function(v){v=parseFloat($("fSqm").value);return v>0?Math.round(v*100)/100:0})(),handovers:(readHands(),fHands.filter(function(h){return h.time}).sort(function(a,b){return a.time.localeCompare(b.time)})),handover:"",crew:getCrewBox("fCrew").join("、"),note:$("fNote").value.trim(),
       lines:ls.site.lines,contractCount:ls.site.contractCount};
     var priceData=ls.price;
     data.locSrc=data.loc?(data.loc===geoLoc?geoSrc:"manual"):"";
@@ -3357,7 +3363,7 @@ tbody tr:last-child td{border-bottom:0}
   $("bApply").addEventListener("click",async function(){
     if(!db)return;
     var ids=selIds(); if(!ids.length)return;
-    var th=parseInt($("bTh").value,10), crew=$("bCrew").value.trim(), area=$("bArea").value.trim(), ct=$("bContract").value, data={};
+    var th=parseInt($("bTh").value,10), crew=getCrewBox("bCrew").join("、"), area=$("bArea").value.trim(), ct=$("bContract").value, data={};
     var pr=parseInt($("bPrice").value,10), un=$("bUnit").value, pdata={};
     if(th>0)data.threshold=th;
     if(crew)data.crew=crew;
@@ -3384,7 +3390,7 @@ tbody tr:last-child td{border-bottom:0}
       }catch(e){}
     }
     $("bApply").disabled=false;
-    ["bTh","bCrew","bArea","bContract","bPrice"].forEach(function(x){$(x).value=""});$("bUnit").value="";
+    ["bTh","bArea","bContract","bPrice"].forEach(function(x){$(x).value=""});setCrewBox("bCrew",[]);$("bUnit").value="";
     flash("bMsg",ok+"件に反映しました"+(ok<ids.length?("("+(ids.length-ok)+"件は保存できませんでした)"):""));
   });
   twoStep($("bDel"),"選択した現場を削除",async function(){
@@ -3480,6 +3486,13 @@ tbody tr:last-child td{border-bottom:0}
 
   /* ---------- 設定:マスタ ---------- */
   function mflash(txt){flash("mMsg",txt)}
+  var CREWL=[];
+  function crewBoxHtml(id,checked){
+    var all=CREWL.concat(checked.filter(function(c){return CREWL.indexOf(c)<0}));
+    return all.length?all.map(function(c){return '<label class="cb"><input type="checkbox" value="'+esc(c)+'"'+(checked.indexOf(c)>=0?' checked':'')+'><span>'+esc(c)+(CREWL.indexOf(c)<0?'(マスタ未登録)':'')+'</span></label>'}).join(""):'<span class="muted">担当班マスタに班を登録すると選べます。</span>';
+  }
+  function getCrewBox(id){return Array.prototype.map.call($(id).querySelectorAll("input:checked"),function(i){return i.value})}
+  function setCrewBox(id,list){$(id).innerHTML=crewBoxHtml(id,list)}
   function setCrewSel(id,v){
     var sel=$(id); v=String(v||"").trim();
     if(v&&!Array.prototype.some.call(sel.options,function(o){return o.value===v})){var o=document.createElement("option");o.value=v;o.textContent=v+"(マスタ未登録)";sel.appendChild(o)}
@@ -3489,11 +3502,13 @@ tbody tr:last-child td{border-bottom:0}
     // 候補 = マスタ + すでに現場で使われている名前
     var ja=function(x,y){return x.localeCompare(y,"ja")}, uniq=function(arr){var o={};return arr.filter(function(v){v=String(v||"").trim();if(!v||o[v])return false;o[v]=1;return true})};
     var ar=masters.areas.map(function(a){return a.name}), cr=masters.crews.slice();
-    sites.forEach(function(s){if(s.area)ar.push(s.area); if(s.crew)cr.push(s.crew)});
+    sites.forEach(function(s){if(s.area)ar.push(s.area); siteCrews(s).forEach(function(c){cr.push(c)})});
     var mo=function(l){return l.map(function(c){return '<option value="'+esc(c)+'"></option>'}).join("")};
     $("dlAreas").innerHTML=mo(uniq(ar).sort(ja));
     $("dlCrews").innerHTML=mo(uniq(cr).sort(ja));
     var crl=uniq(cr).sort(ja);
+    CREWL=crl.slice();
+    Array.prototype.forEach.call(document.querySelectorAll("[data-crewbox]"),function(bx){bx.innerHTML=crewBoxHtml(bx.id,Array.prototype.map.call(bx.querySelectorAll("input:checked"),function(i){return i.value}))});
     Array.prototype.forEach.call(document.querySelectorAll("select[data-crew]"),function(sel){
       var cur=sel.value, keep=sel.dataset.crew==="keep";
       sel.innerHTML='<option value="">'+(keep?"変更しない":"未設定")+'</option>'+crl.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join("");
@@ -3774,7 +3789,7 @@ tbody tr:last-child td{border-bottom:0}
       var g=function(h){var i=ix[h];return i>=0?String(rows[r][i]==null?"":rows[r][i]).trim():""};
       var name=g("現場名"); if(!name){skip++;continue}
       var d={};
-      if(g("地区"))d.area=g("地区"); if(g("住所"))d.address=g("住所"); if(g("担当班"))d.crew=g("担当班"); if(g("メモ"))d.note=g("メモ");
+      if(g("地区"))d.area=g("地区"); if(g("住所"))d.address=g("住所"); if(g("担当班"))d.crew=g("担当班").split(/[、,，\/／]/).map(function(x){return x.trim()}).filter(Boolean).join("、"); if(g("メモ"))d.note=g("メモ");
       if(g("天気を調べる場所")){d.loc=g("天気を調べる場所");d.locSrc="manual"}
       var th=parseInt(g("出動基準(cm)"),10); if(th>0)d.threshold=th;
       var sq=parseFloat(String(g("平米数")).normalize("NFKC").replace(/[,㎡m²\s]/g,"")); if(sq>0)d.sqm=Math.round(sq*100)/100;

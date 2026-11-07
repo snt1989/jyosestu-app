@@ -118,7 +118,7 @@ module.exports = async (req, res) => {
       if (scopeSite) {
         // 現場に紐づく通知は、管理者と、その現場の担当班のメンバーだけに送る
         const sd2 = await fs.doc("sites/" + scopeSite).get();
-        const crew = sd2.exists ? String(sd2.data().crew || "").trim() : "";
+        const crews = sd2.exists ? String(sd2.data().crew || "").split(/[、,，]/).map((x) => x.trim()).filter(Boolean) : [];
         const uids = Array.from(new Set(subs.map((d) => d.data().uid)));
         const okU = {};
         await Promise.all(uids.map(async (u) => {
@@ -127,7 +127,7 @@ module.exports = async (req, res) => {
             const ud2 = us.exists ? us.data() : {};
             const adm = ud2.role === "admin" || ADMINS.indexOf(String(ud2.email || "").toLowerCase()) >= 0;
             const myCrew = ac.exists ? String(ac.data().crew || "").trim() : "";
-            okU[u] = adm || (!!crew && myCrew === crew);
+            okU[u] = adm || (!!myCrew && crews.indexOf(myCrew) >= 0);
           } catch (e) { okU[u] = false; }
         }));
         subs = subs.filter((d) => okU[d.data().uid]);

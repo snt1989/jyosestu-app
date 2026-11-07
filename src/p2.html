@@ -122,7 +122,7 @@
         <div><b class="num" id="bulkN">0</b> 件を選択中。入力した項目だけを、選択した現場にまとめて反映します。</div>
         <div class="fields">
           <label for="bArea">地区<input id="bArea" data-combo="dlAreas" maxlength="40" placeholder="変更しない"></label>
-          <label for="bCrew">担当班<select id="bCrew" data-crew="keep"></select></label>
+          <div class="cbw"><span class="cbl">担当班(選んだ班に置き換え。未選択は変更しない)</span><div id="bCrew" class="cbx" data-crewbox></div></div>
           <label for="bTh">出動基準(cm)<input id="bTh" type="number" min="1" max="200" step="1" placeholder="変更しない"></label>
           <label for="bContract">契約回数<input id="bContract" type="number" min="0" max="200" step="1" placeholder="変更しない"></label>
           <label for="bPrice">単価(円)<span class="adm-badge"><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9.5 4.1-1.9 7-5.2 7-9.5V6z"/></svg>管理者のみ</span><input id="bPrice" type="number" min="0" step="1" placeholder="変更しない"></label>
@@ -413,7 +413,7 @@
         <div class="help" id="fGeoMsg" role="status"></div>
       </div>
       <label for="fSqm">平米数(㎡・任意)<input id="fSqm" type="number" inputmode="decimal" min="0" max="9999999" step="any" placeholder="例:1200"></label>
-      <label for="fCrew">担当班(任意)<select id="fCrew" data-crew="none"></select></label>
+      <div class="cbw"><span class="cbl">担当班(任意・複数選べます)</span><div id="fCrew" class="cbx" data-crewbox></div></div>
       <label for="fNote">メモ(任意)<textarea id="fNote" maxlength="200" placeholder="例:除雪機は倉庫横。排雪場所は北側。"></textarea></label>
     </div></div>
     <h2 class="ah" id="fs2">天気・位置</h2>
