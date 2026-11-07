@@ -257,7 +257,7 @@
     if(!data.name||(!data.loc&&!areaLoc(data.area))){$("fErr").textContent="現場名と天気を調べる場所を入力してください。場所を空欄にする場合は、代表地点を登録した地区を選んでください。";return}
     $("fSave").disabled=true;
     try{
-      var sid=editingId;
+      var sid=editingId, oldSite=sid?Object.assign({},siteById(sid)):null;
       if(sid){await db.doc("sites/"+sid).update(data);}
       else{
         data.createdAt=Date.now();
@@ -269,6 +269,12 @@
       }
       if(sid&&canWrite()){var cur=editingId?stOf(siteById(editingId)||{id:sid}):"standby"; var nv=$("fStatus").value; if(nv!==cur||!editingId){try{if(nv!=="standby"||editingId)await db.doc("ops/"+sid).set({status:nv,statusAt:Date.now()})}catch(e4){}}}
       closeDlg(); toast("保存しました。");
+      (function(){
+        var nm=data.name;
+        if(oldSite){var df=siteDiff(oldSite,Object.assign({},oldSite,data,{lines:data.lines,contractCount:data.contractCount}));
+          if(df.length)postAuto({title:"現場を更新:"+nm,body:df.join("\n"),crews:unionCrews([oldSite,data])})}
+        else postAuto({title:"現場を追加:"+nm,body:[data.area?"地区:"+data.area:"",data.crew?"担当班:"+data.crew:"",data.address?"住所:"+data.address:"","出動基準:"+data.threshold+"cm"].filter(Boolean).join("\n"),crews:siteCrews({crew:data.crew})});
+      })();
       syncMasters({areas:[data.area],crews:siteCrews({crew:data.crew}),works:(ls.site.lines||[]).map(function(l,i){var pl=priceData&&priceData.lines?priceData.lines[i]:null;return {name:l.work,kind:l.kind,unit:pl&&pl.unit}})});
     }catch(err){
       $("fErr").textContent=(err&&err.code==="invalid_argument")?"保存する権限がありません。編集権限のある方に依頼してください。":(err&&err.code==="quota_exceeded")?"登録できる件数の上限に達しています。":"保存できませんでした。もう一度お試しください。";
@@ -278,7 +284,7 @@
   document.querySelector(".fjump").addEventListener("click",function(e){var b=e.target.closest("[data-jump]");if(!b)return;var el=$(b.dataset.jump);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})});
   $("fDel").addEventListener("click",async function(){
     if($("fDel").textContent==="削除"){$("fDel").textContent="もう一度押すと削除";return}
-    try{var did=editingId;await db.doc("sites/"+did).delete();try{await db.doc("ops/"+did).delete()}catch(e2){}delete wx[did];delete sel[did];closeDlg();}
+    try{var did=editingId, ds=siteById(did);await db.doc("sites/"+did).delete();if(ds)postAuto({title:"現場を削除:"+ds.name,body:"現場「"+ds.name+"」を削除しました。",crews:siteCrews(ds)});try{await db.doc("ops/"+did).delete()}catch(e2){}delete wx[did];delete sel[did];closeDlg();}
     catch(err){$("fErr").textContent="削除できませんでした。権限を確認してください。"}
   });
   $("btnAdd2").addEventListener("click",function(){openDlg(null)});
@@ -762,6 +768,48 @@
       '<button class="btn" type="button" data-mact="annhist">キャンセル</button><button class="btn primary" type="button" id="anSave" data-mact="ansave">'+(a?"保存する":"投稿する")+'</button>');
     $("anTitle").focus();
   }
+  /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
+  var APP_RELEASES=[
+    {v:"2026.11.07",title:"アプリを更新しました(2026.11.07)",body:[
+      "・全体マップ:現場のピンを、航空写真の地図で一目で確認できます(現場一覧の「マップ」)",
+      "・担当班の現場だけが見えるようになりました(管理者はすべて見られます)",
+      "・現場の担当班を、複数選べるようになりました",
+      "・設定の現場管理を、見やすい一覧表示にしました",
+      "・直接入力した地区・担当班・作業内容を、マスタにも自動で追加します",
+      "・現場やアプリを更新すると、お知らせに自動で載ります"].join("\n")}
+  ];
+  async function postAuto(o){
+    if(!db||!canAdmin)return;
+    try{
+      var d={title:o.title,body:o.body,important:false,auto:o.auto||"site",at:Date.now(),by:myId||""};
+      if(o.crews&&o.crews.length)d.crews=o.crews;
+      var id;
+      if(o.id){await db.doc("announcements/"+o.id).set(d);id=o.id}
+      else{var r=await db.collection("announcements").add(d);id=r&&r.id}
+      pwaNotify("ann",id);
+    }catch(e){}
+  }
+  var relDone=false;
+  function autoReleaseNote(){
+    if(relDone||!canAdmin||!db)return;
+    relDone=true;
+    var r=APP_RELEASES[0], id="app_"+r.v.replace(/[^0-9]/g,"");
+    if(RAW.ann.some(function(x){return x.id===id}))return;
+    postAuto({id:id,auto:"app",title:r.title,body:r.body});
+  }
+  var DL={name:"現場名",area:"地区",crew:"担当班",address:"住所",threshold:"出動基準",sqm:"平米数",note:"備考"};
+  function sqmStr(v){return +v>0?(+v).toLocaleString("ja-JP",{maximumFractionDigits:2})+"㎡":"なし"}
+  function siteDiff(o,n){
+    var out=[],q=function(v){return v===""||v==null?"なし":String(v)};
+    ["name","area","crew","address","note"].forEach(function(k){if(String(o[k]||"")!==String(n[k]||""))out.push(DL[k]+":"+q(o[k]).slice(0,40)+" → "+q(n[k]).slice(0,40))});
+    if(+o.threshold!==+n.threshold)out.push("出動基準:"+q(o.threshold)+"cm → "+q(n.threshold)+"cm");
+    if((+o.sqm||0)!==(+n.sqm||0))out.push("平米数:"+sqmStr(o.sqm)+" → "+sqmStr(n.sqm));
+    var oh=handText(o)||"なし", nh=handText(n)||"なし"; if(oh!==nh)out.push("引渡時間:"+oh+" → "+nh);
+    var cs=function(s){return siteLines(s).map(function(l){return (lineLabel(l)||"全体")+(l.count>0?" "+l.count+"回":"")}).join("・")||"なし"};
+    if(cs(o)!==cs(n))out.push("契約:"+cs(o)+" → "+cs(n));
+    return out;
+  }
+  function unionCrews(list){var m={};list.forEach(function(s){siteCrews(s).forEach(function(c){m[c]=1})});return Object.keys(m)}
   async function saveAnn(){
     if(!db||!canAdmin)return;
     var d={title:$("anTitle").value.trim(),body:$("anBody").value.trim(),important:$("anImp").value==="1"};
@@ -962,7 +1010,7 @@
     if(un)pdata.unit=un;
     if(!Object.keys(data).length&&!Object.keys(pdata).length){flash("bMsg","変更する項目を入力してください。");return}
     $("bApply").disabled=true;
-    var ok=0;
+    var ok=0, before=ids.map(function(i){return siteById(i)}).filter(Boolean).map(function(x){return Object.assign({},x)});
     syncMasters({areas:[data.area],crews:siteCrews({crew:data.crew})});
     for(var i=0;i<ids.length;i++){
       try{
@@ -981,20 +1029,25 @@
     }
     $("bApply").disabled=false;
     ["bTh","bArea","bContract","bPrice"].forEach(function(x){$(x).value=""});setCrewBox("bCrew",[]);$("bUnit").value="";
+    if(ok&&(data.threshold||data.crew||data.area||data.contractCount!=null)){
+      var ch=[]; if(data.crew)ch.push("担当班 → "+data.crew); if(data.area)ch.push("地区 → "+data.area); if(data.threshold)ch.push("出動基準 → "+data.threshold+"cm"); if(data.contractCount!=null)ch.push("契約回数 → "+data.contractCount+"回");
+      postAuto({title:"現場を一括更新:"+ok+"件",body:"変更:"+ch.join(" / ")+"\n対象:"+before.slice(0,8).map(function(x){return x.name}).join("、")+(before.length>8?" ほか"+(before.length-8)+"件":""),crews:unionCrews(before.concat([{crew:data.crew||""}]))});
+    }
     flash("bMsg",ok+"件に反映しました"+(ok<ids.length?("("+(ids.length-ok)+"件は保存できませんでした)"):""));
   });
   twoStep($("bDel"),"選択した現場を削除",async function(){
     if(!db)return;
-    var ids=selIds(), ok=0;
+    var ids=selIds(), ok=0, gone=[];
     for(var i=0;i<ids.length;i++){
       try{
-        await db.doc("sites/"+ids[i]).delete();
+        var gs=siteById(ids[i]); await db.doc("sites/"+ids[i]).delete(); if(gs)gone.push(gs);
         try{await db.doc("ops/"+ids[i]).delete()}catch(e1){}
         try{if(prices[ids[i]])await db.doc("prices/"+ids[i]).delete()}catch(e2){}
         delete wx[ids[i]]; delete sel[ids[i]]; ok++;
       }catch(e){}
     }
     renderAdmin();
+    if(gone.length)postAuto({title:"現場を削除:"+gone.length+"件",body:gone.slice(0,10).map(function(x){return x.name}).join("、")+(gone.length>10?" ほか"+(gone.length-10)+"件":""),crews:unionCrews(gone)});
     flash("bMsg",ok+"件の現場を削除しました。"+(ok<ids.length?("("+(ids.length-ok)+"件は削除できませんでした)"):"日報や連絡の記録は残ります。"));
   });
   $("bReset").addEventListener("click",async function(){
@@ -1427,6 +1480,7 @@
     }
     $("csvIn").disabled=false;
     await syncMasters({areas:csvAreas,crews:csvCrews});
+    if(add||upd)postAuto({title:"現場CSVを取り込みました",body:"追加"+add+"件・更新"+upd+"件"});
     flash("csvMsg","取り込み完了:追加"+add+"件、更新"+upd+"件"+(skip?("、読み飛ばし"+skip+"件"):"")+"。");
   });
 
@@ -1563,10 +1617,10 @@
         applyScope(); render();
       },function(){});
       db.collection("announcements").orderBy("at","desc").limit(100).onSnapshot(function(snap){
-        if(!annFirst&&snap.docChanges){snap.docChanges().forEach(function(c){var o=c.doc.data();if(c.type==="added"&&o.by!==myId)toast("新しいお知らせ:"+o.title)})}
+        if(!annFirst&&snap.docChanges){snap.docChanges().forEach(function(c){var o=c.doc.data();if(c.type==="added"&&o.by!==myId&&annVisible(o))toast("新しいお知らせ:"+o.title)})}
         annFirst=false;
-        announcements=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        render(); resolveNames();
+        RAW.ann=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        applyScope(); render(); resolveNames(); autoReleaseNote();
       },function(){});
       if(myId)db.doc("data/users/"+myId+"/state").onSnapshot(function(snap){
         var v=snap.exists&&snap.data().read||{}, l={};try{l=JSON.parse(localStorage.getItem("josetsu.read")||"{}")}catch(e){}

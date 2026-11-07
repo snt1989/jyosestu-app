@@ -9,7 +9,7 @@
   var access={}, accessLoaded=false, myName="";
   function blobUrl(id){return window.__blobUrl?window.__blobUrl(id):"/_blob/"+id}
   var DEFMACH=["手作業","自走式","軽トラ","ローダ"];
-  var RAW={sites:[],ops:{},reports:[],notes:[],sphotos:[]};
+  var RAW={sites:[],ops:{},reports:[],notes:[],sphotos:[],ann:[]};
   var sites=[], wx={}, ops={}, reports=[], notes=[], sphotos=[], settings=Object.assign({},DEF), sel={};
   var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
   var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
@@ -67,7 +67,9 @@
     reports=RAW.reports.filter(function(r){return canAdmin||vs[r.siteId]});
     notes=RAW.notes.filter(function(n){return canAdmin||!n.siteId||vs[n.siteId]});
     sphotos=RAW.sphotos.filter(function(x){return canAdmin||vs[x.siteId]});
+    announcements=RAW.ann.filter(annVisible);
   }
+  function annVisible(x){var c=x&&x.crews;return canAdmin||!Array.isArray(c)||!c.length||c.indexOf(myCrewName())>=0}
   function siteById(id){return sites.filter(function(x){return x.id===id})[0]}
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function num(v){return typeof v==="number"&&isFinite(v)?v:null}

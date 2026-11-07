@@ -88,7 +88,7 @@ module.exports = async (req, res) => {
     if (action === "notify") {
       const type = String(b.type || ""), id = String(b.id || "");
       if (TYPES.indexOf(type) < 0 || !id || id.indexOf("/") >= 0) return res.status(400).json({ error: "bad_request" });
-      let payload = null, key = "", scopeSite = "";
+      let payload = null, key = "", scopeSite = "", scopeCrews = null;
       if (type === "note") {
         const d = await fs.doc("notes/" + id).get(); const n = d.exists ? d.data() : null;
         if (!n || n.by !== me.uid || !fresh(n.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
@@ -97,7 +97,7 @@ module.exports = async (req, res) => {
       } else if (type === "ann") {
         const d = await fs.doc("announcements/" + id).get(); const a = d.exists ? d.data() : null;
         if (!a || a.by !== me.uid || !isAdm || !fresh(a.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
-        key = "ann_" + id;
+        key = "ann_" + id; if (Array.isArray(a.crews) && a.crews.length) scopeCrews = a.crews.map((x) => String(x).trim()).filter(Boolean);
         payload = { title: (a.important ? "【重要】" : "お知らせ: ") + clip(a.title, 40), body: clip(a.body, 100), tag: "ann", url: "/" };
       } else if (type === "report") {
         const d = await fs.doc("reports/" + id).get(); const r = d.exists ? d.data() : null;
@@ -115,10 +115,13 @@ module.exports = async (req, res) => {
       catch (e) { return res.status(200).json({ ok: true, dup: true }); }
       const all = await fs.collection("pushSubs").get();
       let subs = all.docs.filter((d) => { const s = d.data(); return s.uid !== me.uid && !(s.prefs && s.prefs[type] === false); });
-      if (scopeSite) {
+      if (scopeSite || scopeCrews) {
         // 現場に紐づく通知は、管理者と、その現場の担当班のメンバーだけに送る
-        const sd2 = await fs.doc("sites/" + scopeSite).get();
-        const crews = sd2.exists ? String(sd2.data().crew || "").split(/[、,，]/).map((x) => x.trim()).filter(Boolean) : [];
+        let crews = scopeCrews;
+        if (!crews) {
+          const sd2 = await fs.doc("sites/" + scopeSite).get();
+          crews = sd2.exists ? String(sd2.data().crew || "").split(/[、,，]/).map((x) => x.trim()).filter(Boolean) : [];
+        }
         const uids = Array.from(new Set(subs.map((d) => d.data().uid)));
         const okU = {};
         await Promise.all(uids.map(async (u) => {
