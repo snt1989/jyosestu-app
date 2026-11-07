@@ -2748,6 +2748,7 @@ tbody tr:last-child td{border-bottom:0}
       }
       if(sid&&canWrite()){var cur=editingId?stOf(siteById(editingId)||{id:sid}):"standby"; var nv=$("fStatus").value; if(nv!==cur||!editingId){try{if(nv!=="standby"||editingId)await db.doc("ops/"+sid).set({status:nv,statusAt:Date.now()})}catch(e4){}}}
       closeDlg(); toast("保存しました。");
+      syncMasters({areas:[data.area],crews:siteCrews({crew:data.crew}),works:(ls.site.lines||[]).map(function(l,i){var pl=priceData&&priceData.lines?priceData.lines[i]:null;return {name:l.work,kind:l.kind,unit:pl&&pl.unit}})});
     }catch(err){
       $("fErr").textContent=(err&&err.code==="invalid_argument")?"保存する権限がありません。編集権限のある方に依頼してください。":(err&&err.code==="quota_exceeded")?"登録できる件数の上限に達しています。":"保存できませんでした。もう一度お試しください。";
     }finally{$("fSave").disabled=false}
@@ -3441,6 +3442,7 @@ tbody tr:last-child td{border-bottom:0}
     if(!Object.keys(data).length&&!Object.keys(pdata).length){flash("bMsg","変更する項目を入力してください。");return}
     $("bApply").disabled=true;
     var ok=0;
+    syncMasters({areas:[data.area],crews:siteCrews({crew:data.crew})});
     for(var i=0;i<ids.length;i++){
       try{
         var bs=siteById(ids[i]), hasL=bs&&Array.isArray(bs.lines)&&bs.lines.length;
@@ -3560,6 +3562,22 @@ tbody tr:last-child td{border-bottom:0}
   }
   function getCrewBox(id){return Array.prototype.map.call($(id).querySelectorAll("input:checked"),function(i){return i.value})}
   function setCrewBox(id,list){$(id).innerHTML=crewBoxHtml(id,list)}
+  /* 現場一覧などで直接入力した 地区・担当班・作業内容 を、マスタにも追加する(管理者のみ) */
+  async function syncMasters(o){
+    if(!canAdmin||!db)return [];
+    var added=[], T=function(v){return String(v||"").trim()}, seen={};
+    var uq=function(a,have){return a.map(T).filter(function(n){if(!n||seen[n]||have(n))return false;seen[n]=1;return true})};
+    try{
+      seen={};var ar=uq(o.areas||[],function(n){return masters.areas.some(function(x){return x.name===n})});
+      if(ar.length){await saveAreas(masters.areas.concat(ar.map(function(n){return {name:n,loc:""}})));added.push("地区:"+ar.join("・"))}
+      seen={};var cr=uq(o.crews||[],function(n){return masters.crews.indexOf(n)>=0});
+      if(cr.length){await saveList("crews",masters.crews.concat(cr));added.push("担当班:"+cr.join("・"))}
+      seen={};var wk=(o.works||[]).filter(function(w){var n=T(w.name);if(!n||seen[n]||masters.works.some(function(x){return x.name===n}))return false;seen[n]=1;return true});
+      if(wk.length){await saveWorks(masters.works.concat(wk.map(function(w){return {name:T(w.name),kind:LKIND[w.kind]?w.kind:"other",unit:w.unit==="時間"?"時間":"回"}})));added.push("作業内容:"+wk.map(function(w){return T(w.name)}).join("・"))}
+    }catch(e){}
+    if(added.length)toast("マスタにも追加しました("+added.join(" / ")+")");
+    return added;
+  }
   function setCrewSel(id,v){
     var sel=$(id); v=String(v||"").trim();
     if(v&&!Array.prototype.some.call(sel.options,function(o){return o.value===v})){var o=document.createElement("option");o.value=v;o.textContent=v+"(マスタ未登録)";sel.appendChild(o)}
@@ -3850,7 +3868,7 @@ tbody tr:last-child td{border-bottom:0}
     if(rows.length>501){flash("csvMsg","一度に取り込めるのは500行までです。");return}
     var norm=function(x){return String(x||"").normalize("NFKC").replace(/\s/g,"")};
     var byName={}; sites.forEach(function(s){byName[norm(s.name)]=s});
-    var add=0,upd=0,skip=0;
+    var add=0,upd=0,skip=0,csvAreas=[],csvCrews=[];
     $("csvIn").disabled=true; flash("csvMsg","取り込み中…");
     for(var r=1;r<rows.length;r++){
       var g=function(h){var i=ix[h];return i>=0?String(rows[r][i]==null?"":rows[r][i]).trim():""};
@@ -3882,10 +3900,12 @@ tbody tr:last-child td{border-bottom:0}
           var ref=await db.collection("sites").add(nd); sid=ref&&ref.id; add++;
           byName[norm(name)]={id:sid,name:name};
         }
+        csvAreas.push(d.area);siteCrews({crew:d.crew}).forEach(function(c){csvCrews.push(c)});
         if(sid&&canAdmin&&(pr>=0||un)&&!(ex&&lineDone)){var old=prices[sid]||{unitPrice:0,unit:"回"};await db.doc("prices/"+sid).set({unitPrice:pr>=0?pr:old.unitPrice,unit:un||old.unit})}
       }catch(err){skip++}
     }
     $("csvIn").disabled=false;
+    await syncMasters({areas:csvAreas,crews:csvCrews});
     flash("csvMsg","取り込み完了:追加"+add+"件、更新"+upd+"件"+(skip?("、読み飛ばし"+skip+"件"):"")+"。");
   });
 
