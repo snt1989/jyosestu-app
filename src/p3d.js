@@ -187,7 +187,7 @@
     var s=id?siteById(id):null, isNew=!s||copy;
     $("dlgTitle").textContent=copy?"現場をコピーして追加":s?"現場を編集":"現場を追加";
     $("fName").value=s?s.name+(copy?"(コピー)":""):""; $("fArea").value=s&&s.area||""; $("fLoc").value=s?s.loc:"";
-    $("fTh").value=s&&s.threshold||settings.defaultTh||10; $("fCrew").value=s&&s.crew||""; fHands=s?siteHands(s).map(function(h){return Object.assign({},h)}):[]; drawHands(); $("fNote").value=s&&s.note||"";
+    $("fTh").value=s&&s.threshold||settings.defaultTh||10; setCrewSel("fCrew",s&&s.crew||""); fHands=s?siteHands(s).map(function(h){return Object.assign({},h)}):[]; drawHands(); $("fNote").value=s&&s.note||"";
     fLines=s?siteLines(s).map(function(l){return Object.assign({},l)}):[]; if(!fLines.length)fLines=[{work:"",kind:"all",count:0,unitPrice:0,unit:"回"}]; drawLines();
     $("fStatus").value=(s&&!copy)?stOf(s):"standby";
     var w0=(s&&!copy)?wx[s.id]:null; $("fWxState").textContent=isNew?"保存すると、天気の取得を始めます。":!mcp?"この画面では天気を取得できません。":(!w0||w0.state==="loading"&&!w0.cur)?"天気: 取得中…":w0.state==="ok"?"天気: 取得できています。":w0.state==="noloc"?"天気: 場所が未設定のため取得できません。":"天気: 取得できていません。場所の書き方を確認してください。";
@@ -322,7 +322,7 @@
   }
   function mbOpen(m){
     mbEdit=m?m.id:null; $("mbFormTitle").textContent=m?"メンバーを編集":"メンバーを追加";
-    $("mbName").value=m?m.name:""; $("mbCrew").value=m&&m.crew||""; $("mbRole").value=m&&m.role||"現場スタッフ";
+    $("mbName").value=m?m.name:""; setCrewSel("mbCrew",m&&m.crew||""); $("mbRole").value=m&&m.role||"現場スタッフ";
     $("mbTel").value=m&&m.phone||""; $("mbNote").value=m&&m.note||""; $("mbActive").value=m&&m.active===false?"0":"1";
     mbUid=m&&m.uid||""; mbAcctShow(); $("mbAcctQ").value=""; $("mbAcctRes").innerHTML="";
     var simple=!!(window.__FB&&window.__FB.createAccount);
@@ -1043,6 +1043,11 @@
 
   /* ---------- 設定:マスタ ---------- */
   function mflash(txt){flash("mMsg",txt)}
+  function setCrewSel(id,v){
+    var sel=$(id); v=String(v||"").trim();
+    if(v&&!Array.prototype.some.call(sel.options,function(o){return o.value===v})){var o=document.createElement("option");o.value=v;o.textContent=v+"(マスタ未登録)";sel.appendChild(o)}
+    sel.value=v;
+  }
   function fillLists(){
     // 候補 = マスタ + すでに現場で使われている名前
     var ja=function(x,y){return x.localeCompare(y,"ja")}, uniq=function(arr){var o={};return arr.filter(function(v){v=String(v||"").trim();if(!v||o[v])return false;o[v]=1;return true})};
@@ -1051,6 +1056,12 @@
     var mo=function(l){return l.map(function(c){return '<option value="'+esc(c)+'"></option>'}).join("")};
     $("dlAreas").innerHTML=mo(uniq(ar).sort(ja));
     $("dlCrews").innerHTML=mo(uniq(cr).sort(ja));
+    var crl=uniq(cr).sort(ja);
+    Array.prototype.forEach.call(document.querySelectorAll("select[data-crew]"),function(sel){
+      var cur=sel.value, keep=sel.dataset.crew==="keep";
+      sel.innerHTML='<option value="">'+(keep?"変更しない":"未設定")+'</option>'+crl.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+'</option>'}).join("");
+      sel.value=cur;
+    });
     var wk=masters.works.map(function(w){return w.name}); sites.forEach(function(s){(Array.isArray(s.lines)?s.lines:[]).forEach(function(l){if(l.work)wk.push(l.work)})});
     $("dlWork").innerHTML=mo(uniq(wk));
   }
