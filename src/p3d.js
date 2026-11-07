@@ -827,7 +827,8 @@
     else if(sub==="members")renderMembers();
     else if(sub==="photos")renderPhotos();
   }
-  var stab="list", mtab="area", pg=0, pgSize=10;
+  var stab="list", mtab="area", pg=0, pgSize=20, admV="list";
+  try{var AV0=localStorage.getItem("josetsu.admview");if(AV0==="card"||AV0==="list")admV=AV0}catch(e){}
   $("siteTabs").addEventListener("click",function(e){var b=e.target.closest("button[data-st]");if(!b)return;stab=b.dataset.st;renderAdminAll()});
   $("mTabs").addEventListener("click",function(e){var b=e.target.closest("button[data-mt]");if(!b)return;mtab=b.dataset.mt;mDirty=false;renderAdminAll()});
   $("subtabs").addEventListener("click",function(e){var b=e.target.closest("button[data-sub]");if(!b)return;sub=b.dataset.sub;renderAdminAll()});
@@ -866,13 +867,43 @@
         (canAdmin?'<span class="cp">'+(l.unitPrice>0?yen(l.unitPrice)+' / '+(l.unit==="時間"?"時間":"回"):'<span class="muted" style="font-weight:400">単価未登録</span>')+'</span>':'')+'</div>';
     }).join("")+'</div>';
   }
+  $("admView").addEventListener("click",function(e){var b=e.target.closest("[data-av]");if(!b)return;admV=b.dataset.av;try{localStorage.setItem("josetsu.admview",admV)}catch(e2){}pg=0;renderAdmin()});
+  function ctShort(s){
+    var ls=siteLines(s);
+    if(!ls.length)return '<span class="muted">未登録</span>';
+    return ls.map(function(l){
+      return '<div class="cxl"><b>'+esc(lineLabel(l)||"全体")+'</b>'+(l.count>0?' 契約'+l.count+'回':'')+(canAdmin&&l.unitPrice>0?' <span class="cpx">'+yen(l.unitPrice)+'/'+(l.unit==="時間"?"時間":"回")+'</span>':'')+'</div>';
+    }).join("");
+  }
+  function adminCompact(rows,aids,mv){
+    var head='<div class="ac-h" aria-hidden="true"><span></span><span>現場</span><div class="hm"><span>担当班</span><span>出動基準</span><span>平米数</span><span>引渡時間</span><span>契約・単価</span></div><span></span></div>';
+    return head+rows.map(function(s){
+      var w=wx[s.id], id=esc(s.id);
+      var wp=!mcp?'':(!w||(w.state==="loading"&&!w.cur))?'<span class="pill l0">取得中</span>':w.state==="noloc"?'':w.state==="err"?'<span class="pill l3">取得失敗</span>':'<span class="pill l1">取得OK</span>';
+      var lp=effLoc(s)?(s.loc?'':'<span class="pill l0">地区の位置</span>'):'<span class="pill l3">位置なし</span>';
+      var cr=siteCrews(s);
+      return '<article class="ac"><label class="ck"><input type="checkbox" data-sel="'+id+'"'+(sel[s.id]?' checked':'')+' aria-label="'+esc(s.name)+'を選択"></label>'+
+        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.address].filter(Boolean).join(" ・ ")||"–")+'</span>'+((wp+lp)?'<div class="stc">'+wp+lp+'</div>':'')+'</div>'+
+        '<div class="mt">'+
+        '<div class="c cw"><small>担当班</small>'+(cr.length?cr.map(function(c){return '<span class="chip">'+esc(c)+'</span>'}).join(""):'<span class="muted">未設定</span>')+'</div>'+
+        '<div class="c"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></div>'+
+        '<div class="c'+(+s.sqm>0?'':' emp')+'"><small>平米数</small><span class="num">'+esc(sqmText(s)||"–")+'</span></div>'+
+        '<div class="c'+(siteHands(s).length?'':' emp')+'"><small>引渡時間</small><span class="num">'+esc(handText(s)||"–")+'</span></div>'+
+        '<div class="c ccs"><small>契約・単価</small><div>'+ctShort(s)+'</div></div>'+
+        '</div>'+
+        '<span class="ed edb">'+(mv?'<button class="btn sm" type="button" data-act="mv" data-d="-1" data-id="'+id+'" aria-label="上へ"'+(aids.indexOf(s.id)===0?' disabled':'')+'>↑</button><button class="btn sm" type="button" data-act="mv" data-d="1" data-id="'+id+'" aria-label="下へ"'+(aids.indexOf(s.id)===aids.length-1?' disabled':'')+'>↓</button>':'')+'<button class="btn sm" type="button" data-act="copy" data-id="'+id+'" aria-label="'+esc(s.name)+'をコピー">コピー</button><button class="btn sm primary" type="button" data-act="edit" data-id="'+id+'">編集</button></span>'+
+        '</article>';
+    }).join("");
+  }
   function renderAdmin(){
     var all=adminRows(), pages=Math.max(1,Math.ceil(all.length/pgSize));
     if(pg>=pages)pg=pages-1;
     var rows=all.slice(pg*pgSize,pg*pgSize+pgSize), mv=($("admSort").value==="manual"&&canAdmin), aids=all.map(function(s){return s.id});
     $("admList").__ids=aids;
     $("pager").innerHTML=all.length?'<button class="btn sm" type="button" data-pg="prev"'+(pg===0?' disabled':'')+'>‹ 前へ</button><span class="pg-info"><b class="num">'+(pg+1)+' / '+pages+'</b> ページ(全'+all.length+'件)</span><button class="btn sm" type="button" data-pg="next"'+(pg>=pages-1?' disabled':'')+'>次へ ›</button><select id="pgSize" aria-label="1ページの件数">'+[10,20,50].map(function(n){return '<option value="'+n+'"'+(n===pgSize?' selected':'')+'>'+n+'件ずつ</option>'}).join("")+'</select><button class="btn sm" type="button" data-pg="all">検索結果をすべて選択</button>':'';
-    $("admList").innerHTML=rows.length?rows.map(function(s){
+    Array.prototype.forEach.call($("admView").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.av===admV))});
+    $("admList").classList.toggle("is-compact",admV==="list");
+    $("admList").innerHTML=rows.length&&admV==="list"?adminCompact(rows,aids,mv):rows.length?rows.map(function(s){
       var w=wx[s.id], id=esc(s.id), st=stOf(s);
       var wp=!mcp?'<span class="pill l0">未接続</span>':(!w||(w.state==="loading"&&!w.cur))?'<span class="pill l0">取得中</span>':w.state==="noloc"?'<span class="pill l0">場所未設定</span>':w.state==="err"?'<span class="pill l3">取得失敗</span>':'<span class="pill l1">取得OK</span>';
       var pt=unitText(s);
