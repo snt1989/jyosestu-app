@@ -1165,6 +1165,7 @@ tbody tr:last-child td{border-bottom:0}
   var access={}, accessLoaded=false, myName="";
   function blobUrl(id){return window.__blobUrl?window.__blobUrl(id):"/_blob/"+id}
   var DEFMACH=["手作業","自走式","軽トラ","ローダ"];
+  var RAW={sites:[],ops:{},reports:[],notes:[],sphotos:[]};
   var sites=[], wx={}, ops={}, reports=[], notes=[], sphotos=[], settings=Object.assign({},DEF), sel={};
   var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
   var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
@@ -1212,6 +1213,16 @@ tbody tr:last-child td{border-bottom:0}
   function stAt(s){var o=ops[s.id];return (o&&o.statusAt)||0}
   function areaLoc(name){var a=masters.areas.filter(function(x){return x.name===name})[0];return a&&a.loc?a.loc:""}
   function effLoc(s){return (s.loc&&String(s.loc).trim())||areaLoc(s.area)||""}
+  /* 管理者以外は、自分の担当班の現場(とその日報・連絡・状況・写真)だけを扱う */
+  function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
+  function applyScope(){
+    var c=myCrewName(), vs={};
+    sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&String(s.crew||"").trim()===c);if(v)vs[s.id]=1;return v});
+    ops={};Object.keys(RAW.ops).forEach(function(k){if(canAdmin||vs[k])ops[k]=RAW.ops[k]});
+    reports=RAW.reports.filter(function(r){return canAdmin||vs[r.siteId]});
+    notes=RAW.notes.filter(function(n){return canAdmin||!n.siteId||vs[n.siteId]});
+    sphotos=RAW.sphotos.filter(function(x){return canAdmin||vs[x.siteId]});
+  }
   function siteById(id){return sites.filter(function(x){return x.id===id})[0]}
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function num(v){return typeof v==="number"&&isFinite(v)?v:null}
@@ -1669,7 +1680,7 @@ tbody tr:last-child td{border-bottom:0}
     var mapOn=layout==="map"; $("siteMapBox").hidden=!mapOn;
     if(mapOn){$("siteList").innerHTML="";renderSiteMap(shown);return}
     if(!sites.length){
-      $("siteList").innerHTML='<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"現場がまだ登録されていません")+'</b>'+(dbState==="loading"?"":(canAdmin?"「設定」の「現場を追加」から、現場名と天気を調べる場所を登録してください。":"登録された現場がここに表示されます。"))+'</div>';
+      $("siteList").innerHTML='<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":(canAdmin||!RAW.sites.length?"現場がまだ登録されていません":"担当の現場がありません"))+'</b>'+(dbState==="loading"?"":(canAdmin?"「設定」の「現場を追加」から、現場名と天気を調べる場所を登録してください。":(RAW.sites.length?"管理者が、あなたの担当班を設定すると、担当の現場が表示されます。":"登録された現場がここに表示されます。")))+'</div>';
     }else if(!shown.length){
       $("siteList").innerHTML='<div class="empty"><b>該当する現場はありません</b>絞り込みを「全現場」に戻してください。</div>';
     }else{
@@ -3868,7 +3879,7 @@ tbody tr:last-child td{border-bottom:0}
     try{
       var w=user&&user.can?await user.can("data.write"):null;
       canStatus=(w!==false);
-      canAdmin=!!(user&&user.canEdit&&await user.canEdit());
+      canAdmin=!!(user&&user.canEdit&&await user.canEdit()); applyScope();
       myId=user&&user.id?await user.id():null;
       try{var mm=user&&user.me?await user.me():null;myName=mm&&mm.name||""}catch(e0){}
     }catch(e){}
@@ -3901,21 +3912,21 @@ tbody tr:last-child td{border-bottom:0}
         render();
       },function(){});
       db.collection("ops").onSnapshot(function(snap){
-        ops={};
-        snap.docs.forEach(function(d){ops[d.id]=d.data()});
-        render();
+        RAW.ops={};
+        snap.docs.forEach(function(d){RAW.ops[d.id]=d.data()});
+        applyScope(); render();
       },function(){});
       db.collection("reports").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
-        reports=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        render(); resolveNames();
+        RAW.reports=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        applyScope(); render(); resolveNames();
       },function(){});
       db.collection("notes").orderBy("at","desc").limit(300).onSnapshot(function(snap){
-        notes=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        render(); resolveNames();
+        RAW.notes=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        applyScope(); render(); resolveNames();
       },function(){});
       db.collection("sphotos").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
-        sphotos=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        render();
+        RAW.sphotos=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        applyScope(); render();
       },function(){});
       db.collection("announcements").orderBy("at","desc").limit(100).onSnapshot(function(snap){
         if(!annFirst&&snap.docChanges){snap.docChanges().forEach(function(c){var o=c.doc.data();if(c.type==="added"&&o.by!==myId)toast("新しいお知らせ:"+o.title)})}
@@ -3928,7 +3939,7 @@ tbody tr:last-child td{border-bottom:0}
         readMap=Object.assign({},l,v); render();
       },function(){});
       db.collection("access").onSnapshot(function(snap){
-        access={};snap.docs.forEach(function(d){access[d.id]=d.data()});accessLoaded=true;checkGate();
+        access={};snap.docs.forEach(function(d){access[d.id]=d.data()});accessLoaded=true;applyScope();checkGate();render();
       },function(){});
       if(canAdmin)db.collection("members").onSnapshot(function(snap){
         members=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
@@ -3946,7 +3957,7 @@ tbody tr:last-child td{border-bottom:0}
       },function(){});
       var first=true;
       db.collection("sites").onSnapshot(function(snap){
-        sites=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        RAW.sites=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o}); applyScope();
         dbState="ready"; fillLists();
         render();
         if(mcp){

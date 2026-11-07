@@ -88,11 +88,11 @@ module.exports = async (req, res) => {
     if (action === "notify") {
       const type = String(b.type || ""), id = String(b.id || "");
       if (TYPES.indexOf(type) < 0 || !id || id.indexOf("/") >= 0) return res.status(400).json({ error: "bad_request" });
-      let payload = null, key = "";
+      let payload = null, key = "", scopeSite = "";
       if (type === "note") {
         const d = await fs.doc("notes/" + id).get(); const n = d.exists ? d.data() : null;
         if (!n || n.by !== me.uid || !fresh(n.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
-        key = "note_" + id;
+        key = "note_" + id; scopeSite = n.siteId ? String(n.siteId) : "";
         payload = { title: "連絡: " + (n.siteId ? (n.siteName || "現場") : "全体"), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "note", url: "/?go=notes" };
       } else if (type === "ann") {
         const d = await fs.doc("announcements/" + id).get(); const a = d.exists ? d.data() : null;
@@ -102,19 +102,36 @@ module.exports = async (req, res) => {
       } else if (type === "report") {
         const d = await fs.doc("reports/" + id).get(); const r = d.exists ? d.data() : null;
         if (!r || r.by !== me.uid || !fresh(r.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
-        key = "report_" + id;
+        key = "report_" + id; scopeSite = r.siteId ? String(r.siteId) : "";
         payload = { title: "日報: " + (r.siteName || "現場"), body: clip([r.crew, r.snowCm !== "" && r.snowCm != null ? "積雪 " + r.snowCm + "cm" : "", myName && !r.crew ? myName : ""].filter(Boolean).join(" ・ ") || "日報が提出されました", 100), tag: "report", url: "/?go=reports" };
       } else {
         const d = await fs.doc("ops/" + id).get(); const o = d.exists ? d.data() : null;
         if (!o || !ST[o.status] || !fresh(o.statusAt, 120000)) return res.status(200).json({ ok: true, skipped: true });
         const sd = await fs.doc("sites/" + id).get();
-        key = "status_" + id + "_" + o.statusAt;
+        key = "status_" + id + "_" + o.statusAt; scopeSite = id;
         payload = { title: ST[o.status] + ": " + (sd.exists ? sd.data().name : "現場"), body: clip((o.statusBy || myName || "") + (sd.exists && sd.data().crew ? "(担当 " + sd.data().crew + ")" : ""), 100) || "作業状況が更新されました", tag: "status_" + id, url: "/?site=" + encodeURIComponent(id) };
       }
       try { await fs.doc("pushLog/" + key).create({ at: Date.now(), by: me.uid }); }
       catch (e) { return res.status(200).json({ ok: true, dup: true }); }
       const all = await fs.collection("pushSubs").get();
-      const subs = all.docs.filter((d) => { const s = d.data(); return s.uid !== me.uid && !(s.prefs && s.prefs[type] === false); });
+      let subs = all.docs.filter((d) => { const s = d.data(); return s.uid !== me.uid && !(s.prefs && s.prefs[type] === false); });
+      if (scopeSite) {
+        // 現場に紐づく通知は、管理者と、その現場の担当班のメンバーだけに送る
+        const sd2 = await fs.doc("sites/" + scopeSite).get();
+        const crew = sd2.exists ? String(sd2.data().crew || "").trim() : "";
+        const uids = Array.from(new Set(subs.map((d) => d.data().uid)));
+        const okU = {};
+        await Promise.all(uids.map(async (u) => {
+          try {
+            const [us, ac] = await Promise.all([fs.doc("users/" + u).get(), fs.doc("access/" + u).get()]);
+            const ud2 = us.exists ? us.data() : {};
+            const adm = ud2.role === "admin" || ADMINS.indexOf(String(ud2.email || "").toLowerCase()) >= 0;
+            const myCrew = ac.exists ? String(ac.data().crew || "").trim() : "";
+            okU[u] = adm || (!!crew && myCrew === crew);
+          } catch (e) { okU[u] = false; }
+        }));
+        subs = subs.filter((d) => okU[d.data().uid]);
+      }
       const r = await sendTo(subs, payload);
       return res.status(200).json({ ok: true, sent: r.sent });
     }

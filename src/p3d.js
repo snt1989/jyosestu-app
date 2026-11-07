@@ -1442,7 +1442,7 @@
     try{
       var w=user&&user.can?await user.can("data.write"):null;
       canStatus=(w!==false);
-      canAdmin=!!(user&&user.canEdit&&await user.canEdit());
+      canAdmin=!!(user&&user.canEdit&&await user.canEdit()); applyScope();
       myId=user&&user.id?await user.id():null;
       try{var mm=user&&user.me?await user.me():null;myName=mm&&mm.name||""}catch(e0){}
     }catch(e){}
@@ -1475,21 +1475,21 @@
         render();
       },function(){});
       db.collection("ops").onSnapshot(function(snap){
-        ops={};
-        snap.docs.forEach(function(d){ops[d.id]=d.data()});
-        render();
+        RAW.ops={};
+        snap.docs.forEach(function(d){RAW.ops[d.id]=d.data()});
+        applyScope(); render();
       },function(){});
       db.collection("reports").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
-        reports=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        render(); resolveNames();
+        RAW.reports=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        applyScope(); render(); resolveNames();
       },function(){});
       db.collection("notes").orderBy("at","desc").limit(300).onSnapshot(function(snap){
-        notes=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        render(); resolveNames();
+        RAW.notes=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        applyScope(); render(); resolveNames();
       },function(){});
       db.collection("sphotos").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
-        sphotos=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        render();
+        RAW.sphotos=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        applyScope(); render();
       },function(){});
       db.collection("announcements").orderBy("at","desc").limit(100).onSnapshot(function(snap){
         if(!annFirst&&snap.docChanges){snap.docChanges().forEach(function(c){var o=c.doc.data();if(c.type==="added"&&o.by!==myId)toast("新しいお知らせ:"+o.title)})}
@@ -1502,7 +1502,7 @@
         readMap=Object.assign({},l,v); render();
       },function(){});
       db.collection("access").onSnapshot(function(snap){
-        access={};snap.docs.forEach(function(d){access[d.id]=d.data()});accessLoaded=true;checkGate();
+        access={};snap.docs.forEach(function(d){access[d.id]=d.data()});accessLoaded=true;applyScope();checkGate();render();
       },function(){});
       if(canAdmin)db.collection("members").onSnapshot(function(snap){
         members=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
@@ -1520,7 +1520,7 @@
       },function(){});
       var first=true;
       db.collection("sites").onSnapshot(function(snap){
-        sites=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        RAW.sites=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o}); applyScope();
         dbState="ready"; fillLists();
         render();
         if(mcp){

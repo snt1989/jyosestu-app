@@ -319,7 +319,7 @@
     var mapOn=layout==="map"; $("siteMapBox").hidden=!mapOn;
     if(mapOn){$("siteList").innerHTML="";renderSiteMap(shown);return}
     if(!sites.length){
-      $("siteList").innerHTML='<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"現場がまだ登録されていません")+'</b>'+(dbState==="loading"?"":(canAdmin?"「設定」の「現場を追加」から、現場名と天気を調べる場所を登録してください。":"登録された現場がここに表示されます。"))+'</div>';
+      $("siteList").innerHTML='<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":(canAdmin||!RAW.sites.length?"現場がまだ登録されていません":"担当の現場がありません"))+'</b>'+(dbState==="loading"?"":(canAdmin?"「設定」の「現場を追加」から、現場名と天気を調べる場所を登録してください。":(RAW.sites.length?"管理者が、あなたの担当班を設定すると、担当の現場が表示されます。":"登録された現場がここに表示されます。")))+'</div>';
     }else if(!shown.length){
       $("siteList").innerHTML='<div class="empty"><b>該当する現場はありません</b>絞り込みを「全現場」に戻してください。</div>';
     }else{

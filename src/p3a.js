@@ -9,6 +9,7 @@
   var access={}, accessLoaded=false, myName="";
   function blobUrl(id){return window.__blobUrl?window.__blobUrl(id):"/_blob/"+id}
   var DEFMACH=["手作業","自走式","軽トラ","ローダ"];
+  var RAW={sites:[],ops:{},reports:[],notes:[],sphotos:[]};
   var sites=[], wx={}, ops={}, reports=[], notes=[], sphotos=[], settings=Object.assign({},DEF), sel={};
   var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
   var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
@@ -56,6 +57,16 @@
   function stAt(s){var o=ops[s.id];return (o&&o.statusAt)||0}
   function areaLoc(name){var a=masters.areas.filter(function(x){return x.name===name})[0];return a&&a.loc?a.loc:""}
   function effLoc(s){return (s.loc&&String(s.loc).trim())||areaLoc(s.area)||""}
+  /* 管理者以外は、自分の担当班の現場(とその日報・連絡・状況・写真)だけを扱う */
+  function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
+  function applyScope(){
+    var c=myCrewName(), vs={};
+    sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&String(s.crew||"").trim()===c);if(v)vs[s.id]=1;return v});
+    ops={};Object.keys(RAW.ops).forEach(function(k){if(canAdmin||vs[k])ops[k]=RAW.ops[k]});
+    reports=RAW.reports.filter(function(r){return canAdmin||vs[r.siteId]});
+    notes=RAW.notes.filter(function(n){return canAdmin||!n.siteId||vs[n.siteId]});
+    sphotos=RAW.sphotos.filter(function(x){return canAdmin||vs[x.siteId]});
+  }
   function siteById(id){return sites.filter(function(x){return x.id===id})[0]}
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function num(v){return typeof v==="number"&&isFinite(v)?v:null}
