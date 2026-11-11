@@ -3,7 +3,7 @@
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const ADMINS = String(process.env.ADMIN_EMAILS || "admin@sanoh-ltd.jp").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-const TYPES = ["note", "ann", "status", "report"];
+const TYPES = ["note", "ann", "status", "report", "urgent"];
 const ST = { prep: "準備中", out: "出動中", done: "完了" };
 
 function init() {
@@ -99,6 +99,21 @@ module.exports = async (req, res) => {
         if (!a || a.by !== me.uid || !isAdm || !fresh(a.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
         key = "ann_" + id; if (Array.isArray(a.crews) && a.crews.length) scopeCrews = a.crews.map((x) => String(x).trim()).filter(Boolean);
         payload = { title: (a.important ? "【重要】" : "お知らせ: ") + clip(a.title, 40), body: clip(a.body, 100), tag: "ann", url: "/" };
+      } else if (type === "urgent") {
+        // 要対応(警戒・出動目安)。天気は各端末で判定されるので、通知は現場ごと・段階ごとに1日1回だけ送る
+        const lv = +b.lv; const snow = Math.max(0, Math.min(300, +b.snow || 0)); const th = Math.max(0, Math.min(300, +b.th || 0));
+        if (lv !== 2 && lv !== 3) return res.status(400).json({ error: "bad_request" });
+        const sd = await fs.doc("sites/" + id).get(); if (!sd.exists) return res.status(200).json({ ok: true, skipped: true });
+        const site = sd.data();
+        const crewsOf = String(site.crew || "").split(/[、,，]/).map((x) => x.trim()).filter(Boolean);
+        if (!isAdm) {
+          const ac0 = await fs.doc("access/" + me.uid).get(); const mc = ac0.exists ? String(ac0.data().crew || "").trim() : "";
+          if (!mc || crewsOf.indexOf(mc) < 0) return res.status(200).json({ ok: true, skipped: true });
+        }
+        const od = await fs.doc("ops/" + id).get(); if (od.exists && od.data().status === "out") return res.status(200).json({ ok: true, skipped: true });
+        const day = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+        key = "urgent_" + id + "_" + lv + "_" + day; scopeSite = id;
+        payload = { title: (lv === 3 ? "【出動目安】" : "【警戒】") + clip(site.name || "現場", 30), body: clip((snow > 0 ? "降雪目安 約" + Math.round(snow * 10) / 10 + "cm" + (th ? "(基準" + th + "cm)" : "") : "降雪・凍結のおそれがあります") + (crewsOf.length ? " ・担当 " + crewsOf.join("、") : ""), 100), tag: "urgent-" + id, url: "/?site=" + encodeURIComponent(id) };
       } else if (type === "report") {
         const d = await fs.doc("reports/" + id).get(); const r = d.exists ? d.data() : null;
         if (!r || r.by !== me.uid || !fresh(r.at, 600000)) return res.status(200).json({ ok: true, skipped: true });

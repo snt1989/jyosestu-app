@@ -186,6 +186,7 @@
       var at=(res[0].cache&&res[0].cache.storedAt)||Date.now();
       wx[key]={state:"ok",loc:loc,cur:c.weather||{},alerts:Array.isArray(c.alerts)?c.alerts:[],fc:Array.isArray(f.forecasts)?f.forecasts:[],at:at};
       if(at>lastAt)lastAt=at;
+      try{urgentCheck(s)}catch(e9){}
     }catch(e){
       wx[key]={state:"err",loc:loc,err:errText(e),code:e&&e.code};
       if(e&&(e.code==="not_in_manifest"||e.code==="server_not_connected"||e.code==="needs_reauth"))mcpState=e.code;

@@ -622,7 +622,7 @@
     return items;
   }
   /* ---------- アプリのインストールと通知(本番アプリのみ) ---------- */
-  var pwa={ev:null,reg:null,sub:null,on:false,msg:"",prefs:{note:true,ann:true,status:true,report:true}};
+  var pwa={ev:null,reg:null,sub:null,on:false,msg:"",prefs:{note:true,ann:true,status:true,report:true,urgent:true}};
   try{var pp=JSON.parse(localStorage.getItem("josetsu.pushprefs")||"null");if(pp)Object.keys(pwa.prefs).forEach(function(k){if(pp[k]===false)pwa.prefs[k]=false})}catch(e){}
   function pwaOn(){return !!(window.__FB&&window.__FB.callPush)}
   function isStandalone(){try{return (window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}catch(e){return false}}
@@ -651,6 +651,18 @@
     }else if(["home","sites","machines","reports","notes","stats"].indexOf(go)>=0){closeModal();goto(go)}
     try{history.replaceState(null,"",location.pathname)}catch(e){}
   }
+  /* 要対応(警戒・出動目安)になった現場を通知する。判定はこの画面の天気データで行い、同じ現場・段階の通知は1日1回(サーバー側でも重複を防ぐ) */
+  var urgSent={};
+  try{urgSent=JSON.parse(localStorage.getItem("josetsu.urgsent")||"{}")}catch(e){}
+  function urgentCheck(s){
+    if(!pwaOn()||!s)return;
+    var a=assess(s); if(a.lv<2||stOf(s)==="out")return;
+    var day=new Date(Date.now()+9*36e5).toISOString().slice(0,10), p=String(urgSent[s.id]||"").split("|");
+    if(p[1]===day&&+p[0]>=a.lv)return;
+    urgSent[s.id]=a.lv+"|"+day;
+    try{Object.keys(urgSent).forEach(function(k){if(String(urgSent[k]).split("|")[1]!==day)delete urgSent[k]});localStorage.setItem("josetsu.urgsent",JSON.stringify(urgSent))}catch(e){}
+    window.__FB.callPush({action:"notify",type:"urgent",id:s.id,lv:a.lv,snow:Math.round(a.snow2*10)/10,th:a.th}).catch(function(){})
+  }
   function pwaNotify(type,id){if(pwaOn()&&id){window.__FB.callPush({action:"notify",type:type,id:id}).catch(function(){})}}
   function openAppSet(){
     var inst, push;
@@ -663,7 +675,7 @@
     }else if(Notification.permission==="denied"){
       push='<p class="muted">通知がブロックされています。ブラウザ(またはOS)の設定で、このサイトの通知を「許可」にしてください。</p>';
     }else if(pwa.on){
-      push='<p><b>この端末で通知を受け取っています。</b></p><div class="pw-pf">'+[["note","連絡"],["ann","お知らせ"],["status","出動状況の変更"],["report","日報の提出"]].map(function(x){return '<label class="pw-ck"><input type="checkbox" data-pwp="'+x[0]+'"'+(pwa.prefs[x[0]]?' checked':'')+'>'+x[1]+'</label>'}).join("")+'</div>'+
+      push='<p><b>この端末で通知を受け取っています。</b></p><div class="pw-pf">'+[["urgent","要対応(警戒・出動目安)"],["note","連絡"],["ann","お知らせ"],["status","出動状況の変更"],["report","日報の提出"]].map(function(x){return '<label class="pw-ck"><input type="checkbox" data-pwp="'+x[0]+'"'+(pwa.prefs[x[0]]?' checked':'')+'>'+x[1]+'</label>'}).join("")+'</div>'+
         '<div class="pw-bt"><button class="btn" type="button" data-mact="pwtest">テスト通知を送る</button><button class="btn" type="button" data-mact="pwoff">この端末の通知をオフにする</button></div>';
     }else{
       push='<p>連絡・お知らせ・出動状況・日報があったときに、この端末へ通知します。</p><button class="btn primary" type="button" data-mact="pwon">通知をオンにする</button>';
