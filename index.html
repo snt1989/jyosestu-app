@@ -763,6 +763,21 @@ tbody tr:last-child td{border-bottom:0}
   .mbf{flex-wrap:wrap;row-gap:6px}
   .mbse{margin-left:0;white-space:nowrap}
 }
+
+/* ---- 崩れ修正: お知らせ画面のボタン・天気表示 ---- */
+.modal-foot .btn{display:inline-flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;color:var(--ink);white-space:nowrap}
+.modal-foot a.btn.gb-link{color:var(--ink)}
+.modal-foot .btn.primary{color:var(--accent-ink)}
+@media (max-width:640px){
+  .modal-layer{padding:0 10px}
+  .modal-box{margin:4vh auto}
+  .modal-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+  .modal-foot .btn,.modal-foot .btn.first{margin:0;width:100%;min-width:0;padding:6px 8px;font-size:.88rem}
+  .modal-foot>:last-child:nth-child(odd){grid-column:1/-1}
+  .wb{grid-template-columns:1fr;gap:8px}
+  .wb-w .w{white-space:nowrap}
+  .sc-sub,.sc-name{overflow-wrap:anywhere}
+}
 </style>
 </head><body>
 
