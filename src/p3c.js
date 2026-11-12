@@ -518,7 +518,7 @@
     try{
       var ntr=await db.collection("notes").add({siteId:sid,siteName:s?s.name:"",text:text,by:myId||"",at:Date.now()});
       pwaNotify("note",ntr&&ntr.id);
-      $("ntText").value=""; toast("連絡を投稿しました。");
+      $("ntText").value=""; $("v-notes").classList.remove("nopen"); $("ntOpen").setAttribute("aria-expanded","false"); toast("連絡を投稿しました。");
     }catch(err){toast(err&&err.code==="quota_exceeded"?"登録できる件数の上限に達しています。":"投稿できませんでした。もう一度お試しください。")}
     finally{$("ntPost").disabled=false}
   });

@@ -726,4 +726,35 @@ tbody tr:last-child td{border-bottom:0}
   
 }
 .is-compact .ar-h{display:flex}
+
+/* ---- スマホ版 第2弾(横幅640px以下) ---- */
+.nt-open{display:none}
+@media (max-width:640px){
+  main{padding-top:4px}
+  .page{padding-top:8px}
+  .sec{margin-top:14px}
+  .page>.sec:first-child{margin-top:4px}
+  .fab.nof{display:none}
+  .admdesc{display:none}
+  #v-admin .page-h,#v-admin .admh{margin-bottom:6px}
+  /* 日報ボタンは丸いアイコンだけにして、内容に被らないようにする */
+  .fab{width:56px;height:56px;min-height:56px;padding:0;justify-content:center;gap:0;font-size:0;right:14px;bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+  .fab .ico{width:28px;height:28px}
+  /* ホームのお知らせは、いちばん新しい1件だけを小さく */
+  #v-home .anc{padding:10px 12px;margin-bottom:8px}
+  #v-home .anc:nth-of-type(n+2){display:none}
+  #v-home .anc .bd{-webkit-line-clamp:1;margin:2px 0 4px;font-size:.86rem}
+  /* 現場カード: 並べ替え矢印は隠して、1枚を低くする */
+  .sr .mvb,.sc .mvb{display:none}
+  .sr,.sc{margin-bottom:8px}
+  /* 連絡: 投稿フォームはボタンで開く */
+  .nt-open{display:block;width:100%;min-height:48px;margin-bottom:10px}
+  #v-notes #noteForm{display:none}
+  #v-notes.nopen #noteForm{display:block}
+  #v-notes.nopen .nt-open{display:none}
+  #noteForm textarea{min-height:110px}
+  /* 機械ボードの「今シーズン◯回」を枠内に収める */
+  .mbf{flex-wrap:wrap;row-gap:6px}
+  .mbse{margin-left:0;white-space:nowrap}
+}
 </style>

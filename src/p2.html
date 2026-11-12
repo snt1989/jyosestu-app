@@ -72,6 +72,7 @@
   </section>
 
   <section id="v-notes" class="page" hidden>
+    <button class="btn primary nt-open" type="button" id="ntOpen" aria-expanded="false">＋ 連絡を書く</button>
     <form class="card2 f" id="noteForm" autocomplete="off">
       <div class="grp">
         <label for="ntSite">連絡の対象<select id="ntSite"></select></label>
@@ -325,7 +326,7 @@
 </main>
 
 <nav class="tabbar" id="tabbar" aria-label="メニュー"></nav>
-<button class="fab" id="fab" type="button" data-act="newrep" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>日報を書く</button>
+<button class="fab" id="fab" type="button" data-act="newrep" aria-label="日報を書く" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="fl">日報を書く</span></button>
 
 <div class="modal-layer" id="mdl" aria-hidden="true"><div class="modal-box" id="mdBox" role="dialog" aria-modal="true"></div></div>
 

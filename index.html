@@ -732,6 +732,37 @@ tbody tr:last-child td{border-bottom:0}
   
 }
 .is-compact .ar-h{display:flex}
+
+/* ---- スマホ版 第2弾(横幅640px以下) ---- */
+.nt-open{display:none}
+@media (max-width:640px){
+  main{padding-top:4px}
+  .page{padding-top:8px}
+  .sec{margin-top:14px}
+  .page>.sec:first-child{margin-top:4px}
+  .fab.nof{display:none}
+  .admdesc{display:none}
+  #v-admin .page-h,#v-admin .admh{margin-bottom:6px}
+  /* 日報ボタンは丸いアイコンだけにして、内容に被らないようにする */
+  .fab{width:56px;height:56px;min-height:56px;padding:0;justify-content:center;gap:0;font-size:0;right:14px;bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+  .fab .ico{width:28px;height:28px}
+  /* ホームのお知らせは、いちばん新しい1件だけを小さく */
+  #v-home .anc{padding:10px 12px;margin-bottom:8px}
+  #v-home .anc:nth-of-type(n+2){display:none}
+  #v-home .anc .bd{-webkit-line-clamp:1;margin:2px 0 4px;font-size:.86rem}
+  /* 現場カード: 並べ替え矢印は隠して、1枚を低くする */
+  .sr .mvb,.sc .mvb{display:none}
+  .sr,.sc{margin-bottom:8px}
+  /* 連絡: 投稿フォームはボタンで開く */
+  .nt-open{display:block;width:100%;min-height:48px;margin-bottom:10px}
+  #v-notes #noteForm{display:none}
+  #v-notes.nopen #noteForm{display:block}
+  #v-notes.nopen .nt-open{display:none}
+  #noteForm textarea{min-height:110px}
+  /* 機械ボードの「今シーズン◯回」を枠内に収める */
+  .mbf{flex-wrap:wrap;row-gap:6px}
+  .mbse{margin-left:0;white-space:nowrap}
+}
 </style>
 </head><body>
 
@@ -808,6 +839,7 @@ tbody tr:last-child td{border-bottom:0}
   </section>
 
   <section id="v-notes" class="page" hidden>
+    <button class="btn primary nt-open" type="button" id="ntOpen" aria-expanded="false">＋ 連絡を書く</button>
     <form class="card2 f" id="noteForm" autocomplete="off">
       <div class="grp">
         <label for="ntSite">連絡の対象<select id="ntSite"></select></label>
@@ -1061,7 +1093,7 @@ tbody tr:last-child td{border-bottom:0}
 </main>
 
 <nav class="tabbar" id="tabbar" aria-label="メニュー"></nav>
-<button class="fab" id="fab" type="button" data-act="newrep" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>日報を書く</button>
+<button class="fab" id="fab" type="button" data-act="newrep" aria-label="日報を書く" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="fl">日報を書く</span></button>
 
 <div class="modal-layer" id="mdl" aria-hidden="true"><div class="modal-box" id="mdBox" role="dialog" aria-modal="true"></div></div>
 
@@ -1610,11 +1642,11 @@ tbody tr:last-child td{border-bottom:0}
       '<button type="button" class="tile c2" data-nav="sites" data-f="l2"><span class="n">'+c2+'</span><span class="l">警戒</span></button>'+
       '<button type="button" class="tile" data-nav="sites" data-f="out"><span class="n">'+out+'</span><span class="l">出動中</span></button>'+
       '<button type="button" class="tile" data-nav="reports"><span class="n">'+todayReps.length+'</span><span class="l">本日の日報</span></button></div>';
-    h+=whoHtml();
     h+='<button class="btn mp-home" type="button" data-act="openmap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>全体マップで現場を見る</button>';
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
     h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return siteCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
+    h+=whoHtml();
     var outs=items.filter(function(x){return stOf(x.s)==="out"});
     if(outs.length){
       h+='<div class="sec"><h2>出動中<span class="gc num">'+outs.length+'件</span></h2></div><div class="stack">'+outs.map(function(x){return siteCard(x.s)}).join("")+'</div>';
@@ -2400,7 +2432,7 @@ tbody tr:last-child td{border-bottom:0}
     try{
       var ntr=await db.collection("notes").add({siteId:sid,siteName:s?s.name:"",text:text,by:myId||"",at:Date.now()});
       pwaNotify("note",ntr&&ntr.id);
-      $("ntText").value=""; toast("連絡を投稿しました。");
+      $("ntText").value=""; $("v-notes").classList.remove("nopen"); $("ntOpen").setAttribute("aria-expanded","false"); toast("連絡を投稿しました。");
     }catch(err){toast(err&&err.code==="quota_exceeded"?"登録できる件数の上限に達しています。":"投稿できませんでした。もう一度お試しください。")}
     finally{$("ntPost").disabled=false}
   });
@@ -2513,6 +2545,7 @@ tbody tr:last-child td{border-bottom:0}
     }).join("");
     TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
+    $("fab").classList.toggle("nof",view==="sites");
     $("upd").textContent=lastAt?timeStr(lastAt):"--:--";
     if(view==="home")renderHome();
     else if(view==="sites")renderSites();
@@ -3410,6 +3443,7 @@ tbody tr:last-child td{border-bottom:0}
         (canAdmin?'<span class="cp">'+(l.unitPrice>0?yen(l.unitPrice)+' / '+(l.unit==="時間"?"時間":"回"):'<span class="muted" style="font-weight:400">単価未登録</span>')+'</span>':'')+'</div>';
     }).join("")+'</div>';
   }
+  $("ntOpen").addEventListener("click",function(){$("v-notes").classList.add("nopen");$("ntOpen").setAttribute("aria-expanded","true");setTimeout(function(){var t=$("ntText");t&&t.focus()},50)});
   $("admView").addEventListener("click",function(e){var b=e.target.closest("[data-av]");if(!b)return;admV=b.dataset.av;try{localStorage.setItem("josetsu.admview",admV)}catch(e2){}pg=0;renderAdmin()});
   function ctShort(s){
     var ls=siteLines(s);

@@ -31,6 +31,7 @@
     }).join("");
     TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
+    $("fab").classList.toggle("nof",view==="sites");
     $("upd").textContent=lastAt?timeStr(lastAt):"--:--";
     if(view==="home")renderHome();
     else if(view==="sites")renderSites();
@@ -928,6 +929,7 @@
         (canAdmin?'<span class="cp">'+(l.unitPrice>0?yen(l.unitPrice)+' / '+(l.unit==="時間"?"時間":"回"):'<span class="muted" style="font-weight:400">単価未登録</span>')+'</span>':'')+'</div>';
     }).join("")+'</div>';
   }
+  $("ntOpen").addEventListener("click",function(){$("v-notes").classList.add("nopen");$("ntOpen").setAttribute("aria-expanded","true");setTimeout(function(){var t=$("ntText");t&&t.focus()},50)});
   $("admView").addEventListener("click",function(e){var b=e.target.closest("[data-av]");if(!b)return;admV=b.dataset.av;try{localStorage.setItem("josetsu.admview",admV)}catch(e2){}pg=0;renderAdmin()});
   function ctShort(s){
     var ls=siteLines(s);
