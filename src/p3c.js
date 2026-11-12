@@ -502,8 +502,74 @@
   }
 
   /* ---------- 連絡板 ---------- */
+  /* ---------- チャット(連絡タブの中。全体と、班ごとのルーム) ---------- */
+  var chMode="board", chRoom="all", chStick=true, chSeen={};
+  try{chSeen=JSON.parse(localStorage.getItem("josetsu.chatseen")||"{}")||{}}catch(e){chSeen={}}
+  if(!chSeen._i){chSeen._i=Date.now();chSave()}
+  function chSave(){try{localStorage.setItem("josetsu.chatseen",JSON.stringify(chSeen))}catch(e){}}
+  function chRooms(){
+    var r=["all"];
+    if(canAdmin){
+      (masters.crews||[]).forEach(function(c){if(c&&r.indexOf(c)<0)r.push(c)});
+      chat.forEach(function(m){if(m.room&&r.indexOf(m.room)<0)r.push(m.room)});
+    }else myCrews().forEach(function(c){if(r.indexOf(c)<0)r.push(c)});
+    return r;
+  }
+  function chName(r){return r==="all"?"全体":r}
+  function chUnread(room){
+    var base=chSeen[room]||chSeen._i||0;
+    return chat.filter(function(m){return (m.room||"all")===room&&m.by!==myId&&(m.at||0)>base}).length;
+  }
+  function chUnreadAll(){return chRooms().reduce(function(n,r){return n+chUnread(r)},0)}
+  function ntShow(){
+    var c=chMode==="chat";
+    $("ntBoard").hidden=c; $("chatBox").hidden=!c;
+    Array.prototype.forEach.call(document.querySelectorAll("#ntMode [data-ntm]"),function(b){b.setAttribute("aria-pressed",b.dataset.ntm===chMode?"true":"false")});
+    var n=chUnreadAll(), bd=$("chBadge"); bd.hidden=!n; bd.textContent=n>99?"99+":n;
+  }
+  function chDay(t){var d=new Date(t),w="日月火水木金土"[d.getDay()];return d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日("+w+")"}
+  function renderChat(){
+    ntShow();
+    var rooms=chRooms(); if(rooms.indexOf(chRoom)<0)chRoom="all";
+    $("chRooms").innerHTML=rooms.map(function(r){var u=r===chRoom?0:chUnread(r);return '<button type="button" data-chroom="'+esc(r)+'" aria-pressed="'+(r===chRoom)+'">'+esc(chName(r))+(u?'<span class="num cbd">'+u+'</span>':'')+'</button>'}).join("");
+    var near=(window.innerHeight+window.scrollY)>=document.documentElement.scrollHeight-220;
+    var list=chat.filter(function(m){return (m.room||"all")===chRoom}), h="", last="";
+    list.forEach(function(m){
+      var dy=chDay(m.at||0); if(dy!==last){h+='<div class="chday"><span>'+dy+'</span></div>';last=dy}
+      var mine=m.by===myId;
+      h+='<div class="chm'+(mine?' me':'')+'"><div class="chb">'+(mine?'':'<div class="chw">'+esc(who(m.by))+'</div>')+'<div class="cht">'+esc(m.text||"")+'</div></div><div class="chi">'+timeStr(m.at||0)+((mine||canAdmin)?' <button type="button" class="link chx" data-act="chdel" data-id="'+esc(m.id)+'">削除</button>':'')+'</div></div>';
+    });
+    $("chList").innerHTML=h||'<div class="empty"><b>まだメッセージはありません</b>'+(chRoom==="all"?'全員が見られるチャットです。':esc(chName(chRoom))+'のメンバーと管理者だけが見られます。')+'</div>';
+    $("chSend").disabled=!canWrite();
+    var latest=list.length?(list[list.length-1].at||0):0;
+    if(latest&&(chSeen[chRoom]||0)<latest){chSeen[chRoom]=latest;chSave();render()}
+    if(chStick||near){chStick=false;setTimeout(function(){window.scrollTo(0,document.documentElement.scrollHeight)},30)}
+  }
+  $("ntMode").addEventListener("click",function(e){
+    var b=e.target.closest("[data-ntm]"); if(!b)return;
+    chMode=b.dataset.ntm; chStick=true; render();
+  });
+  $("chRooms").addEventListener("click",function(e){
+    var b=e.target.closest("[data-chroom]"); if(!b)return;
+    chRoom=b.dataset.chroom; chStick=true; render();
+  });
+  $("chText").addEventListener("input",function(e){var t=e.target;t.style.height="auto";t.style.height=Math.min(140,t.scrollHeight)+"px"});
+  $("chText").addEventListener("keydown",function(e){if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("chForm").requestSubmit()}});
+  $("chForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    if(!canWrite())return;
+    var text=$("chText").value.trim(); if(!text)return;
+    $("chSend").disabled=true;
+    try{
+      var r=await db.collection("notes").add({kind:"chat",room:chRoom,siteId:"",siteName:"",text:text,by:myId||"",at:Date.now()});
+      pwaNotify("chat",r&&r.id);
+      $("chText").value=""; $("chText").style.height="auto"; chStick=true;
+    }catch(err){toast(err&&err.code==="quota_exceeded"?"登録できる件数の上限に達しています。":"送信できませんでした。もう一度お試しください。")}
+    finally{$("chSend").disabled=!canWrite()}
+  });
+
   function renderNotes(){
-    syncSiteSels();
+    ntShow();syncSiteSels();
     $("ntFilter").value=ntF;
     var list=notes.filter(function(n){return ntF==="all"||(ntF==="none"?!n.siteId:n.siteId===ntF)});
     $("ntPost").disabled=!canWrite();

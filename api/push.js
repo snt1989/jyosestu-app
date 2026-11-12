@@ -3,7 +3,7 @@
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const ADMINS = String(process.env.ADMIN_EMAILS || "admin@sanoh-ltd.jp").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-const TYPES = ["note", "ann", "status", "report", "urgent"];
+const TYPES = ["note", "chat", "ann", "status", "report", "urgent"];
 const ST = { prep: "準備中", out: "出動中", done: "完了" };
 
 function init() {
@@ -94,6 +94,12 @@ module.exports = async (req, res) => {
         if (!n || n.by !== me.uid || !fresh(n.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
         key = "note_" + id; scopeSite = n.siteId ? String(n.siteId) : "";
         payload = { title: "連絡: " + (n.siteId ? (n.siteName || "現場") : "全体"), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "note", url: "/?go=notes" };
+      } else if (type === "chat") {
+        const d = await fs.doc("notes/" + id).get(); const n = d.exists ? d.data() : null;
+        if (!n || n.kind !== "chat" || n.by !== me.uid || !fresh(n.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
+        key = "chat_" + id; const room = String(n.room || "all");
+        if (room !== "all") scopeCrews = [room];
+        payload = { title: "チャット: " + (room === "all" ? "全体" : room), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "chat_" + room, url: "/?go=notes" };
       } else if (type === "ann") {
         const d = await fs.doc("announcements/" + id).get(); const a = d.exists ? d.data() : null;
         if (!a || a.by !== me.uid || !isAdm || !fresh(a.at, 600000)) return res.status(200).json({ ok: true, skipped: true });

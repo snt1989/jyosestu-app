@@ -9,8 +9,8 @@
   var access={}, accessLoaded=false, myName="";
   function blobUrl(id){return window.__blobUrl?window.__blobUrl(id):"/_blob/"+id}
   var DEFMACH=["手作業","自走式","軽トラ","ローダ"];
-  var RAW={sites:[],ops:{},reports:[],notes:[],sphotos:[],ann:[]};
-  var sites=[], wx={}, ops={}, reports=[], notes=[], sphotos=[], settings=Object.assign({},DEF), sel={};
+  var RAW={sites:[],ops:{},reports:[],notes:[],chat:[],sphotos:[],ann:[]};
+  var sites=[], wx={}, ops={}, reports=[], notes=[], chat=[], sphotos=[], settings=Object.assign({},DEF), sel={};
   var view="home", filter="all", query="", areaF="", sub="sites", editingId=null;
   var canStatus=true, canAdmin=false, canPhoto=false, myId=null;
   var dbState="loading", busy={}, lastAt=0, mcpState="loading", lastAreaKey="";
@@ -60,12 +60,15 @@
   /* 管理者以外は、自分の担当班の現場(とその日報・連絡・状況・写真)だけを扱う */
   function siteCrews(s){return String(s&&s.crew||"").split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
   function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
+  function myCrews(){return String(myCrewName()).split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
+  function chatVisible(m){return !m.room||m.room==="all"||canAdmin||myCrews().indexOf(m.room)>=0}
   function applyScope(){
     var c=myCrewName(), vs={};
     sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
     ops={};Object.keys(RAW.ops).forEach(function(k){if(canAdmin||vs[k])ops[k]=RAW.ops[k]});
     reports=RAW.reports.filter(function(r){return canAdmin||vs[r.siteId]});
     notes=RAW.notes.filter(function(n){return canAdmin||!n.siteId||vs[n.siteId]});
+    chat=RAW.chat.filter(function(m){return chatVisible(m)});
     sphotos=RAW.sphotos.filter(function(x){return canAdmin||vs[x.siteId]});
     announcements=RAW.ann.filter(annVisible);
   }

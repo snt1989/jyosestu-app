@@ -72,6 +72,11 @@
   </section>
 
   <section id="v-notes" class="page" hidden>
+    <div class="vt" id="ntMode" role="group" aria-label="連絡の種類">
+      <button type="button" data-ntm="board" aria-pressed="true">連絡板</button>
+      <button type="button" data-ntm="chat" aria-pressed="false">チャット<i class="cbadge" id="chBadge" hidden></i></button>
+    </div>
+    <div id="ntBoard">
     <button class="btn primary nt-open" type="button" id="ntOpen" aria-expanded="false">＋ 連絡を書く</button>
     <form class="card2 f" id="noteForm" autocomplete="off">
       <div class="grp">
@@ -82,6 +87,16 @@
     </form>
     <div class="bar" style="margin-top:14px"><select id="ntFilter" aria-label="連絡の絞り込み"></select></div>
     <div class="stack" id="noteList"></div>
+  
+    </div>
+    <div id="chatBox" hidden>
+      <div class="chips" id="chRooms"></div>
+      <div class="chlist" id="chList" aria-live="polite"></div>
+      <form class="chform" id="chForm" autocomplete="off">
+        <textarea id="chText" rows="1" maxlength="500" placeholder="メッセージを入力" aria-label="メッセージ"></textarea>
+        <button class="btn primary" type="submit" id="chSend">送信</button>
+      </form>
+    </div>
   </section>
 
   <section id="v-stats" class="page" hidden>

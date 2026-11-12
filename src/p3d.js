@@ -27,7 +27,7 @@
     if(canAdmin){NAV.push(["members","メンバー管理"]);NAV.push(["admin","設定"])}
     $("tabbar").innerHTML=NAV.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):view===t[0];
-      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー"}[t[0]]||t[1])+'</span></button>';
+      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー"}[t[0]]||t[1])+'</span>'+(t[0]==="notes"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
     }).join("");
     TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
@@ -37,7 +37,7 @@
     else if(view==="sites")renderSites();
     else if(view==="machines")renderMachines();
     else if(view==="reports")renderReports();
-    else if(view==="notes")renderNotes();
+    else if(view==="notes"){if(chMode==="chat")renderChat();else renderNotes()}
     else if(view==="stats")renderStats();
     else if(view==="admin")renderAdminAll();
     renderBell();
@@ -102,6 +102,10 @@
       var r1=reports.filter(function(x){return x.id===id})[0];
       try{await db.doc("reports/"+id).delete();if(r1)dropAssets((r1.photos||[]).map(function(p){return p.id}));closeSheet("rview");toast("日報を削除しました。")}
       catch(err){toast("削除できませんでした。")}
+    }
+    else if(act==="chdel"){
+      if(!arm("cd"+id,t,"削除"))return;
+      try{await db.doc("notes/"+id).delete()}catch(err){toast("削除できませんでした。")}
     }
     else if(act==="ntdel"){
       if(!arm("nd"+id,t,"削除"))return;
@@ -623,7 +627,7 @@
     return items;
   }
   /* ---------- アプリのインストールと通知(本番アプリのみ) ---------- */
-  var pwa={ev:null,reg:null,sub:null,on:false,msg:"",prefs:{note:true,ann:true,status:true,report:true,urgent:true}};
+  var pwa={ev:null,reg:null,sub:null,on:false,msg:"",prefs:{chat:true,note:true,ann:true,status:true,report:true,urgent:true}};
   try{var pp=JSON.parse(localStorage.getItem("josetsu.pushprefs")||"null");if(pp)Object.keys(pwa.prefs).forEach(function(k){if(pp[k]===false)pwa.prefs[k]=false})}catch(e){}
   function pwaOn(){return !!(window.__FB&&window.__FB.callPush)}
   function isStandalone(){try{return (window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}catch(e){return false}}
@@ -676,7 +680,7 @@
     }else if(Notification.permission==="denied"){
       push='<p class="muted">通知がブロックされています。ブラウザ(またはOS)の設定で、このサイトの通知を「許可」にしてください。</p>';
     }else if(pwa.on){
-      push='<p><b>この端末で通知を受け取っています。</b></p><div class="pw-pf">'+[["urgent","要対応(警戒・出動目安)"],["note","連絡"],["ann","お知らせ"],["status","出動状況の変更"],["report","日報の提出"]].map(function(x){return '<label class="pw-ck"><input type="checkbox" data-pwp="'+x[0]+'"'+(pwa.prefs[x[0]]?' checked':'')+'>'+x[1]+'</label>'}).join("")+'</div>'+
+      push='<p><b>この端末で通知を受け取っています。</b></p><div class="pw-pf">'+[["urgent","要対応(警戒・出動目安)"],["note","連絡"],["chat","チャット"],["ann","お知らせ"],["status","出動状況の変更"],["report","日報の提出"]].map(function(x){return '<label class="pw-ck"><input type="checkbox" data-pwp="'+x[0]+'"'+(pwa.prefs[x[0]]?' checked':'')+'>'+x[1]+'</label>'}).join("")+'</div>'+
         '<div class="pw-bt"><button class="btn" type="button" data-mact="pwtest">テスト通知を送る</button><button class="btn" type="button" data-mact="pwoff">この端末の通知をオフにする</button></div>';
     }else{
       push='<p>連絡・お知らせ・出動状況・日報があったときに、この端末へ通知します。</p><button class="btn primary" type="button" data-mact="pwon">通知をオンにする</button>';
@@ -1567,7 +1571,7 @@
   async function resolveNames(){
     if(!user||!user.profiles)return;
     var need=[];
-    reports.concat(notes,announcements).forEach(function(x){if(x.by&&!askedNames[x.by]){askedNames[x.by]=1;need.push(x.by)}});
+    reports.concat(notes,chat,announcements).forEach(function(x){if(x.by&&!askedNames[x.by]){askedNames[x.by]=1;need.push(x.by)}});
     if(myId&&!askedNames[myId]){askedNames[myId]=1;need.push(myId)}
     if(!need.length)return;
     try{var p=await user.profiles(need);need.forEach(function(id){if(p&&p[id]&&p[id].name)nameMap[id]=p[id].name});render()}catch(e){}
@@ -1622,8 +1626,10 @@
         RAW.reports=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
         applyScope(); render(); resolveNames();
       },function(){});
-      db.collection("notes").orderBy("at","desc").limit(300).onSnapshot(function(snap){
-        RAW.notes=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+      db.collection("notes").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
+        var all=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        RAW.notes=all.filter(function(o){return o.kind!=="chat"});
+        RAW.chat=all.filter(function(o){return o.kind==="chat"}).sort(function(a,b){return (a.at||0)-(b.at||0)});
         applyScope(); render(); resolveNames();
       },function(){});
       db.collection("sphotos").orderBy("at","desc").limit(1000).onSnapshot(function(snap){

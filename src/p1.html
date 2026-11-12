@@ -772,4 +772,26 @@ tbody tr:last-child td{border-bottom:0}
   .wb-w .w{white-space:nowrap}
   .sc-sub,.sc-name{overflow-wrap:anywhere}
 }
+
+/* ---- チャット ---- */
+#ntMode{margin-bottom:12px}
+.cbadge,.tbd{font-style:normal;font-size:.7rem;font-weight:800;color:#fff;background:var(--crit);border-radius:99px;padding:1px 6px;min-width:18px;text-align:center;line-height:1.4;margin-left:6px}
+.tabbar button{position:relative}
+.tabbar .tbd{position:absolute;top:2px;left:calc(50% + 6px);margin:0;font-size:.64rem;padding:0 5px;border:2px solid var(--surface);box-sizing:content-box}
+.chips button .cbd{background:var(--crit);color:#fff;border-radius:99px;padding:0 6px;font-size:.72rem}
+.chlist{display:flex;flex-direction:column;gap:10px;padding:4px 0 12px}
+.chday{text-align:center;margin:8px 0 2px}
+.chday span{font-size:.78rem;color:var(--muted);background:var(--surface2);border-radius:99px;padding:2px 12px}
+.chm{display:flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:100%}
+.chm.me{align-items:flex-end}
+.chb{max-width:82%;background:var(--surface);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:8px 12px;box-shadow:var(--shadow)}
+.chm.me .chb{background:var(--accent-soft);border-color:#BFDCC9;border-radius:14px 14px 4px 14px}
+.chw{font-size:.78rem;font-weight:700;color:var(--brand);margin-bottom:2px}
+.cht{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.chi{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:4px}
+.chx{min-height:28px;padding:2px 4px;font-size:.72rem}
+.chform{position:sticky;bottom:0;z-index:6;display:flex;gap:8px;align-items:flex-end;background:var(--bg);padding:8px 0 10px;border-top:1px solid var(--line)}
+.chform textarea{flex:1;min-width:0;border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-height:48px;max-height:140px;resize:none;background:var(--surface);line-height:1.5}
+.chform .btn{min-height:48px;padding:0 20px;flex:none}
+@media (max-width:899px){.chform{bottom:calc(60px + env(safe-area-inset-bottom,0px))}}
 </style>
