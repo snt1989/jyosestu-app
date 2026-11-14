@@ -2,7 +2,7 @@
    db → Firestore / user → Firebase Auth + users コレクション / assets → Firestore(photos) / mcp(天気) → /api/weather */
 (function(){
   var cfg=window.FIREBASE_CONFIG||{}, ADMINS=(window.ADMIN_EMAILS||[]).map(function(x){return String(x).toLowerCase()});
-  var CSS='position:fixed;inset:0;z-index:200;background:#F8F9F8;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;color:#20241F';
+  var CSS='position:fixed;inset:0;z-index:200;background:#F3F6F9;display:flex;align-items:center;justify-content:center;padding:20px;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;color:#20241F';
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function overlay(html){
     var el=document.getElementById("fbov"); if(!el){el=document.createElement("div");el.id="fbov";el.style.cssText=CSS;document.body.appendChild(el)}
@@ -10,7 +10,7 @@
     return el;
   }
   var INPUT='width:100%;min-height:46px;border:1px solid #E3E7E5;border-radius:10px;padding:8px 12px;font:inherit;box-sizing:border-box;margin:4px 0 12px';
-  var BTN='width:100%;min-height:48px;border:0;border-radius:999px;background:#1E8449;color:#fff;font:inherit;font-weight:700;cursor:pointer';
+  var BTN='width:100%;min-height:48px;border:0;border-radius:999px;background:#1F5FA8;color:#fff;font:inherit;font-weight:700;cursor:pointer';
   var LINK='background:none;border:0;color:#2F6FA8;font:inherit;text-decoration:underline;cursor:pointer;padding:6px';
   function padPw(m,p){return m.slice(-PD.length)===PD?p+"~Js1":p}
   var BR0={name:"除雪管理アプリ"};

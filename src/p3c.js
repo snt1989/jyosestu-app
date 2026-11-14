@@ -197,7 +197,7 @@
     });
     return SM.loading;
   }
-  var MPC={3:"#C1443C",2:"#D79A1B",1:"#1E8449",0:"#7B8794"};
+  var MPC={3:"#D43D2E",2:"#F2A900",1:"#1F5FA8",0:"#7B8794"};
   function pinIcon(p){
     var out=stOf(p.s)==="out", lv=p.a.lv;
     return L.divIcon({className:"mpin-w",iconSize:[30,40],iconAnchor:[15,38],popupAnchor:[0,-34],
