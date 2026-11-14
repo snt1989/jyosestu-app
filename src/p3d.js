@@ -327,7 +327,7 @@
     var rows=mbVisible();
     $("mbList").innerHTML=rows.length?rows.map(function(m){
       var id=esc(m.id), askDel=mbDel===m.id;
-      return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc([m.crew||"担当班 未設定",m.role||"現場スタッフ"].join(" ・ "))+'</span></div>'+
+      return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc([m.crew||"担当班 未設定",m.role||"現場スタッフ"].join("　"))+'</span></div>'+
         '<div class="ed"><button class="btn sm" type="button" data-mb="edit" data-id="'+id+'">編集</button><button class="btn sm'+(askDel?' danger':'')+'" type="button" data-mb="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div>'+
         '<div class="kvs">'+(m.active===false?'<span class="k">休止中</span>':'')+'<span class="k">'+(window.__FB&&window.__FB.createAccount?(m.uid?'ログインできます':'ログイン未設定'):(m.uid?'ログイン連携済':'ログイン未連携'))+'</span>'+(m.phone?'<span class="k">電話 <a href="tel:'+esc(String(m.phone).replace(/[^0-9+]/g,""))+'">'+esc(m.phone)+'</a></span>':'')+(m.note?'<span class="k">'+esc(m.note)+'</span>':'')+'</div></article>';
     }).join(""):'<div class="empty"><b>'+(members.length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(members.length?'':'「メンバーを追加」から登録してください。')+'</div>';
@@ -752,14 +752,14 @@
   function openAnnView(id){
     var a=announcements.filter(function(x){return x.id===id})[0]; if(!a){closeModal();return}
     markRead(id);
-    openModal("お知らせ",'<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+'</div><div class="m">'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div></div>',
+    openModal("お知らせ",'<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+'</div><div class="m">'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div></div>',
       (canAdmin?'<button class="btn first" type="button" data-mact="anedit" data-id="'+esc(id)+'">編集</button>':'')+'<button class="btn primary" type="button" data-mclose>閉じる</button>');
   }
   function openAnnHist(){
     var l=annSorted(), unseen={};
     l.forEach(function(a){if(isUnread(a))unseen[a.id]=1});
     var body=l.length?l.map(function(a){
-      return '<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+(unseen[a.id]?'<span class="nt-new">NEW</span>':'')+'</div><div class="m">'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div>'+
+      return '<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+(unseen[a.id]?'<span class="nt-new">NEW</span>':'')+'</div><div class="m">'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div>'+
         (canAdmin?'<div class="ops"><button class="link" type="button" data-mact="anedit" data-id="'+esc(a.id)+'">編集</button><button class="link" type="button" data-mact="andel" data-id="'+esc(a.id)+'">削除</button></div>':'')+'</div>';
     }).join(""):'<div class="nt-empty">お知らせはまだありません</div>';
     openModal("お知らせの履歴",body,'<button class="btn first" type="button" data-mact="notices">戻る</button>'+(canAdmin?'<button class="btn primary" type="button" data-mact="annew">お知らせを作成</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
@@ -842,7 +842,7 @@
     var l=annSorted().filter(function(a){return a.important||(Date.now()-(a.at||0))<7*864e5}).slice(0,2);
     if(!l.length)return "";
     return '<div class="sec"><h2>お知らせ</h2><button class="link" type="button" data-act="annhist">履歴を見る</button></div>'+l.map(function(a){
-      return '<article class="anc'+(a.important?' imp':'')+'"><b class="t">'+(a.important?'<span class="nt-imp">重要</span> ':'')+(isUnread(a)?'<span class="nt-new">NEW</span> ':'')+esc(a.title)+'</b><div class="bd">'+esc(a.body)+'</div><div class="mt"><span>'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</span><button class="link" type="button" data-act="anopen" data-id="'+esc(a.id)+'">続きを読む</button></div></article>';
+      return '<article class="anc'+(a.important?' imp':'')+'"><b class="t">'+(a.important?'<span class="nt-imp">重要</span> ':'')+(isUnread(a)?'<span class="nt-new">NEW</span> ':'')+esc(a.title)+'</b><div class="bd">'+esc(a.body)+'</div><div class="mt"><span>'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</span><button class="link" type="button" data-act="anopen" data-id="'+esc(a.id)+'">続きを読む</button></div></article>';
     }).join("");
   }
   $("mdl").addEventListener("click",async function(e){
@@ -950,7 +950,7 @@
       var lp=effLoc(s)?(s.loc?'':'<span class="pill l0">地区の位置</span>'):'<span class="pill l3">位置なし</span>';
       var cr=siteCrews(s);
       return '<article class="ac"><label class="ck"><input type="checkbox" data-sel="'+id+'"'+(sel[s.id]?' checked':'')+' aria-label="'+esc(s.name)+'を選択"></label>'+
-        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.address].filter(Boolean).join(" ・ ")||"–")+'</span>'+((wp+lp)?'<div class="stc">'+wp+lp+'</div>':'')+'</div>'+
+        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.address].filter(Boolean).join("　")||"–")+'</span>'+((wp+lp)?'<div class="stc">'+wp+lp+'</div>':'')+'</div>'+
         '<div class="mt">'+
         '<div class="c cw"><small>担当班</small>'+(cr.length?cr.map(function(c){return '<span class="chip">'+esc(c)+'</span>'}).join(""):'<span class="muted">未設定</span>')+'</div>'+
         '<div class="c"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></div>'+
@@ -975,7 +975,7 @@
       var wp=!mcp?'<span class="pill l0">未接続</span>':(!w||(w.state==="loading"&&!w.cur))?'<span class="pill l0">取得中</span>':w.state==="noloc"?'<span class="pill l0">場所未設定</span>':w.state==="err"?'<span class="pill l3">取得失敗</span>':'<span class="pill l1">取得OK</span>';
       var pt=unitText(s);
       return '<article class="ar"><label class="ck"><input type="checkbox" data-sel="'+id+'"'+(sel[s.id]?' checked':'')+' aria-label="'+esc(s.name)+'を選択"></label>'+
-        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div>'+
+        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div>'+
         '<span class="ed edb">'+(mv?'<button class="btn sm" type="button" data-act="mv" data-d="-1" data-id="'+id+'" aria-label="上へ"'+(aids.indexOf(s.id)===0?' disabled':'')+'>↑</button><button class="btn sm" type="button" data-act="mv" data-d="1" data-id="'+id+'" aria-label="下へ"'+(aids.indexOf(s.id)===aids.length-1?' disabled':'')+'>↓</button>':'')+'<button class="btn sm" type="button" data-act="copy" data-id="'+id+'" aria-label="'+esc(s.name)+'をコピー">コピー</button><button class="btn sm" type="button" data-act="edit" data-id="'+id+'">編集</button></span>'+
         '<div class="kvs"><span class="k"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></span>'+
         '<span class="k'+(+s.sqm>0?'':' emp')+'"><small>平米数</small><span class="num">'+esc(sqmText(s)||"–")+'</span></span>'+

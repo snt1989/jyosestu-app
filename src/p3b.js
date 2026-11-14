@@ -72,7 +72,7 @@
   }
   function siteCard(s){
     var a=assess(s), st=stOf(s), id=esc(s.id);
-    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定',siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join(' ・ '))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
+    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定',siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
   }
   function stSelHtml(s){
     var st=stOf(s);
@@ -86,8 +86,8 @@
       if(a.ice)tg+='<span class="ice">凍結注意</span>';
       if(a.snowing)tg+='<span class="ice">降雪中</span>';
     }
-    var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw">'+esc(jp(c.weather))+'<span class="sx"> ・ 降雪 '+snowLabel(a.snow2)+' / 基準'+(a.th||10)+'cm</span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
-    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterHtml(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
+    var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw">'+esc(jp(c.weather))+'<span class="sx">　降雪 '+snowLabel(a.snow2)+' / 基準'+(a.th||10)+'cm</span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
+    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterHtml(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
   }
   var layout="row";
   try{var L0=localStorage.getItem("josetsu.layout2");if(L0==="card"||L0==="row")layout=L0}catch(e){}
@@ -123,7 +123,7 @@
     if(r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
     var h='<article class="rc" data-act="rep" data-id="'+esc(r.id)+'" role="button" tabindex="0"><div class="top"><span class="nm">'+esc(r.siteName||"(現場名なし)")+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>';
     h+='<div class="ln">'+(ln.length?'<span>'+ln.join('</span><span>')+'</span>':'')+(r.haisetsu?'<span class="tag ice">排雪</span>':'')+(n?'<span>写真 '+n+'枚</span>':'')+'</div>';
-    h+='<div class="ln"><span>'+esc(dlabel(r.date))+' ・ 記入 '+esc(who(r.by))+'</span></div>';
+    h+='<div class="ln"><span>'+esc(dlabel(r.date))+'　記入 '+esc(who(r.by))+'</span></div>';
     if(r.note)h+='<div class="sc-sub" style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(r.note.length>80?r.note.slice(0,80)+"…":r.note)+'</div>';
     return h+'</article>';
   }
@@ -186,9 +186,9 @@
             var lastH=hs[hs.length-1];
             if(!pick){var m2=/^(\d+):(\d+)/.exec(lastH.time),tg2=new Date();tg2.setHours(+m2[1],+m2[2],0,0);pick=lastH;rem=Math.round((tg2.getTime()-now)/60000)}
             hd="引渡 "+(pick.label?pick.label+" ":"")+pick.time+(rem<0?"(過ぎています)":rem<=60?"(あと"+rem+"分)":"")+(hs.length>1?" ほか"+(hs.length-1)+"件":""); hc=rem<0?" late":rem<=60?" soon":"";}
-          return '<button type="button" class="whl '+x.st+hc+'" data-act="open" data-id="'+esc(x.s.id)+'"><span class="sp">'+esc(ST[x.st])+'</span><span class="nm">'+esc(x.s.name)+'</span><span class="mt">'+[x.by,tm,dur&&'経過 '+dur,hd].filter(Boolean).map(esc).join(' ・ ')+'</span></button>';
+          return '<button type="button" class="whl '+x.st+hc+'" data-act="open" data-id="'+esc(x.s.id)+'"><span class="sp">'+esc(ST[x.st])+'</span><span class="nm">'+esc(x.s.name)+'</span><span class="mt">'+[x.by,tm,dur&&'経過 '+dur,hd].filter(Boolean).map(esc).join('　')+'</span></button>';
         }).join("")+
-        g.done.map(function(x){return '<button type="button" class="whl done" data-act="open" data-id="'+esc(x.id)+'"><span class="sp">完了</span><span class="nm">'+esc(x.name)+'</span><span class="mt">'+[x.by,x.time].filter(Boolean).map(esc).join(' ・ ')+'</span></button>'}).join("")+'</article>';
+        g.done.map(function(x){return '<button type="button" class="whl done" data-act="open" data-id="'+esc(x.id)+'"><span class="sp">完了</span><span class="nm">'+esc(x.name)+'</span><span class="mt">'+[x.by,x.time].filter(Boolean).map(esc).join('　')+'</span></button>'}).join("")+'</article>';
     }).join("")+'</div>'+(idle.length?'<p class="muted whi">待機: '+idle.map(function(g){return esc(g.n)}).join("・")+'</p>':'');
     return h;
   }
@@ -347,7 +347,7 @@
   function admBadge(){return '<span class="adm-badge">'+LOCK+'管理者のみ</span>'}
   function unitText(s){
     var ls=siteLines(s).filter(function(l){return l.unitPrice>0}), multi=siteLines(s).length>1;
-    return ls.map(function(l){return (multi?lineLabel(l)+" ":"")+yen(l.unitPrice)+" / "+(l.unit==="時間"?"時間":"回")}).join(" ・ ");
+    return ls.map(function(l){return (multi?lineLabel(l)+" ":"")+yen(l.unitPrice)+" / "+(l.unit==="時間"?"時間":"回")}).join("　");
   }
   function siteSeasonCountK(id,kind){
     var sy=seasonOf(todayStr()), r=seasonRange(sy);
@@ -356,7 +356,7 @@
   function detailHtml(s){
     var a=assess(s), w=wx[s.id], id=esc(s.id), h='<div class="dv">';
     var bad=wxState(s);
-    h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</span></div>';
+    h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</span></div>';
     if(bad)h+=bad;
     else{
       var c=w.cur||{};
@@ -442,7 +442,7 @@
       }else{
         body='<div class="dwimg ph0">'+(pdf?(pdfSt[p.id]===2?'PDFの画像表示ができませんでした。「PDFを開く」から見てください。':'PDFを画像にしています…'):'画像を読み込み中…')+'</div>';
       }
-      return '<div class="card2 dwc">'+body+'<div class="dwf"><div class="fn"><b>'+esc(p.name||"図面")+'</b><div class="muted">'+(pdf?"PDF"+(pdfPg[p.id]>1?"(1/"+pdfPg[p.id]+"ページ目を表示)":""):"画像")+(p.size?" ・ "+fmtSize(p.size):"")+(p.at?" ・ "+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
+      return '<div class="card2 dwc">'+body+'<div class="dwf"><div class="fn"><b>'+esc(p.name||"図面")+'</b><div class="muted">'+(pdf?"PDF"+(pdfPg[p.id]>1?"(1/"+pdfPg[p.id]+"ページ目を表示)":""):"画像")+(p.size?"　"+fmtSize(p.size):"")+(p.at?"　"+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
         (pdf?'<button class="btn sm" type="button" data-act="dwopen" data-id="'+esc(p.id)+'">PDFを開く</button>':'')+(can?'<button class="btn sm" type="button" data-act="dwdel" data-id="'+esc(p.id)+'" aria-label="この図面を削除">削除</button>':'')+'</div></div>';
     }).join("")+'</div>';
   }

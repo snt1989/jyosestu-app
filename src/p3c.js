@@ -66,7 +66,7 @@
     h+='<dt>使用機械</dt><dd>'+(r.machines&&r.machines.length?esc(r.machines.join("、")):'未入力')+'</dd>';
     h+='<dt>排雪</dt><dd>'+(r.haisetsu?'あり':'なし')+'</dd>';
     h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(r.note?esc(r.note):'なし')+'</dd>';
-    h+='<dt>記入者</dt><dd>'+esc(who(r.by))+(r.at?' ・ '+esc(new Date(r.at).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})):'')+'</dd></dl></div>';
+    h+='<dt>記入者</dt><dd>'+esc(who(r.by))+(r.at?'　'+esc(new Date(r.at).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})):'')+'</dd></dl></div>';
     var ph=(r.photos||[]).filter(function(p){return okId(p.id)});
     h+='<div class="sec"><h2>写真<span class="gc num">'+ph.length+'枚</span></h2></div>';
     h+=ph.length?photoGrid(ph,"rep:"+r.id):'<div class="empty"><b>写真はありません</b></div>';
@@ -205,7 +205,7 @@
   }
   function pinPopup(p){
     var s=p.s, a=p.a, st=stOf(s);
-    return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</div>'+
+    return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</div>'+
       '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
       (a.lv>0?'<div>降雪目安 <b>約'+fmt(a.snow2,0)+'cm</b> / 基準'+esc(s.threshold||10)+'cm</div>':'')+
       (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
@@ -638,7 +638,7 @@
     h+='<div class="sec"><h2>現場ごとの実績<span class="gc num">'+d.rows.length+'件</span>'+(canAdmin?admBadge():'')+'</h2></div>';
     if(!d.rows.length)h+='<div class="empty"><b>この期間の日報はありません</b>日報を書くと、ここに出動回数などが集計されます。</div>';
     else h+='<div class="stack">'+d.rows.map(function(o){
-      var left=['出動 '+o.n+'回'+(o.h>0||o.unit==="時間"?' ・ 作業 '+fmt(o.h,1)+'時間':'')+(o.hai?' ・ 排雪 '+o.hai+'回':'')];
+      var left=['出動 '+o.n+'回'+(o.h>0||o.unit==="時間"?'　作業 '+fmt(o.h,1)+'時間':'')+(o.hai?'　排雪 '+o.hai+'回':'')];
       if(stS.mode==="season"&&o.contract)left.push('契約 '+o.contract+'回 中 '+o.n+'回'+(o.n>o.contract?'(契約回数を超過)':''));
       return '<div class="srow'+(canAdmin&&o.amt!=null?' money':'')+'"><div class="nm">'+esc(o.name||"(現場名なし)")+'</div><div class="amt">'+(!canAdmin?'':o.amt==null?'<span class="muted">単価なし</span>':yen(o.amt))+'</div><div class="sb">'+left.map(esc).join('<br>')+'</div><div class="sb r">'+(o.price?esc(yen(o.price)+' / '+o.unit):'')+'</div></div>';
     }).join("")+'</div>';

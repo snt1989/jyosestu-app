@@ -5,7 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
 <title>除雪管理アプリ</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
 /* Layout: 現場で片手で使う前提のスマホアプリ。参考アプリに合わせ、深緑を基調に白いカード・丸いボタン・下部タブ(PCでは左のサイドバー)。
    緊急度は色付きの帯と文字ラベルの両方で示し、押す場所は48px以上の高さにそろえる。常に明るい配色で表示する。 */
@@ -15,8 +15,9 @@
   --crit:#D43D2E; --crit-bg:#FBE4E0; --warn:#8A5A00; --warn-bg:#FFF0C7; --ok:#2B7A5B; --ok-bg:#E1F0EA; --amber:#F2A900;
   --idle:#5B6878; --idle-bg:#E8EDF3; --info:#1F5FA8; --info-bg:#E3EDF9; --track:#E1E7EE;
   --shadow:none;
-  --font-body:"Noto Sans JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
-  --font-head:"Zen Kaku Gothic New","Noto Sans JP",sans-serif;
+  --font-body:"BIZ UDPGothic","Noto Sans JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  --font-head:"BIZ UDPGothic","Noto Sans JP",sans-serif;
+  --font-mark:"Dela Gothic One","BIZ UDPGothic","Noto Sans JP",sans-serif;
   --font-num:"Barlow Semi Condensed","Noto Sans JP",ui-sans-serif,sans-serif;
   color-scheme:light;
 }
@@ -918,6 +919,29 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
 .tile{border-radius:6px}
 .mbp,.who-p{border-radius:4px}
 .dvt .tl b,.dvr .k{letter-spacing:.02em}
+
+/* ---- 字体: 公共の案内表示のような BIZ UD ゴシックを基本に、題字と日付だけ Dela Gothic One ---- */
+body{font-weight:400;letter-spacing:0;font-feature-settings:"palt" 0}
+h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
+.appbar h1{font-family:var(--font-mark);font-weight:400;letter-spacing:.06em;font-size:1.05rem}
+.hello .d{font-family:var(--font-mark);font-weight:400;font-size:1.4rem;letter-spacing:.02em}
+.tabbar::before{font-family:var(--font-mark)!important;font-weight:400!important;letter-spacing:.06em}
+.pill,.tag,.alerts span,.sr .stg span,.btn,.chips button,.seg button,.tabbar button,.link,.linka{font-family:var(--font-body)}
+.pill{font-weight:700;letter-spacing:.04em}
+.btn,.tabbar button,.chips button[aria-pressed="true"],.subtabs button,.vt button[aria-pressed="true"]{font-weight:700}
+.chips button{font-weight:400}
+.tile .l{font-size:.8rem;letter-spacing:.04em}
+.muted,.sc-sub,.rc .ln{letter-spacing:.01em}
+.sec h2{font-weight:700}
+.dv .sec h2{font-weight:700}
+
+/* ホームの件数は、4枚のカードに分けず、1枚の帯にして区切り線でつなぐ */
+#v-home .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:var(--surface);border:1px solid #C5D0DD;border-radius:6px;overflow:hidden}
+#v-home .tile{border:0;border-top:4px solid var(--line);border-radius:0;background:transparent;padding:10px 4px 12px;align-items:center;text-align:center}
+#v-home .tile+.tile{border-left:1px solid var(--line)}
+#v-home .tile.c3{border-top-color:var(--crit)}
+#v-home .tile.c2{border-top-color:var(--amber)}
+#v-home .tile.c1{border-top-color:var(--accent)}
 </style>
 </head><body>
 
@@ -1440,7 +1464,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
       .sort(function(x,y){return x.time.localeCompare(y.time)});
   }
   function sqmText(s){var v=+s.sqm;return v>0?v.toLocaleString("ja-JP",{maximumFractionDigits:2})+" ㎡":""}
-  function handText(s,short){return siteHands(s).map(function(h){return (h.label&&!short?h.label+" ":"")+h.time}).join(" ・ ")}
+  function handText(s,short){return siteHands(s).map(function(h){return (h.label&&!short?h.label+" ":"")+h.time}).join("　")}
   function lineLabel(l){return l.work||LSHORT[l.kind]||""}
   function lineMatch(kind,r){return kind==="all"?true:kind==="joset"?!r.haisetsu:kind==="hai"?!!r.haisetsu:false}
   // 行の一覧から、保存用のデータ(現場側・単価側)を作る
@@ -1683,7 +1707,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
   }
   function siteCard(s){
     var a=assess(s), st=stOf(s), id=esc(s.id);
-    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定',siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join(' ・ '))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
+    return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</div><div class="sc-sub">'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定',siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st">'+segHtml(s)+'<div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+(stAt(s)?esc(ST[st])+' '+timeStr(stAt(s))+' に更新':'')+'</span>'+'<button class="link" type="button" data-act="open" data-id="'+id+'">現場情報を見る</button>'+'</div></div></article>';
   }
   function stSelHtml(s){
     var st=stOf(s);
@@ -1697,8 +1721,8 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
       if(a.ice)tg+='<span class="ice">凍結注意</span>';
       if(a.snowing)tg+='<span class="ice">降雪中</span>';
     }
-    var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw">'+esc(jp(c.weather))+'<span class="sx"> ・ 降雪 '+snowLabel(a.snow2)+' / 基準'+(a.th||10)+'cm</span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
-    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterHtml(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
+    var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw">'+esc(jp(c.weather))+'<span class="sx">　降雪 '+snowLabel(a.snow2)+' / 基準'+(a.th||10)+'cm</span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
+    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterHtml(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
   }
   var layout="row";
   try{var L0=localStorage.getItem("josetsu.layout2");if(L0==="card"||L0==="row")layout=L0}catch(e){}
@@ -1734,7 +1758,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
     if(r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
     var h='<article class="rc" data-act="rep" data-id="'+esc(r.id)+'" role="button" tabindex="0"><div class="top"><span class="nm">'+esc(r.siteName||"(現場名なし)")+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>';
     h+='<div class="ln">'+(ln.length?'<span>'+ln.join('</span><span>')+'</span>':'')+(r.haisetsu?'<span class="tag ice">排雪</span>':'')+(n?'<span>写真 '+n+'枚</span>':'')+'</div>';
-    h+='<div class="ln"><span>'+esc(dlabel(r.date))+' ・ 記入 '+esc(who(r.by))+'</span></div>';
+    h+='<div class="ln"><span>'+esc(dlabel(r.date))+'　記入 '+esc(who(r.by))+'</span></div>';
     if(r.note)h+='<div class="sc-sub" style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(r.note.length>80?r.note.slice(0,80)+"…":r.note)+'</div>';
     return h+'</article>';
   }
@@ -1797,9 +1821,9 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
             var lastH=hs[hs.length-1];
             if(!pick){var m2=/^(\d+):(\d+)/.exec(lastH.time),tg2=new Date();tg2.setHours(+m2[1],+m2[2],0,0);pick=lastH;rem=Math.round((tg2.getTime()-now)/60000)}
             hd="引渡 "+(pick.label?pick.label+" ":"")+pick.time+(rem<0?"(過ぎています)":rem<=60?"(あと"+rem+"分)":"")+(hs.length>1?" ほか"+(hs.length-1)+"件":""); hc=rem<0?" late":rem<=60?" soon":"";}
-          return '<button type="button" class="whl '+x.st+hc+'" data-act="open" data-id="'+esc(x.s.id)+'"><span class="sp">'+esc(ST[x.st])+'</span><span class="nm">'+esc(x.s.name)+'</span><span class="mt">'+[x.by,tm,dur&&'経過 '+dur,hd].filter(Boolean).map(esc).join(' ・ ')+'</span></button>';
+          return '<button type="button" class="whl '+x.st+hc+'" data-act="open" data-id="'+esc(x.s.id)+'"><span class="sp">'+esc(ST[x.st])+'</span><span class="nm">'+esc(x.s.name)+'</span><span class="mt">'+[x.by,tm,dur&&'経過 '+dur,hd].filter(Boolean).map(esc).join('　')+'</span></button>';
         }).join("")+
-        g.done.map(function(x){return '<button type="button" class="whl done" data-act="open" data-id="'+esc(x.id)+'"><span class="sp">完了</span><span class="nm">'+esc(x.name)+'</span><span class="mt">'+[x.by,x.time].filter(Boolean).map(esc).join(' ・ ')+'</span></button>'}).join("")+'</article>';
+        g.done.map(function(x){return '<button type="button" class="whl done" data-act="open" data-id="'+esc(x.id)+'"><span class="sp">完了</span><span class="nm">'+esc(x.name)+'</span><span class="mt">'+[x.by,x.time].filter(Boolean).map(esc).join('　')+'</span></button>'}).join("")+'</article>';
     }).join("")+'</div>'+(idle.length?'<p class="muted whi">待機: '+idle.map(function(g){return esc(g.n)}).join("・")+'</p>':'');
     return h;
   }
@@ -1958,7 +1982,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
   function admBadge(){return '<span class="adm-badge">'+LOCK+'管理者のみ</span>'}
   function unitText(s){
     var ls=siteLines(s).filter(function(l){return l.unitPrice>0}), multi=siteLines(s).length>1;
-    return ls.map(function(l){return (multi?lineLabel(l)+" ":"")+yen(l.unitPrice)+" / "+(l.unit==="時間"?"時間":"回")}).join(" ・ ");
+    return ls.map(function(l){return (multi?lineLabel(l)+" ":"")+yen(l.unitPrice)+" / "+(l.unit==="時間"?"時間":"回")}).join("　");
   }
   function siteSeasonCountK(id,kind){
     var sy=seasonOf(todayStr()), r=seasonRange(sy);
@@ -1967,7 +1991,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
   function detailHtml(s){
     var a=assess(s), w=wx[s.id], id=esc(s.id), h='<div class="dv">';
     var bad=wxState(s);
-    h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</span></div>';
+    h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</span></div>';
     if(bad)h+=bad;
     else{
       var c=w.cur||{};
@@ -2053,7 +2077,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
       }else{
         body='<div class="dwimg ph0">'+(pdf?(pdfSt[p.id]===2?'PDFの画像表示ができませんでした。「PDFを開く」から見てください。':'PDFを画像にしています…'):'画像を読み込み中…')+'</div>';
       }
-      return '<div class="card2 dwc">'+body+'<div class="dwf"><div class="fn"><b>'+esc(p.name||"図面")+'</b><div class="muted">'+(pdf?"PDF"+(pdfPg[p.id]>1?"(1/"+pdfPg[p.id]+"ページ目を表示)":""):"画像")+(p.size?" ・ "+fmtSize(p.size):"")+(p.at?" ・ "+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
+      return '<div class="card2 dwc">'+body+'<div class="dwf"><div class="fn"><b>'+esc(p.name||"図面")+'</b><div class="muted">'+(pdf?"PDF"+(pdfPg[p.id]>1?"(1/"+pdfPg[p.id]+"ページ目を表示)":""):"画像")+(p.size?"　"+fmtSize(p.size):"")+(p.at?"　"+esc(fmtDT(p.at).split(" ")[0]):"")+'</div></div>'+
         (pdf?'<button class="btn sm" type="button" data-act="dwopen" data-id="'+esc(p.id)+'">PDFを開く</button>':'')+(can?'<button class="btn sm" type="button" data-act="dwdel" data-id="'+esc(p.id)+'" aria-label="この図面を削除">削除</button>':'')+'</div></div>';
     }).join("")+'</div>';
   }
@@ -2153,7 +2177,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
     h+='<dt>使用機械</dt><dd>'+(r.machines&&r.machines.length?esc(r.machines.join("、")):'未入力')+'</dd>';
     h+='<dt>排雪</dt><dd>'+(r.haisetsu?'あり':'なし')+'</dd>';
     h+='<dt>メモ</dt><dd style="white-space:pre-wrap">'+(r.note?esc(r.note):'なし')+'</dd>';
-    h+='<dt>記入者</dt><dd>'+esc(who(r.by))+(r.at?' ・ '+esc(new Date(r.at).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})):'')+'</dd></dl></div>';
+    h+='<dt>記入者</dt><dd>'+esc(who(r.by))+(r.at?'　'+esc(new Date(r.at).toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})):'')+'</dd></dl></div>';
     var ph=(r.photos||[]).filter(function(p){return okId(p.id)});
     h+='<div class="sec"><h2>写真<span class="gc num">'+ph.length+'枚</span></h2></div>';
     h+=ph.length?photoGrid(ph,"rep:"+r.id):'<div class="empty"><b>写真はありません</b></div>';
@@ -2292,7 +2316,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
   }
   function pinPopup(p){
     var s=p.s, a=p.a, st=stOf(s);
-    return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join(' ・ '))+'</div>'+
+    return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</div>'+
       '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
       (a.lv>0?'<div>降雪目安 <b>約'+fmt(a.snow2,0)+'cm</b> / 基準'+esc(s.threshold||10)+'cm</div>':'')+
       (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
@@ -2725,7 +2749,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
     h+='<div class="sec"><h2>現場ごとの実績<span class="gc num">'+d.rows.length+'件</span>'+(canAdmin?admBadge():'')+'</h2></div>';
     if(!d.rows.length)h+='<div class="empty"><b>この期間の日報はありません</b>日報を書くと、ここに出動回数などが集計されます。</div>';
     else h+='<div class="stack">'+d.rows.map(function(o){
-      var left=['出動 '+o.n+'回'+(o.h>0||o.unit==="時間"?' ・ 作業 '+fmt(o.h,1)+'時間':'')+(o.hai?' ・ 排雪 '+o.hai+'回':'')];
+      var left=['出動 '+o.n+'回'+(o.h>0||o.unit==="時間"?'　作業 '+fmt(o.h,1)+'時間':'')+(o.hai?'　排雪 '+o.hai+'回':'')];
       if(stS.mode==="season"&&o.contract)left.push('契約 '+o.contract+'回 中 '+o.n+'回'+(o.n>o.contract?'(契約回数を超過)':''));
       return '<div class="srow'+(canAdmin&&o.amt!=null?' money':'')+'"><div class="nm">'+esc(o.name||"(現場名なし)")+'</div><div class="amt">'+(!canAdmin?'':o.amt==null?'<span class="muted">単価なし</span>':yen(o.amt))+'</div><div class="sb">'+left.map(esc).join('<br>')+'</div><div class="sb r">'+(o.price?esc(yen(o.price)+' / '+o.unit):'')+'</div></div>';
     }).join("")+'</div>';
@@ -3080,7 +3104,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
     var rows=mbVisible();
     $("mbList").innerHTML=rows.length?rows.map(function(m){
       var id=esc(m.id), askDel=mbDel===m.id;
-      return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc([m.crew||"担当班 未設定",m.role||"現場スタッフ"].join(" ・ "))+'</span></div>'+
+      return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc([m.crew||"担当班 未設定",m.role||"現場スタッフ"].join("　"))+'</span></div>'+
         '<div class="ed"><button class="btn sm" type="button" data-mb="edit" data-id="'+id+'">編集</button><button class="btn sm'+(askDel?' danger':'')+'" type="button" data-mb="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div>'+
         '<div class="kvs">'+(m.active===false?'<span class="k">休止中</span>':'')+'<span class="k">'+(window.__FB&&window.__FB.createAccount?(m.uid?'ログインできます':'ログイン未設定'):(m.uid?'ログイン連携済':'ログイン未連携'))+'</span>'+(m.phone?'<span class="k">電話 <a href="tel:'+esc(String(m.phone).replace(/[^0-9+]/g,""))+'">'+esc(m.phone)+'</a></span>':'')+(m.note?'<span class="k">'+esc(m.note)+'</span>':'')+'</div></article>';
     }).join(""):'<div class="empty"><b>'+(members.length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(members.length?'':'「メンバーを追加」から登録してください。')+'</div>';
@@ -3505,14 +3529,14 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
   function openAnnView(id){
     var a=announcements.filter(function(x){return x.id===id})[0]; if(!a){closeModal();return}
     markRead(id);
-    openModal("お知らせ",'<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+'</div><div class="m">'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div></div>',
+    openModal("お知らせ",'<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+'</div><div class="m">'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div></div>',
       (canAdmin?'<button class="btn first" type="button" data-mact="anedit" data-id="'+esc(id)+'">編集</button>':'')+'<button class="btn primary" type="button" data-mclose>閉じる</button>');
   }
   function openAnnHist(){
     var l=annSorted(), unseen={};
     l.forEach(function(a){if(isUnread(a))unseen[a.id]=1});
     var body=l.length?l.map(function(a){
-      return '<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+(unseen[a.id]?'<span class="nt-new">NEW</span>':'')+'</div><div class="m">'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div>'+
+      return '<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+(unseen[a.id]?'<span class="nt-new">NEW</span>':'')+'</div><div class="m">'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div>'+
         (canAdmin?'<div class="ops"><button class="link" type="button" data-mact="anedit" data-id="'+esc(a.id)+'">編集</button><button class="link" type="button" data-mact="andel" data-id="'+esc(a.id)+'">削除</button></div>':'')+'</div>';
     }).join(""):'<div class="nt-empty">お知らせはまだありません</div>';
     openModal("お知らせの履歴",body,'<button class="btn first" type="button" data-mact="notices">戻る</button>'+(canAdmin?'<button class="btn primary" type="button" data-mact="annew">お知らせを作成</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
@@ -3595,7 +3619,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
     var l=annSorted().filter(function(a){return a.important||(Date.now()-(a.at||0))<7*864e5}).slice(0,2);
     if(!l.length)return "";
     return '<div class="sec"><h2>お知らせ</h2><button class="link" type="button" data-act="annhist">履歴を見る</button></div>'+l.map(function(a){
-      return '<article class="anc'+(a.important?' imp':'')+'"><b class="t">'+(a.important?'<span class="nt-imp">重要</span> ':'')+(isUnread(a)?'<span class="nt-new">NEW</span> ':'')+esc(a.title)+'</b><div class="bd">'+esc(a.body)+'</div><div class="mt"><span>'+esc(fmtDT(a.at))+' ・ '+esc(who(a.by))+'</span><button class="link" type="button" data-act="anopen" data-id="'+esc(a.id)+'">続きを読む</button></div></article>';
+      return '<article class="anc'+(a.important?' imp':'')+'"><b class="t">'+(a.important?'<span class="nt-imp">重要</span> ':'')+(isUnread(a)?'<span class="nt-new">NEW</span> ':'')+esc(a.title)+'</b><div class="bd">'+esc(a.body)+'</div><div class="mt"><span>'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</span><button class="link" type="button" data-act="anopen" data-id="'+esc(a.id)+'">続きを読む</button></div></article>';
     }).join("");
   }
   $("mdl").addEventListener("click",async function(e){
@@ -3703,7 +3727,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
       var lp=effLoc(s)?(s.loc?'':'<span class="pill l0">地区の位置</span>'):'<span class="pill l3">位置なし</span>';
       var cr=siteCrews(s);
       return '<article class="ac"><label class="ck"><input type="checkbox" data-sel="'+id+'"'+(sel[s.id]?' checked':'')+' aria-label="'+esc(s.name)+'を選択"></label>'+
-        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.address].filter(Boolean).join(" ・ ")||"–")+'</span>'+((wp+lp)?'<div class="stc">'+wp+lp+'</div>':'')+'</div>'+
+        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.address].filter(Boolean).join("　")||"–")+'</span>'+((wp+lp)?'<div class="stc">'+wp+lp+'</div>':'')+'</div>'+
         '<div class="mt">'+
         '<div class="c cw"><small>担当班</small>'+(cr.length?cr.map(function(c){return '<span class="chip">'+esc(c)+'</span>'}).join(""):'<span class="muted">未設定</span>')+'</div>'+
         '<div class="c"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></div>'+
@@ -3728,7 +3752,7 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
       var wp=!mcp?'<span class="pill l0">未接続</span>':(!w||(w.state==="loading"&&!w.cur))?'<span class="pill l0">取得中</span>':w.state==="noloc"?'<span class="pill l0">場所未設定</span>':w.state==="err"?'<span class="pill l3">取得失敗</span>':'<span class="pill l1">取得OK</span>';
       var pt=unitText(s);
       return '<article class="ar"><label class="ck"><input type="checkbox" data-sel="'+id+'"'+(sel[s.id]?' checked':'')+' aria-label="'+esc(s.name)+'を選択"></label>'+
-        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join(' ・ '))+'</span></div>'+
+        '<div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div>'+
         '<span class="ed edb">'+(mv?'<button class="btn sm" type="button" data-act="mv" data-d="-1" data-id="'+id+'" aria-label="上へ"'+(aids.indexOf(s.id)===0?' disabled':'')+'>↑</button><button class="btn sm" type="button" data-act="mv" data-d="1" data-id="'+id+'" aria-label="下へ"'+(aids.indexOf(s.id)===aids.length-1?' disabled':'')+'>↓</button>':'')+'<button class="btn sm" type="button" data-act="copy" data-id="'+id+'" aria-label="'+esc(s.name)+'をコピー">コピー</button><button class="btn sm" type="button" data-act="edit" data-id="'+id+'">編集</button></span>'+
         '<div class="kvs"><span class="k"><small>出動基準</small><span class="num">'+esc(s.threshold||"–")+'cm</span></span>'+
         '<span class="k'+(+s.sqm>0?'':' emp')+'"><small>平米数</small><span class="num">'+esc(sqmText(s)||"–")+'</span></span>'+

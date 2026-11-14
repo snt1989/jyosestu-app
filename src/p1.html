@@ -1,5 +1,5 @@
 <title>除雪管理アプリ</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
 /* Layout: 現場で片手で使う前提のスマホアプリ。参考アプリに合わせ、深緑を基調に白いカード・丸いボタン・下部タブ(PCでは左のサイドバー)。
    緊急度は色付きの帯と文字ラベルの両方で示し、押す場所は48px以上の高さにそろえる。常に明るい配色で表示する。 */
@@ -9,8 +9,9 @@
   --crit:#D43D2E; --crit-bg:#FBE4E0; --warn:#8A5A00; --warn-bg:#FFF0C7; --ok:#2B7A5B; --ok-bg:#E1F0EA; --amber:#F2A900;
   --idle:#5B6878; --idle-bg:#E8EDF3; --info:#1F5FA8; --info-bg:#E3EDF9; --track:#E1E7EE;
   --shadow:none;
-  --font-body:"Noto Sans JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
-  --font-head:"Zen Kaku Gothic New","Noto Sans JP",sans-serif;
+  --font-body:"BIZ UDPGothic","Noto Sans JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  --font-head:"BIZ UDPGothic","Noto Sans JP",sans-serif;
+  --font-mark:"Dela Gothic One","BIZ UDPGothic","Noto Sans JP",sans-serif;
   --font-num:"Barlow Semi Condensed","Noto Sans JP",ui-sans-serif,sans-serif;
   color-scheme:light;
 }
@@ -912,4 +913,27 @@ h1,h2,h3{font-weight:900;letter-spacing:.02em}
 .tile{border-radius:6px}
 .mbp,.who-p{border-radius:4px}
 .dvt .tl b,.dvr .k{letter-spacing:.02em}
+
+/* ---- 字体: 公共の案内表示のような BIZ UD ゴシックを基本に、題字と日付だけ Dela Gothic One ---- */
+body{font-weight:400;letter-spacing:0;font-feature-settings:"palt" 0}
+h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
+.appbar h1{font-family:var(--font-mark);font-weight:400;letter-spacing:.06em;font-size:1.05rem}
+.hello .d{font-family:var(--font-mark);font-weight:400;font-size:1.4rem;letter-spacing:.02em}
+.tabbar::before{font-family:var(--font-mark)!important;font-weight:400!important;letter-spacing:.06em}
+.pill,.tag,.alerts span,.sr .stg span,.btn,.chips button,.seg button,.tabbar button,.link,.linka{font-family:var(--font-body)}
+.pill{font-weight:700;letter-spacing:.04em}
+.btn,.tabbar button,.chips button[aria-pressed="true"],.subtabs button,.vt button[aria-pressed="true"]{font-weight:700}
+.chips button{font-weight:400}
+.tile .l{font-size:.8rem;letter-spacing:.04em}
+.muted,.sc-sub,.rc .ln{letter-spacing:.01em}
+.sec h2{font-weight:700}
+.dv .sec h2{font-weight:700}
+
+/* ホームの件数は、4枚のカードに分けず、1枚の帯にして区切り線でつなぐ */
+#v-home .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:var(--surface);border:1px solid #C5D0DD;border-radius:6px;overflow:hidden}
+#v-home .tile{border:0;border-top:4px solid var(--line);border-radius:0;background:transparent;padding:10px 4px 12px;align-items:center;text-align:center}
+#v-home .tile+.tile{border-left:1px solid var(--line)}
+#v-home .tile.c3{border-top-color:var(--crit)}
+#v-home .tile.c2{border-top-color:var(--amber)}
+#v-home .tile.c1{border-top-color:var(--accent)}
 </style>
