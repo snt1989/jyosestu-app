@@ -755,7 +755,7 @@
         return '<button type="button" class="nt-row" data-notice="'+p[1]+'"><span class="ic">'+IC[g]+'</span><span style="flex:1;min-width:0"><span class="tt">'+esc(p[0].title)+'</span><span class="sb'+(p[0].urgent?' urg':'')+'">'+esc(p[0].sub)+'</span></span></button>';
       }).join("");
     });
-    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="apphist">アプリの更新履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">通知の設定</button>':'')+'<a class="btn gb-link" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener" style="text-decoration:none">現場管理アプリ</a>'+'<button class="btn" type="button" data-mclose>閉じる</button>');
+    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="apphist">アプリの更新履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">通知の設定</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
   }
   function openAnnView(id){
     var a=announcements.filter(function(x){return x.id===id})[0]; if(!a){closeModal();return}
