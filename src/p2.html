@@ -72,10 +72,6 @@
   </section>
 
   <section id="v-notes" class="page" hidden>
-    <div class="vt" id="ntMode" role="group" aria-label="連絡の種類">
-      <button type="button" data-ntm="board" aria-pressed="true">連絡板</button>
-      <button type="button" data-ntm="chat" aria-pressed="false">チャット<i class="cbadge" id="chBadge" hidden></i></button>
-    </div>
     <div id="ntBoard">
     <button class="btn primary nt-open" type="button" id="ntOpen" aria-expanded="false">＋ 連絡を書く</button>
     <form class="card2 f" id="noteForm" autocomplete="off">
@@ -89,7 +85,10 @@
     <div class="stack" id="noteList"></div>
   
     </div>
-    <div id="chatBox" hidden>
+  </section>
+
+  <section id="v-chat" class="page" hidden>
+    <div id="chatBox">
       <div class="chips" id="chRooms"></div>
       <div class="chlist" id="chList" aria-live="polite"></div>
       <form class="chform" id="chForm" autocomplete="off">
@@ -98,7 +97,6 @@
       </form>
     </div>
   </section>
-
   <section id="v-stats" class="page" hidden>
     <div class="vt" id="stMode" role="group" aria-label="集計の単位">
       <button type="button" data-mode="month" aria-pressed="true">月別</button>

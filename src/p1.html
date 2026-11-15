@@ -775,7 +775,6 @@ tbody tr:last-child td{border-bottom:0}
 }
 
 /* ---- チャット ---- */
-#ntMode{margin-bottom:12px}
 .cbadge,.tbd{font-style:normal;font-size:.7rem;font-weight:800;color:#fff;background:var(--crit);border-radius:99px;padding:1px 6px;min-width:18px;text-align:center;line-height:1.4;margin-left:6px}
 .tabbar button{position:relative}
 .tabbar .tbd{position:absolute;top:2px;left:calc(50% + 6px);margin:0;font-size:.64rem;padding:0 5px;border:2px solid var(--surface);box-sizing:content-box}
@@ -936,4 +935,10 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
 #v-home .tile.c3{border-top-color:var(--crit)}
 #v-home .tile.c2{border-top-color:var(--amber)}
 #v-home .tile.c1{border-top-color:var(--accent)}
+
+@media (max-width:640px){
+  .tabbar button{font-size:.62rem;letter-spacing:0}
+  .tabbar button .ico{width:20px;height:20px}
+  .tabbar .tbd{left:calc(50% + 4px)}
+}
 </style>

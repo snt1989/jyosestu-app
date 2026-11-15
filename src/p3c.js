@@ -503,7 +503,7 @@
 
   /* ---------- 連絡板 ---------- */
   /* ---------- チャット(連絡タブの中。全体と、班ごとのルーム) ---------- */
-  var chMode="board", chRoom="all", chStick=true, chSeen={};
+  var chRoom="all", chStick=true, chSeen={};
   try{chSeen=JSON.parse(localStorage.getItem("josetsu.chatseen")||"{}")||{}}catch(e){chSeen={}}
   if(!chSeen._i){chSeen._i=Date.now();chSave()}
   function chSave(){try{localStorage.setItem("josetsu.chatseen",JSON.stringify(chSeen))}catch(e){}}
@@ -521,12 +521,7 @@
     return chat.filter(function(m){return (m.room||"all")===room&&m.by!==myId&&(m.at||0)>base}).length;
   }
   function chUnreadAll(){return chRooms().reduce(function(n,r){return n+chUnread(r)},0)}
-  function ntShow(){
-    var c=chMode==="chat";
-    $("ntBoard").hidden=c; $("chatBox").hidden=!c;
-    Array.prototype.forEach.call(document.querySelectorAll("#ntMode [data-ntm]"),function(b){b.setAttribute("aria-pressed",b.dataset.ntm===chMode?"true":"false")});
-    var n=chUnreadAll(), bd=$("chBadge"); bd.hidden=!n; bd.textContent=n>99?"99+":n;
-  }
+  function ntShow(){}
   function chDay(t){var d=new Date(t),w="日月火水木金土"[d.getDay()];return d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日("+w+")"}
   function renderChat(){
     ntShow();
@@ -545,10 +540,6 @@
     if(latest&&(chSeen[chRoom]||0)<latest){chSeen[chRoom]=latest;chSave();render()}
     if(chStick||near){chStick=false;setTimeout(function(){window.scrollTo(0,document.documentElement.scrollHeight)},30)}
   }
-  $("ntMode").addEventListener("click",function(e){
-    var b=e.target.closest("[data-ntm]"); if(!b)return;
-    chMode=b.dataset.ntm; chStick=true; render();
-  });
   $("chRooms").addEventListener("click",function(e){
     var b=e.target.closest("[data-chroom]"); if(!b)return;
     chRoom=b.dataset.chroom; chStick=true; render();

@@ -5,12 +5,13 @@
     machines:'<path d="M3 17h13v-5l-3-4H8v4H3z"/><circle cx="7" cy="18" r="2"/><circle cx="14" cy="18" r="2"/><path d="M16 12h4l1 3v3h-3"/>',
     sites:'<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
     reports:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
-    notes:'<path d="M4 5h16v11H9l-5 4z"/>',
+    notes:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM8.5 11h7M8.5 15h5"/>',
+    chat:'<path d="M4 5h16v11H9l-5 4z"/>',
     stats:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
     members:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.2c2.7 0 4.5 2 4.5 4.8"/>',
     admin:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'
   };
-  var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械"],["reports","日報"],["notes","連絡"],["stats","集計"],["admin","設定"]];
+  var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械"],["reports","日報"],["notes","連絡"],["chat","チャット"],["stats","集計"],["admin","設定"]];
   function goto(v,f){
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
     if(v==="members"){view="admin";sub="members"}
@@ -27,7 +28,7 @@
     if(canAdmin){NAV.push(["members","メンバー管理"]);NAV.push(["admin","設定"])}
     $("tabbar").innerHTML=NAV.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):view===t[0];
-      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー"}[t[0]]||t[1])+'</span>'+(t[0]==="notes"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
+      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
     }).join("");
     TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
@@ -37,7 +38,8 @@
     else if(view==="sites")renderSites();
     else if(view==="machines")renderMachines();
     else if(view==="reports")renderReports();
-    else if(view==="notes"){if(chMode==="chat")renderChat();else renderNotes()}
+    else if(view==="notes")renderNotes();
+    else if(view==="chat")renderChat()
     else if(view==="stats")renderStats();
     else if(view==="admin")renderAdminAll();
     renderBell();
@@ -653,7 +655,7 @@
     if(site){
       if(!sites.length&&dlTries++<30){setTimeout(function(){applyDeepLink(u)},500);return}
       if(siteById(site)){closeModal();openDetail(site)}
-    }else if(["home","sites","machines","reports","notes","stats"].indexOf(go)>=0){closeModal();goto(go)}
+    }else if(["home","sites","machines","reports","notes","chat","stats"].indexOf(go)>=0){closeModal();goto(go)}
     try{history.replaceState(null,"",location.pathname)}catch(e){}
   }
   /* 要対応(警戒・出動目安)になった現場を通知する。判定はこの画面の天気データで行い、同じ現場・段階の通知は1日1回(サーバー側でも重複を防ぐ) */
