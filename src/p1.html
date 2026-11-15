@@ -951,8 +951,6 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
 .wb-w .w{font-weight:700;font-size:.95rem}
 .bignow .w{font-weight:700}
 
-.gb-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:8px;min-height:48px;text-decoration:none;color:var(--ink);font-weight:700;background:transparent;border:1px dashed #9AA9BA}
-.gb-btn:hover{background:var(--surface2)}
 
 #updBar{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:95;max-width:520px;margin-inline:auto;display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;border-radius:10px;border-left:5px solid var(--amber);padding:8px 8px 8px 14px;box-shadow:0 8px 24px -8px rgba(16,28,43,.6)}
 #updBar span{flex:1;font-weight:700;font-size:.95rem}
@@ -960,4 +958,11 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
 #updBar #updGo{background:var(--amber);color:var(--brand);padding:0 18px}
 #updBar #updX{background:transparent;color:#C9D8EA;font-size:1.4rem;min-width:44px}
 @media (min-width:900px){#updBar{left:224px}}
+.gb-btn{display:flex;align-items:center;gap:14px;width:100%;margin-top:10px;min-height:64px;padding:10px 16px;text-decoration:none;background:var(--brand);color:#fff;border-radius:8px;border-bottom:3px solid var(--amber)}
+.gb-btn:hover{background:var(--brand-active)}
+.gb-ic{flex:none;width:44px;height:44px;border-radius:8px;background:var(--amber);color:var(--brand);display:grid;place-items:center}
+.gb-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.gb-tx b{font-size:1.1rem;letter-spacing:.02em}
+.gb-tx small{font-size:.8rem;color:#9FB2C8}
+.gb-go{flex:none;color:#C9D8EA}
 </style>
