@@ -33,7 +33,7 @@
     if(!fc||!fc.length)return "";
     return '<div class="fc">'+fc.slice(0,4).map(function(f,i){
       var m=ms(num(f.windSpeedMaxKPH));
-      return '<div><div class="d">'+esc(dayLabel(f.dateTimeISO,i))+'</div>'+icon(f.weather)+'<div class="tt">'+fmt(num(f.maxTempC),0)+'/'+fmt(num(f.minTempC),0)+'℃</div><div class="tt">'+fmt(num(f.precipMM),0)+'mm</div><div class="s">'+snowLabel(snowEst(f))+'</div><div class="d">風'+fmt(m,0)+'m/s</div></div>';
+      return '<div><div class="d">'+esc(dayLabel(f.dateTimeISO,i))+'</div>'+icon(f.weather)+'<div class="wl">'+esc(jpS(f.weather))+'</div><div class="tt">'+fmt(num(f.maxTempC),0)+'/'+fmt(num(f.minTempC),0)+'℃</div><div class="tt">'+fmt(num(f.precipMM),0)+'mm</div><div class="s">'+snowLabel(snowEst(f))+'</div><div class="d">風'+fmt(m,0)+'m/s</div></div>';
     }).join("")+'</div>';
   }
   function tagsHtml(a,w){
