@@ -3401,12 +3401,18 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   var announcements=[], readMap={}, annFirst=true, annEdit=null;
   function fmtDT(t){if(!t)return "";var d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+timeStr(t)}
   function annSorted(){return announcements.slice().sort(function(a,b){return (b.important?1:0)-(a.important?1:0)||(b.at||0)-(a.at||0)})}
+  function isApp(a){return a.auto==="app"}
+  function annNormal(){return annSorted().filter(function(a){return !isApp(a)})}
+  function appSorted(){return announcements.filter(isApp).sort(function(a,b){return (b.at||0)-(a.at||0)})}
   function isUnread(x){return (x.at||0)>Date.now()-30*864e5&&x.by!==myId&&!readMap[x.id]}
   function iBell(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>'}
   function noticeItems(){
     var items=[];
-    annSorted().filter(isUnread).forEach(function(a){
+    annNormal().filter(isUnread).forEach(function(a){
       items.push({grp:"ann",urgent:!!a.important,title:(a.important?"【重要】":"")+a.title,sub:fmtDT(a.at)+"("+who(a.by)+")",go:function(){openAnnView(a.id)}});
+    });
+    appSorted().filter(isUnread).forEach(function(a){
+      items.push({grp:"app",urgent:false,title:a.title,sub:fmtDT(a.at),go:function(){openAnnView(a.id)}});
     });
     sites.forEach(function(s){
       var st=stOf(s), lv=0; try{lv=assess(s).lv}catch(e){}
@@ -3529,34 +3535,36 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   var noticeFns=[];
   function openNotices(){
     var items=noticeItems(); noticeFns=items;
-    var GL={ann:"お知らせ",site:"出動の目安",note:"連絡"}, IC={ann:"📢",site:"🚨",note:"💬"};
+    var GL={ann:"お知らせ",app:"アプリの更新",site:"出動の目安",note:"連絡"}, IC={ann:"📢",app:"🆕",site:"🚨",note:"💬"};
     var body="";
     if(!items.length)body='<div class="nt-empty">新しいお知らせはありません</div>';
-    ["ann","site","note"].forEach(function(g){
+    ["ann","app","site","note"].forEach(function(g){
       var xs=items.map(function(it,i){return [it,i]}).filter(function(p){return p[0].grp===g});
       if(!xs.length)return;
       body+='<div class="nt-grp">'+GL[g]+'('+xs.length+')</div>'+xs.map(function(p){
         return '<button type="button" class="nt-row" data-notice="'+p[1]+'"><span class="ic">'+IC[g]+'</span><span style="flex:1;min-width:0"><span class="tt">'+esc(p[0].title)+'</span><span class="sb'+(p[0].urgent?' urg':'')+'">'+esc(p[0].sub)+'</span></span></button>';
       }).join("");
     });
-    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">アプリ・通知</button>':'')+'<a class="btn gb-link" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener" style="text-decoration:none">現場管理アプリ</a>'+'<button class="btn" type="button" data-mclose>閉じる</button>');
+    openModal("お知らせ",body,'<button class="btn first" type="button" data-mact="annhist">お知らせの履歴</button><button class="btn" type="button" data-mact="apphist">アプリの更新履歴</button><button class="btn" type="button" data-mact="nthist">通知の履歴</button>'+(pwaOn()?'<button class="btn" type="button" data-mact="appset">通知の設定</button>':'')+'<a class="btn gb-link" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener" style="text-decoration:none">現場管理アプリ</a>'+'<button class="btn" type="button" data-mclose>閉じる</button>');
   }
   function openAnnView(id){
     var a=announcements.filter(function(x){return x.id===id})[0]; if(!a){closeModal();return}
     markRead(id);
-    openModal("お知らせ",'<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+'</div><div class="m">'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div></div>',
+    openModal(isApp(a)?"アプリの更新":"お知らせ",'<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+'</div><div class="m">'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div></div>',
       (canAdmin?'<button class="btn first" type="button" data-mact="anedit" data-id="'+esc(id)+'">編集</button>':'')+'<button class="btn primary" type="button" data-mclose>閉じる</button>');
   }
-  function openAnnHist(){
-    var l=annSorted(), unseen={};
+  function openHist(list,title,empty,withAdmin){
+    var l=list, unseen={};
     l.forEach(function(a){if(isUnread(a))unseen[a.id]=1});
     var body=l.length?l.map(function(a){
-      return '<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+(unseen[a.id]?'<span class="nt-new">NEW</span>':'')+'</div><div class="m">'+esc(fmtDT(a.at))+'　'+esc(who(a.by))+'</div><div class="d">'+esc(a.body)+'</div>'+
-        (canAdmin?'<div class="ops"><button class="link" type="button" data-mact="anedit" data-id="'+esc(a.id)+'">編集</button><button class="link" type="button" data-mact="andel" data-id="'+esc(a.id)+'">削除</button></div>':'')+'</div>';
-    }).join(""):'<div class="nt-empty">お知らせはまだありません</div>';
-    openModal("お知らせの履歴",body,'<button class="btn first" type="button" data-mact="notices">戻る</button>'+(canAdmin?'<button class="btn primary" type="button" data-mact="annew">お知らせを作成</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
+      return '<div class="nt-item"><div class="h">'+(a.important?'<span class="nt-imp">重要</span> ':'')+esc(a.title)+(unseen[a.id]?'<span class="nt-new">NEW</span>':'')+'</div><div class="m">'+esc(fmtDT(a.at))+(isApp(a)?'':'　'+esc(who(a.by)))+'</div><div class="d">'+esc(a.body)+'</div>'+
+        (canAdmin&&withAdmin?'<div class="ops"><button class="link" type="button" data-mact="anedit" data-id="'+esc(a.id)+'">編集</button><button class="link" type="button" data-mact="andel" data-id="'+esc(a.id)+'">削除</button></div>':'')+'</div>';
+    }).join(""):'<div class="nt-empty">'+empty+'</div>';
+    openModal(title,body,'<button class="btn first" type="button" data-mact="notices">戻る</button>'+(canAdmin&&withAdmin?'<button class="btn primary" type="button" data-mact="annew">お知らせを作成</button>':'')+'<button class="btn" type="button" data-mclose>閉じる</button>');
     Object.keys(unseen).forEach(function(k){readMap[k]=1}); if(Object.keys(unseen).length){persistRead();renderBell()}
   }
+  function openAnnHist(){openHist(annNormal(),"お知らせの履歴","お知らせはまだありません",true)}
+  function openAppHist(){openHist(appSorted(),"アプリの更新履歴","アプリの更新はまだありません",false)}
   function openNtHist(){
     var feed=[]; announcements.forEach(function(a){feed.push({at:a.at||0,ic:"📢",t:(a.important?"【重要】":"")+a.title,b:(a.body||"").slice(0,60)})});
     notes.forEach(function(n){var s=n.siteId?siteById(n.siteId):null;feed.push({at:n.at||0,ic:"💬",t:n.siteId?(s?s.name:(n.siteName||"削除された現場")):"全体への連絡",b:(n.text||"").slice(0,60)+"("+who(n.by)+")"})});
@@ -3652,6 +3660,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     var k=b.dataset.mact, id=b.dataset.id;
     if(k==="notices")openNotices();
     else if(k==="annhist")openAnnHist();
+    else if(k==="apphist")openAppHist();
     else if(k==="appset"){pwa.msg="";openAppSet()}
     else if(k==="pwinstall"){if(pwa.ev){pwa.ev.prompt();try{await pwa.ev.userChoice}catch(e){}pwa.ev=null;openAppSet()}}
     else if(k==="pwon")pwaEnable();
