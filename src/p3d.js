@@ -824,6 +824,26 @@
       pwaNotify("ann",id);
     }catch(e){}
   }
+  /* ---------- アプリが更新されたら「更新する」ボタンを出す ---------- */
+  var updShown=false;
+  function showUpdBar(){
+    if(updShown||$("updBar"))return; updShown=true;
+    var d=document.createElement("div"); d.id="updBar"; d.setAttribute("role","status");
+    d.innerHTML='<span>アプリが更新されました</span><button type="button" id="updGo">更新する</button><button type="button" id="updX" aria-label="あとで">&times;</button>';
+    document.body.appendChild(d);
+    $("updGo").addEventListener("click",function(){this.disabled=true;this.textContent="更新中…";location.reload()});
+    $("updX").addEventListener("click",function(){d.remove();setTimeout(function(){updShown=false},10*60*1000)});
+  }
+  async function checkAppUpdate(){
+    if(!window.APP_BUILD||updShown)return;
+    try{
+      var r=await fetch("/version.json?t="+Date.now(),{cache:"no-store"}); if(!r.ok)return;
+      var j=await r.json(); if(j&&j.v&&j.v!==window.APP_BUILD)showUpdBar();
+    }catch(e){}
+  }
+  setTimeout(checkAppUpdate,15000);
+  setInterval(checkAppUpdate,5*60*1000);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)checkAppUpdate()});
   var relDone=false;
   function autoReleaseNote(){
     if(relDone||!canAdmin||!db)return;
