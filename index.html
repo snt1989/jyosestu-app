@@ -3566,14 +3566,15 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   function openAnnHist(){openHist(annNormal(),"お知らせの履歴","お知らせはまだありません",true)}
   function openAppHist(){openHist(appSorted(),"アプリの更新履歴","アプリの更新はまだありません",false)}
   function openNtHist(){
-    var feed=[]; announcements.forEach(function(a){feed.push({at:a.at||0,ic:"📢",t:(a.important?"【重要】":"")+a.title,b:(a.body||"").slice(0,60)})});
-    notes.forEach(function(n){var s=n.siteId?siteById(n.siteId):null;feed.push({at:n.at||0,ic:"💬",t:n.siteId?(s?s.name:(n.siteName||"削除された現場")):"全体への連絡",b:(n.text||"").slice(0,60)+"("+who(n.by)+")"})});
+    var feed=[];
+    notes.forEach(function(n){var s=n.siteId?siteById(n.siteId):null;feed.push({at:n.at||0,ic:"📝",t:n.siteId?(s?s.name:(n.siteName||"削除された現場")):"全体への連絡",b:(n.text||"").slice(0,60)+"("+who(n.by)+")"})});
+    chat.forEach(function(m){feed.push({at:m.at||0,ic:"💬",t:"チャット: "+((m.room||"all")==="all"?"全体":m.room),b:(m.text||"").slice(0,60)+"("+who(m.by)+")"})});
     var lim=Date.now()-30*864e5; feed=feed.filter(function(f){return f.at>=lim}).sort(function(a,b){return b.at-a.at}).slice(0,100);
     var last="", body=feed.length?feed.map(function(f){
       var d=new Date(f.at), day=d.getFullYear()+"/"+p2(d.getMonth()+1)+"/"+p2(d.getDate()), head="";
       if(day!==last){last=day;head='<div class="nt-day">'+day+'</div>'}
       return head+'<div class="nt-his"><span class="ic">'+f.ic+'</span><span style="flex:1;min-width:0"><b>'+esc(f.t)+'</b><span class="bd">'+esc(f.b)+'</span></span><span class="tm">'+timeStr(f.at)+'</span></div>';
-    }).join(""):'<div class="nt-empty">この30日間に届いた通知はありません</div>';
+    }).join(""):'<div class="nt-empty">この30日間の連絡・チャットはありません</div>';
     openModal("通知の履歴",body,'<button class="btn first" type="button" data-mact="notices">戻る</button><button class="btn" type="button" data-mclose>閉じる</button>');
   }
   function openAnnForm(a){
