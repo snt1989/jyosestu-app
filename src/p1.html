@@ -1201,4 +1201,20 @@ body.demo #meLine{display:none}
 .chm.dsp .chb{background:#fdecea;border:2px solid #c62828;color:#7f1d1d;font-weight:700}
 @media (prefers-reduced-motion:no-preference){.dspb{animation:dspp 2s ease-in-out 3}@keyframes dspp{50%{box-shadow:0 0 0 6px rgba(198,40,40,.25)}}}
 .csbox{max-width:760px;margin-top:16px;padding:14px}.csbox h3{margin:0 0 6px;font-size:15px}.cschk{display:grid;gap:8px}
+.mmform{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end}
+.mmform label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+.mmform input{font-weight:400;min-width:0;width:100%;box-sizing:border-box}.mmform>label{min-width:0}#mmQ{flex:1;min-width:0}
+.mmform .mmwide{grid-column:1/-1}
+.mmwrap{overflow-x:auto;margin-top:10px}
+.mmtbl{min-width:0;width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
+.mmtbl th{text-align:left;font-size:12px;color:var(--muted,#667);padding:6px 8px;border-bottom:2px solid var(--line)}
+.mmtbl td{padding:6px 8px;word-break:break-word;border-bottom:1px solid var(--line);vertical-align:top}
+.mmtbl td.nm{font-weight:700}
+.mmtbl .mmop{white-space:normal}.mmtbl .mmop .btn{margin:0 4px 4px 0}.mmtbl .mmop .btn{padding:4px 8px;min-height:30px;font-size:12px}.mmtbl td.e{display:none}@media (min-width:721px){.mmtbl td.e{display:table-cell}}
+.mmtbl .un{font-size:11px;color:#a15c00;margin-left:4px}
+.mmtag{display:block;font-size:12px;color:var(--muted,#667);font-weight:400}
+@media (max-width:720px){.mmform{grid-template-columns:1fr 1fr}
+.mmtbl thead{display:none}.mmtbl,.mmtbl tbody,.mmtbl tr,.mmtbl td{display:block;width:100%}
+.mmtbl tr{box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}.mmtbl td{border:0;padding:2px 4px}
+.mmtbl td[data-l]::before{content:attr(data-l)"：";color:var(--muted,#667);font-size:12px}}
 </style>
