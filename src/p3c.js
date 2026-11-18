@@ -207,7 +207,7 @@
     var s=p.s, a=p.a, st=stOf(s);
     return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</div>'+
       '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
-      (a.lv>0?'<div>今後2日の降雪予想 <b>約'+fmt(a.snow2,0)+'cm</b>(基準'+esc(s.threshold||10)+'cm)</div>':'')+
+      (a.lv>0?'<div>降雪予想(今後2日) <b>約'+fmt(a.snow2,0)+'cm</b>(基準'+esc(s.threshold||10)+'cm)</div>':'')+(a.depth?'<div>積雪 <b>'+fmt(a.depth.v,a.depth.v%1?1:0)+'cm</b>('+esc(a.depth.src)+')</div>':'')+
       (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
       (p.q==="d"?'<div class="mpp-n">住所から割り出した位置です。ずれている場合は'+(canAdmin?'「位置を直す」で動かせます。':'管理者にお知らせください。')+'</div>':p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
       '<div class="mpp-r"><button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button>'+(canAdmin?'<button class="btn sm" type="button" data-mfix="'+esc(s.id)+'">位置を直す</button>':'')+'</div></div>';

@@ -47,7 +47,7 @@
       <div id="mpUn"></div>
     </div>
     <div id="siteList"></div>
-    <p class="legend">出動目安は、今後2日間の予報降水量と最低気温から計算した降雪量の目安(降水1mm≒雪1cm前後)が、現場ごとの出動基準を超えたとき、または警報・注意報が出ていて降雪が見込まれるときに表示します。実際の積雪量ではないため、出動の最終判断は現地の状況を見て行ってください。最低気温が設定した温度以下の予報は凍結注意として表示します。</p>
+    <p class="legend">出動目安は、今後2日間の予報降水量と最低気温から計算した降雪量(これから降る雪)の目安(降水1mm≒雪1cm前後)が、現場ごとの出動基準を超えたとき、または警報・注意報が出ていて降雪が見込まれるときに表示します。実際の積雪量ではないため、出動の最終判断は現地の状況を見て行ってください。最低気温が設定した温度以下の予報は凍結注意として表示します。</p>
   </section>
 
   <section id="v-machines" class="page" hidden>
@@ -386,7 +386,7 @@
         <button type="button" class="btn sm" data-act="rfnow" data-t="end">終了を今にする</button>
       </div>
       <label for="rfCrew">担当班・作業者<input id="rfCrew" data-combo="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
-      <label for="rfSnow">積雪量(実測 cm)<input type="number" id="rfSnow" min="0" max="300" step="0.5" inputmode="decimal" placeholder="例:12"></label>
+      <label for="rfSnow">積雪量(いま積もっている量・実測 cm)<input type="number" id="rfSnow" min="0" max="300" step="0.5" inputmode="decimal" placeholder="例:12"></label>
       <div><div class="lab2">使用機械</div><div class="tgs" id="rfMach"></div></div>
       <label class="chk" for="rfHai"><input type="checkbox" id="rfHai"> 排雪あり(雪を運び出した)</label>
       <label for="rfNote">メモ<textarea id="rfNote" maxlength="500" placeholder="例:駐車場の北側に雪山を作った。入口の段差に注意。"></textarea></label>

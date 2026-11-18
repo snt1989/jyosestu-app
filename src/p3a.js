@@ -160,7 +160,20 @@
     var th=num(s.threshold)||10, lv=1;
     if(snow2>=th||(al.length>0&&snow2>0))lv=3;
     else if(snowing||snow2>0||al.length>0||ice)lv=2;
-    return {lv:lv,label:lv===3?"出動目安":lv===2?"警戒":"平常",snow2:snow2,ice:ice,snowing:snowing,th:th};
+    return {lv:lv,label:lv===3?"出動目安":lv===2?"警戒":"平常",snow2:snow2,ice:ice,snowing:snowing,th:th,depth:depthOf(s,cur)};
+  }
+  /* 積雪(いま積もっている量): 3日以内の日報の実測を優先し、なければ観測値 */
+  function depthOf(s,cur){
+    var lim=new Date(Date.now()-3*864e5), ds=lim.getFullYear()+"-"+("0"+(lim.getMonth()+1)).slice(-2)+"-"+("0"+lim.getDate()).slice(-2), best=null;
+    reports.forEach(function(r){
+      if(r.siteId!==s.id||r.date<ds)return;
+      var v=parseFloat(r.snowCm); if(!isFinite(v))return;
+      if(!best||String(r.date+(r.start||""))>String(best.k))best={k:r.date+(r.start||""),v:v,date:r.date};
+    });
+    if(best)return {v:best.v,src:"日報 "+(+best.date.slice(5,7))+"/"+(+best.date.slice(8,10))+" の実測"};
+    var o=num(cur&&cur.snowDepthCM);
+    if(o!=null&&o>=0)return {v:o,src:"気象観測"};
+    return null;
   }
 
   /* ---------- 天気取得 ---------- */

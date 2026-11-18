@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181532"</script>
+<script>window.APP_BUILD="202611181536"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1015,6 +1015,13 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
 .hr-p{color:var(--muted,#5B6B7D);font-size:.8rem}
 .hr-head2{font-size:.74rem;color:var(--muted,#5B6B7D);font-weight:700;text-align:right}
 .hr-head2 span:nth-child(-n+3){text-align:left}
+.dp{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline;border-top:1px solid var(--line);padding-top:8px}
+.dp-k{font-size:.8rem;font-weight:700;color:var(--muted,#5B6B7D)}
+.dp-v{font-weight:700;text-align:right;color:var(--ink)}
+.dp-v b{font-family:var(--font-num);font-size:1.7rem;margin-right:2px}
+.dp-s{grid-column:1/-1;font-size:.78rem;color:var(--muted,#5B6B7D)}
+.dp.none .dp-v{font-size:.95rem;color:var(--muted,#5B6B7D)}
+.sr .dp-v b{font-size:1.4rem}
 </style>
 </head><body>
 
@@ -1066,7 +1073,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
       <div id="mpUn"></div>
     </div>
     <div id="siteList"></div>
-    <p class="legend">出動目安は、今後2日間の予報降水量と最低気温から計算した降雪量の目安(降水1mm≒雪1cm前後)が、現場ごとの出動基準を超えたとき、または警報・注意報が出ていて降雪が見込まれるときに表示します。実際の積雪量ではないため、出動の最終判断は現地の状況を見て行ってください。最低気温が設定した温度以下の予報は凍結注意として表示します。</p>
+    <p class="legend">出動目安は、今後2日間の予報降水量と最低気温から計算した降雪量(これから降る雪)の目安(降水1mm≒雪1cm前後)が、現場ごとの出動基準を超えたとき、または警報・注意報が出ていて降雪が見込まれるときに表示します。実際の積雪量ではないため、出動の最終判断は現地の状況を見て行ってください。最低気温が設定した温度以下の予報は凍結注意として表示します。</p>
   </section>
 
   <section id="v-machines" class="page" hidden>
@@ -1405,7 +1412,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
         <button type="button" class="btn sm" data-act="rfnow" data-t="end">終了を今にする</button>
       </div>
       <label for="rfCrew">担当班・作業者<input id="rfCrew" data-combo="dlCrews" maxlength="40" placeholder="例:A班 山田"></label>
-      <label for="rfSnow">積雪量(実測 cm)<input type="number" id="rfSnow" min="0" max="300" step="0.5" inputmode="decimal" placeholder="例:12"></label>
+      <label for="rfSnow">積雪量(いま積もっている量・実測 cm)<input type="number" id="rfSnow" min="0" max="300" step="0.5" inputmode="decimal" placeholder="例:12"></label>
       <div><div class="lab2">使用機械</div><div class="tgs" id="rfMach"></div></div>
       <label class="chk" for="rfHai"><input type="checkbox" id="rfHai"> 排雪あり(雪を運び出した)</label>
       <label for="rfNote">メモ<textarea id="rfNote" maxlength="500" placeholder="例:駐車場の北側に雪山を作った。入口の段差に注意。"></textarea></label>
@@ -1653,7 +1660,20 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     var th=num(s.threshold)||10, lv=1;
     if(snow2>=th||(al.length>0&&snow2>0))lv=3;
     else if(snowing||snow2>0||al.length>0||ice)lv=2;
-    return {lv:lv,label:lv===3?"出動目安":lv===2?"警戒":"平常",snow2:snow2,ice:ice,snowing:snowing,th:th};
+    return {lv:lv,label:lv===3?"出動目安":lv===2?"警戒":"平常",snow2:snow2,ice:ice,snowing:snowing,th:th,depth:depthOf(s,cur)};
+  }
+  /* 積雪(いま積もっている量): 3日以内の日報の実測を優先し、なければ観測値 */
+  function depthOf(s,cur){
+    var lim=new Date(Date.now()-3*864e5), ds=lim.getFullYear()+"-"+("0"+(lim.getMonth()+1)).slice(-2)+"-"+("0"+lim.getDate()).slice(-2), best=null;
+    reports.forEach(function(r){
+      if(r.siteId!==s.id||r.date<ds)return;
+      var v=parseFloat(r.snowCm); if(!isFinite(v))return;
+      if(!best||String(r.date+(r.start||""))>String(best.k))best={k:r.date+(r.start||""),v:v,date:r.date};
+    });
+    if(best)return {v:best.v,src:"日報 "+(+best.date.slice(5,7))+"/"+(+best.date.slice(8,10))+" の実測"};
+    var o=num(cur&&cur.snowDepthCM);
+    if(o!=null&&o>=0)return {v:o,src:"気象観測"};
+    return null;
   }
 
   /* ---------- 天気取得 ---------- */
@@ -1742,7 +1762,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   var canWrite=function(){return !!db&&canStatus};
 
   function kvHtml(c){
-    return '<div class="kv"><div><small>現在の降雪</small><b>'+fmt(num(c.snowCM),1)+' cm</b></div><div><small>風(突風)</small><b>'+fmt(ms(num(c.windSpeedKPH)),1)+'<span style="font-weight:400"> ('+fmt(ms(num(c.windGustKPH)),0)+')</span> m/s</b></div><div><small>視程</small><b>'+fmt(num(c.visibilityKM),1)+' km</b></div></div>';
+    return '<div class="kv"><div><small>いま降っている雪(降雪)</small><b>'+fmt(num(c.snowCM),1)+' cm</b></div><div><small>風(突風)</small><b>'+fmt(ms(num(c.windSpeedKPH)),1)+'<span style="font-weight:400"> ('+fmt(ms(num(c.windGustKPH)),0)+')</span> m/s</b></div><div><small>視程</small><b>'+fmt(num(c.visibilityKM),1)+' km</b></div></div>';
   }
   function fcHtml(fc){
     if(!fc||!fc.length)return "";
@@ -1769,12 +1789,18 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     if(v>=th){var r=v/th;return '基準'+th+'cmを超える見込み('+(r>=10?Math.round(r):(Math.round(r*10)/10))+'倍)'}
     var left=Math.max(1,Math.round(th-v));return '基準まであと約'+left+'cm';
   }
+  function depthHtml(a){
+    var d=a.depth;
+    if(!d)return '<div class="dp none"><span class="dp-k">積雪(いま積もっている量)</span><span class="dp-v">データなし</span><span class="dp-s">日報に積雪量を入れると表示されます</span></div>';
+    var tot=d.v+(a.snow2||0);
+    return '<div class="dp"><span class="dp-k">積雪(いま積もっている量)</span><span class="dp-v"><b class="num">'+(d.v<=0?'0':fmt(d.v,d.v%1?1:0))+'</b>cm</span><span class="dp-s">'+esc(d.src)+(a.snow2>=1?' / このまま降ると約'+Math.round(tot)+'cm(融雪は考慮せず)':'')+'</span></div>';
+  }
   function meterHtml(a){
     var th=a.th||10, v=a.snow2||0, over=v>=th, mx=Math.max(th*2,v);
     var fp=Math.min(100,Math.round(v/mx*100)), mp=Math.round(th/mx*100);
-    return '<div class="sm'+(over?' over':v>0?' some':'')+'"><div class="sm-top"><span class="sm-lb">今後2日の降雪予想</span></div>'+
+    return '<div class="sm'+(over?' over':v>0?' some':'')+'"><div class="sm-top"><span class="sm-lb">降雪(これから降る量) 今後2日の予想</span></div>'+
       '<div class="sm-main"><span class="sm-big">'+snowBig(v)+'</span><span class="sm-msg">'+esc(snowMsg(v,th))+'</span></div>'+
-      '<div class="sm-g" role="img" aria-label="降雪予想'+snowLabel(v)+'、出動基準'+th+'センチ"><div class="sm-f" style="width:'+fp+'%"></div><div class="sm-t" style="left:'+mp+'%"><em>基準'+th+'cm</em></div></div></div>';
+      '<div class="sm-g" role="img" aria-label="降雪予想'+snowLabel(v)+'、出動基準'+th+'センチ"><div class="sm-f" style="width:'+fp+'%"></div><div class="sm-t" style="left:'+mp+'%"><em>基準'+th+'cm</em></div></div>'+depthHtml(a)+'</div>';
   }
   function wxState(s){
     var w=wx[s.id];
@@ -2412,7 +2438,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     var s=p.s, a=p.a, st=stOf(s);
     return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</div>'+
       '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
-      (a.lv>0?'<div>今後2日の降雪予想 <b>約'+fmt(a.snow2,0)+'cm</b>(基準'+esc(s.threshold||10)+'cm)</div>':'')+
+      (a.lv>0?'<div>降雪予想(今後2日) <b>約'+fmt(a.snow2,0)+'cm</b>(基準'+esc(s.threshold||10)+'cm)</div>':'')+(a.depth?'<div>積雪 <b>'+fmt(a.depth.v,a.depth.v%1?1:0)+'cm</b>('+esc(a.depth.src)+')</div>':'')+
       (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
       (p.q==="d"?'<div class="mpp-n">住所から割り出した位置です。ずれている場合は'+(canAdmin?'「位置を直す」で動かせます。':'管理者にお知らせください。')+'</div>':p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
       '<div class="mpp-r"><button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button>'+(canAdmin?'<button class="btn sm" type="button" data-mfix="'+esc(s.id)+'">位置を直す</button>':'')+'</div></div>';
@@ -3662,6 +3688,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・「降雪」(これから降る量)と「積雪」(いま積もっている量)を分けて表示しました。積雪は3日以内の日報の実測、なければ気象観測の値です",
       "・現場の詳細に「時間ごとの天気を見る」を追加しました(48時間分の天気・気温・降雪・降水確率とグラフ)",
       "・積雪量を見やすくしました(大きな数字で「今後2日の降雪予想」を表示し、出動基準との差や倍率、目盛りつきのメーターで一目で分かります)"].join("\n")},
     {v:"2026.11.15",title:"アプリを更新しました(2026.11.15)",body:[
