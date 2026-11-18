@@ -410,6 +410,7 @@
     var sy=seasonOf(todayStr()), r=seasonRange(sy);
     return reports.filter(function(x){return x.siteId===id&&x.date>=r[0]&&x.date<=r[1]&&lineMatch(kind,x)}).length;
   }
+  function cShow(k){var cs=settings.clientShow||{};return cs[k]!==false}
   /* お客さん向けの現場詳細(天気・作業状況・作業の履歴・連絡) */
   function clientDetailHtml(s){
     var a=assess(s), w=wx[s.id], id=esc(s.id), bad=wxState(s), h='<div class="dv cdv">';
@@ -425,8 +426,8 @@
     var rs=reports.filter(function(r){return r.siteId===s.id}).slice(0,15);
     h+='<div class="sec"><h2>作業の履歴</h2></div>';
     h+=rs.length?'<div class="stack">'+rs.map(function(r){
-      var ln=[]; if(r.snowCm!=null&&r.snowCm!=="")ln.push('積雪 '+esc(r.snowCm)+'cm'); if(r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
-      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+(r.clientNote?'<div class="cnote">'+esc(r.clientNote).replace(/\n/g,'<br>')+'</div>':'')+'</article>';
+      var ln=[]; if(cShow("snow")&&r.snowCm!=null&&r.snowCm!=="")ln.push('積雪 '+esc(r.snowCm)+'cm'); if(cShow("machines")&&r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
+      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(cShow("haisetsu")&&r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span>'+(cShow("time")?'<span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span>':'')+'</div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+(cShow("note")&&r.clientNote?'<div class="cnote">'+esc(r.clientNote).replace(/\n/g,'<br>')+'</div>':'')+'</article>';
     }).join("")+'</div>':'<div class="empty"><b>まだ作業の記録はありません</b>作業が行われると、ここに表示されます。</div>';
     return h+'</div>';
   }

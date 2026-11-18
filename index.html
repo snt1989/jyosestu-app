@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181711"</script>
+<script>window.APP_BUILD="202611181713"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1207,6 +1207,7 @@ body.demo #meLine{display:none}
 .dspm{font-size:12px;margin-top:6px}
 .chm.dsp .chb{background:#fdecea;border:2px solid #c62828;color:#7f1d1d;font-weight:700}
 @media (prefers-reduced-motion:no-preference){.dspb{animation:dspp 2s ease-in-out 3}@keyframes dspp{50%{box-shadow:0 0 0 6px rgba(198,40,40,.25)}}}
+.csbox{max-width:760px;margin-top:16px;padding:14px}.csbox h3{margin:0 0 6px;font-size:15px}.cschk{display:grid;gap:8px}
 </style>
 </head><body>
 
@@ -1508,6 +1509,17 @@ body.demo #meLine{display:none}
       </form>
       <div class="admtools mbtools"><input id="cmQ" type="search" placeholder="会社名・ID・現場名で検索" aria-label="お客様を検索"></div>
       <div id="cmList"></div>
+      <section class="card2 csbox" aria-labelledby="csT"><h3 id="csT">お客様画面の「作業の履歴」に出す項目</h3>
+        <p class="muted" style="margin:0 0 8px;font-size:13px">すべてのお客様に共通です。チェックを外した項目は、お客様に表示されず、データも送られません。日付は常に表示します。</p>
+        <div class="cschk">
+          <label class="chk"><input type="checkbox" data-cs="time"> 作業時間(開始〜終了)</label>
+          <label class="chk"><input type="checkbox" data-cs="snow"> 積雪量</label>
+          <label class="chk"><input type="checkbox" data-cs="machines"> 使用機械</label>
+          <label class="chk"><input type="checkbox" data-cs="haisetsu"> 排雪の有無</label>
+          <label class="chk"><input type="checkbox" data-cs="note"> お客様への連絡(日報で書いた内容)</label>
+        </div>
+        <div class="row2" style="margin-top:10px"><button class="btn primary" type="button" id="csSave">保存</button><span class="muted" id="csMsg" role="status"></span></div>
+      </section>
       <details class="mbhelp"><summary>お客様のログインについて</summary><p class="legend">お客様は、メンバーとは別の専用画面(/customer)からログインします。見られるのは、選んだ現場の状況と作業の履歴、管理会社との連絡だけです。連絡はチャットの「お客様」で受け取り、返信できます。</p></details>
     </div>
 
@@ -2372,6 +2384,7 @@ body.demo #meLine{display:none}
     var sy=seasonOf(todayStr()), r=seasonRange(sy);
     return reports.filter(function(x){return x.siteId===id&&x.date>=r[0]&&x.date<=r[1]&&lineMatch(kind,x)}).length;
   }
+  function cShow(k){var cs=settings.clientShow||{};return cs[k]!==false}
   /* お客さん向けの現場詳細(天気・作業状況・作業の履歴・連絡) */
   function clientDetailHtml(s){
     var a=assess(s), w=wx[s.id], id=esc(s.id), bad=wxState(s), h='<div class="dv cdv">';
@@ -2387,8 +2400,8 @@ body.demo #meLine{display:none}
     var rs=reports.filter(function(r){return r.siteId===s.id}).slice(0,15);
     h+='<div class="sec"><h2>作業の履歴</h2></div>';
     h+=rs.length?'<div class="stack">'+rs.map(function(r){
-      var ln=[]; if(r.snowCm!=null&&r.snowCm!=="")ln.push('積雪 '+esc(r.snowCm)+'cm'); if(r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
-      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+(r.clientNote?'<div class="cnote">'+esc(r.clientNote).replace(/\n/g,'<br>')+'</div>':'')+'</article>';
+      var ln=[]; if(cShow("snow")&&r.snowCm!=null&&r.snowCm!=="")ln.push('積雪 '+esc(r.snowCm)+'cm'); if(cShow("machines")&&r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
+      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(cShow("haisetsu")&&r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span>'+(cShow("time")?'<span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span>':'')+'</div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+(cShow("note")&&r.clientNote?'<div class="cnote">'+esc(r.clientNote).replace(/\n/g,'<br>')+'</div>':'')+'</article>';
     }).join("")+'</div>':'<div class="empty"><b>まだ作業の記録はありません</b>作業が行われると、ここに表示されます。</div>';
     return h+'</div>';
   }
@@ -3869,7 +3882,16 @@ body.demo #meLine{display:none}
   var cmEdit=null, cmDel=null, cmUid="";
   function cmAll(){return members.filter(function(m){return m.role===CLIENT_ROLE})}
   function cmSiteNames(m){return (m.sites||[]).map(function(id){var s=RAW.sites.filter(function(x){return x.id===id})[0];return s?s.name:""}).filter(Boolean)}
-  function renderClients(){
+  function csFill(){var cs=settings.clientShow||{};document.querySelectorAll("[data-cs]").forEach(function(c){c.checked=cs[c.dataset.cs]!==false})}
+  $("csSave").addEventListener("click",async function(){
+    if(!db||!canAdmin)return;
+    var o={};document.querySelectorAll("[data-cs]").forEach(function(c){o[c.dataset.cs]=c.checked});
+    $("csSave").disabled=true;
+    try{await db.doc("settings/main").set(Object.assign({},settings,{clientShow:o}));settings.clientShow=o;$("csMsg").textContent="保存しました。"}
+    catch(err){$("csMsg").textContent="保存できませんでした。"}
+    $("csSave").disabled=false;setTimeout(function(){$("csMsg").textContent=""},3000);
+  });
+  function renderClients(){csFill();
     var all=cmAll(), on=all.filter(function(m){return m.active!==false}).length, off=all.length-on;
     $("cmStat").innerHTML='<span>利用中 <b class="num">'+on+'</b>件</span>'+(off?'<span>停止中 <b class="num">'+off+'</b>件</span>':'');
     var q=($("cmQ").value||"").trim().toLowerCase();
@@ -4162,6 +4184,7 @@ body.demo #meLine{display:none}
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
+      "・お客様画面の「作業の履歴」に出す項目を、お客様管理で選べるようにしました",
       "・「日報を書く」ボタンを「完了報告」に変えました",
       "・「完了」ボタンをなくしました。完了は日報を提出したときに自動で付きます",
       "・日報を削除したとき、その日「完了」にしていた現場は「待機」に戻り、ホームの出動状況に残らないようにしました",
@@ -4635,6 +4658,7 @@ body.demo #meLine{display:none}
       mult:Math.min(3,Math.max(0.3,isFinite(mult)&&mult>0?mult:1)),
       refreshMin:parseInt($("sRefresh").value,10)||10,
       requireLogin:$("sReq").value==="1",
+      clientShow:settings.clientShow||{time:true,snow:true,machines:true,haisetsu:true,note:true},
       brand:{name:$("brName").value.trim().slice(0,30),logo:brDraft.logo||"",icon:brDraft.icon||""},
       photo:(function(){var o={level:$("pqLevel").value};["light","std","high"].forEach(function(k){o[k]={side:+$("pq_"+k+"_s").value||0,q:+$("pq_"+k+"_q").value||0,kb:+$("pq_"+k+"_k").value||0}});return o})()
     };

@@ -643,7 +643,16 @@
   var cmEdit=null, cmDel=null, cmUid="";
   function cmAll(){return members.filter(function(m){return m.role===CLIENT_ROLE})}
   function cmSiteNames(m){return (m.sites||[]).map(function(id){var s=RAW.sites.filter(function(x){return x.id===id})[0];return s?s.name:""}).filter(Boolean)}
-  function renderClients(){
+  function csFill(){var cs=settings.clientShow||{};document.querySelectorAll("[data-cs]").forEach(function(c){c.checked=cs[c.dataset.cs]!==false})}
+  $("csSave").addEventListener("click",async function(){
+    if(!db||!canAdmin)return;
+    var o={};document.querySelectorAll("[data-cs]").forEach(function(c){o[c.dataset.cs]=c.checked});
+    $("csSave").disabled=true;
+    try{await db.doc("settings/main").set(Object.assign({},settings,{clientShow:o}));settings.clientShow=o;$("csMsg").textContent="保存しました。"}
+    catch(err){$("csMsg").textContent="保存できませんでした。"}
+    $("csSave").disabled=false;setTimeout(function(){$("csMsg").textContent=""},3000);
+  });
+  function renderClients(){csFill();
     var all=cmAll(), on=all.filter(function(m){return m.active!==false}).length, off=all.length-on;
     $("cmStat").innerHTML='<span>利用中 <b class="num">'+on+'</b>件</span>'+(off?'<span>停止中 <b class="num">'+off+'</b>件</span>':'');
     var q=($("cmQ").value||"").trim().toLowerCase();
@@ -936,6 +945,7 @@
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
+      "・お客様画面の「作業の履歴」に出す項目を、お客様管理で選べるようにしました",
       "・「日報を書く」ボタンを「完了報告」に変えました",
       "・「完了」ボタンをなくしました。完了は日報を提出したときに自動で付きます",
       "・日報を削除したとき、その日「完了」にしていた現場は「待機」に戻り、ホームの出動状況に残らないようにしました",
@@ -1409,6 +1419,7 @@
       mult:Math.min(3,Math.max(0.3,isFinite(mult)&&mult>0?mult:1)),
       refreshMin:parseInt($("sRefresh").value,10)||10,
       requireLogin:$("sReq").value==="1",
+      clientShow:settings.clientShow||{time:true,snow:true,machines:true,haisetsu:true,note:true},
       brand:{name:$("brName").value.trim().slice(0,30),logo:brDraft.logo||"",icon:brDraft.icon||""},
       photo:(function(){var o={level:$("pqLevel").value};["light","std","high"].forEach(function(k){o[k]={side:+$("pq_"+k+"_s").value||0,q:+$("pq_"+k+"_q").value||0,kb:+$("pq_"+k+"_k").value||0}});return o})()
     };

@@ -52,6 +52,9 @@ module.exports = async (req, res) => {
     const [settings, areas, works] = await Promise.all([
       fs.doc("settings/main").get(), fs.doc("masters/areas").get(), fs.doc("masters/works").get(),
     ]);
+    const cs = (settings.exists && settings.data().clientShow) || {};
+    const OFF = { time: ["start", "end"], snow: ["snowCm"], machines: ["machines"], haisetsu: ["haisetsu"], note: ["clientNote"] };
+    const repFields = REPORT_FIELDS.filter((f) => !Object.keys(OFF).some((k) => cs[k] === false && OFF[k].indexOf(f) >= 0));
     const siteDocs = await Promise.all(mine.map((id) => fs.doc("sites/" + id).get()));
     const opDocs = await Promise.all(mine.map((id) => fs.doc("ops/" + id).get()));
     const sites = [], ops = {};
@@ -59,7 +62,7 @@ module.exports = async (req, res) => {
     const reports = [], msgs = [];
     await Promise.all(mine.map(async (id) => {
       const rq = await fs.collection("reports").where("siteId", "==", id).limit(60).get();
-      rq.docs.forEach((d) => reports.push(Object.assign({ id: d.id }, pick(d.data(), REPORT_FIELDS))));
+      rq.docs.forEach((d) => reports.push(Object.assign({ id: d.id }, pick(d.data(), repFields))));
       const mq = await fs.collection("notes").where("siteId", "==", id).where("kind", "==", "cmsg").limit(200).get();
       mq.docs.forEach((d) => { const o = d.data(); msgs.push({ id: d.id, room: "client:" + id, siteId: id, text: String(o.text || ""), at: o.at || 0, fromClient: o.fromClient === true, mine: o.by === me.uid, kind: "chat" }); });
     }));

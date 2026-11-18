@@ -297,6 +297,17 @@
       </form>
       <div class="admtools mbtools"><input id="cmQ" type="search" placeholder="会社名・ID・現場名で検索" aria-label="お客様を検索"></div>
       <div id="cmList"></div>
+      <section class="card2 csbox" aria-labelledby="csT"><h3 id="csT">お客様画面の「作業の履歴」に出す項目</h3>
+        <p class="muted" style="margin:0 0 8px;font-size:13px">すべてのお客様に共通です。チェックを外した項目は、お客様に表示されず、データも送られません。日付は常に表示します。</p>
+        <div class="cschk">
+          <label class="chk"><input type="checkbox" data-cs="time"> 作業時間(開始〜終了)</label>
+          <label class="chk"><input type="checkbox" data-cs="snow"> 積雪量</label>
+          <label class="chk"><input type="checkbox" data-cs="machines"> 使用機械</label>
+          <label class="chk"><input type="checkbox" data-cs="haisetsu"> 排雪の有無</label>
+          <label class="chk"><input type="checkbox" data-cs="note"> お客様への連絡(日報で書いた内容)</label>
+        </div>
+        <div class="row2" style="margin-top:10px"><button class="btn primary" type="button" id="csSave">保存</button><span class="muted" id="csMsg" role="status"></span></div>
+      </section>
       <details class="mbhelp"><summary>お客様のログインについて</summary><p class="legend">お客様は、メンバーとは別の専用画面(/customer)からログインします。見られるのは、選んだ現場の状況と作業の履歴、管理会社との連絡だけです。連絡はチャットの「お客様」で受け取り、返信できます。</p></details>
     </div>
 
