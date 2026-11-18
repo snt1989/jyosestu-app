@@ -564,7 +564,7 @@
     list.forEach(function(m){
       var dy=chDay(m.at||0); if(dy!==last){h+='<div class="chday"><span>'+dy+'</span></div>';last=dy}
       var mine=demoOn?(m.fromClient===true):m.by===myId;
-      h+='<div class="chm'+(mine?' me':'')+'"><div class="chb">'+(mine?'':'<div class="chw">'+esc(isClient?"管理会社のスタッフ":who(m.by))+'</div>')+'<div class="cht">'+esc(m.text||"")+'</div></div><div class="chi">'+timeStr(m.at||0)+((!isClient&&(mine||canAdmin))?' <button type="button" class="link chx" data-act="chdel" data-id="'+esc(m.id)+'">削除</button>':'')+'</div></div>';
+      h+='<div class="chm'+(mine?' me':'')+(String(m.text||"").indexOf("【出動要請】")===0?' dsp':'')+'"><div class="chb">'+(mine?'':'<div class="chw">'+esc(isClient?"管理会社のスタッフ":who(m.by))+'</div>')+'<div class="cht">'+esc(m.text||"")+'</div></div><div class="chi">'+timeStr(m.at||0)+((!isClient&&(mine||canAdmin))?' <button type="button" class="link chx" data-act="chdel" data-id="'+esc(m.id)+'">削除</button>':'')+'</div></div>';
     });
     $("chList").innerHTML=h||'<div class="empty"><b>まだメッセージはありません</b>'+(chRoom==="all"?'全員が見られるチャットです。':esc(chName(chRoom))+(chGroupOf(chRoom)==="site"?'の担当班と管理者だけが見られます。':chGroupOf(chRoom)==="client"?'のお客様と、担当班・管理者だけが見られます。お客様への返信はここに書きます。':'のメンバーと管理者だけが見られます。'))+'</div>';
     $("chSend").disabled=!canChat()||!chRoom;

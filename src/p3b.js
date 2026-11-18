@@ -171,6 +171,22 @@
 
   /* ---------- ホーム ---------- */
   /* ---------- 誰がどこに(ホーム) ---------- */
+  var DSP="【出動要請】";
+  function dispatchOpen(){
+    var now=Date.now(), last={};
+    chat.forEach(function(m){if(m.fromClient===true&&String(m.text||"").indexOf(DSP)===0&&now-(m.at||0)<86400000&&m.siteId){if(!last[m.siteId]||m.at>last[m.siteId].at)last[m.siteId]=m}});
+    return Object.keys(last).map(function(id){return last[id]}).filter(function(m){
+      var s=siteById(m.siteId); if(!s)return false;
+      var st=stOf(s), at=stAt(s); if((st==="out"||st==="done")&&at>m.at)return false;
+      return !chat.some(function(x){return x.room==="client:"+m.siteId&&x.fromClient!==true&&(x.at||0)>m.at});
+    }).sort(function(a,b){return b.at-a.at});
+  }
+  function dispatchBanner(){
+    var l=dispatchOpen(); if(!l.length)return "";
+    return '<div class="dspb" role="alert"><div class="dspt">出動要請が来ています<span class="num">'+l.length+'件</span></div>'+l.map(function(m){
+      var s=siteById(m.siteId);
+      return '<div class="dspr"><div class="dspn"><b>'+esc(s.name)+'</b><span>'+esc(timeStr(m.at))+' に要請</span></div><span class="dspa"><button type="button" class="btn sm" data-act="clientchat" data-id="'+esc(s.id)+'">返信</button><button type="button" class="btn sm primary" data-act="open" data-id="'+esc(s.id)+'">状況を変える</button></span></div>'}).join("")+'<div class="muted dspm">出動中・完了にするか、チャットで返信すると、この表示は消えます。</div></div>';
+  }
   function whoHtml(){
     var td=todayStr(), now=Date.now(), crews={}, order=[];
     function C(n){n=n||"";if(!crews[n]){crews[n]={n:n,act:[],done:[]};order.push(n)}return crews[n]}
@@ -227,7 +243,7 @@
     var h='<div class="hello"><span class="d">'+esc(new Date().toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"}))+'</span><span class="muted">'+(myName?esc(myName)+' 様　':'')+'全'+sites.length+'現場</span></div>';
     h+=items.length?'<div class="stack">'+items.map(function(x){
       var s=x.s, a=x.a, id=esc(s.id), n=chUnread("client:"+s.id);
-      return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+'</div><div class="sc-sub">'+esc([s.area,siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st"><div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>作業状況: <b>'+esc(ST[stOf(s)])+'</b>'+(stAt(s)?' ('+timeStr(stAt(s))+')':'')+'</span><span><button class="link" type="button" data-act="dispatch" data-id="'+id+'" style="font-weight:700;color:var(--red,#c0392b)">出動要請</button> <button class="link" type="button" data-act="clientchat" data-id="'+id+'">連絡する'+(n?'<span class="num cbd">'+n+'</span>':'')+'</button> <button class="link" type="button" data-act="open" data-id="'+id+'">詳しく見る</button></span></div></div></article>';
+      return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+'</div><div class="sc-sub">'+esc([s.area,siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st"><div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>作業状況: <b>'+esc(ST[stOf(s)])+'</b>'+(stAt(s)?' ('+timeStr(stAt(s))+')':'')+'</span><span><button class="btn sm dspbtn" type="button" data-act="dispatch" data-id="'+id+'">出動を要請</button> <button class="link" type="button" data-act="clientchat" data-id="'+id+'">連絡する'+(n?'<span class="num cbd">'+n+'</span>':'')+'</button> <button class="link" type="button" data-act="open" data-id="'+id+'">詳しく見る</button></span></div></div></article>';
     }).join("")+'</div>':'<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"表示できる現場がありません")+'</b>'+(dbState==="loading"?"":"担当者に、現場の登録をご確認ください。")+'</div>';
     $("v-home").innerHTML=h;
   }
@@ -244,6 +260,7 @@
       '<button type="button" class="tile" data-nav="sites" data-f="out"><span class="n">'+out+'</span><span class="l">出動中</span></button>'+
       '<button type="button" class="tile" data-nav="reports"><span class="n">'+todayReps.length+'</span><span class="l">本日の日報</span></button></div>';
     h+='<button class="btn mp-home" type="button" data-act="openmap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>全体マップで現場を見る</button>';
+    h+=dispatchBanner();
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
     h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return homeCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
@@ -404,7 +421,7 @@
     }
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div><div class="cst">'+esc(ST[stOf(s)]||"")+'</div>'+
-      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="dispatch" data-id="'+id+'" style="flex:1">出動を要請する</button><button class="btn" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">連絡する</button></div></div>';
+      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">連絡する</button></div><button class="btn dspbtn" type="button" data-act="dispatch" data-id="'+id+'">出動を要請する</button></div>';
     var rs=reports.filter(function(r){return r.siteId===s.id}).slice(0,15);
     h+='<div class="sec"><h2>作業の履歴</h2></div>';
     h+=rs.length?'<div class="stack">'+rs.map(function(r){
