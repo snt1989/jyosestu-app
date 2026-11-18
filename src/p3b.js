@@ -33,7 +33,7 @@
     if(!fc||!fc.length)return "";
     return '<div class="fc">'+fc.slice(0,4).map(function(f,i){
       var m=ms(num(f.windSpeedMaxKPH));
-      return '<div><div class="d">'+esc(dayLabel(f.dateTimeISO,i))+'</div>'+icon(f.weather)+'<div class="wl">'+esc(jpS(f.weather))+'</div><div class="tt">'+fmt(num(f.maxTempC),0)+'/'+fmt(num(f.minTempC),0)+'℃</div><div class="s sn1">雪 '+snowLabel(snowEst(f))+'</div><div class="s rn1">雨 '+rainLabel(rainEst(f))+'</div><div class="d">風'+fmt(m,0)+'m/s</div></div>';
+      return '<div><div class="d">'+esc(dayLabel(f.dateTimeISO,i))+'</div>'+icon(f.weather)+'<div class="wl">'+esc(jpS(f.weather))+'</div><div class="tt">'+fmt(num(f.maxTempC),0)+'/'+fmt(num(f.minTempC),0)+'℃</div><div class="s sn1">雪 '+snowLabel(snowEst(f))+'</div><div class="d">風'+fmt(m,0)+'m/s</div></div>';
     }).join("")+'</div>';
   }
   function tagsHtml(a,w){
@@ -54,10 +54,6 @@
     if(v>=th){var r=v/th;return '基準'+th+'cmを超える見込み('+(r>=10?Math.round(r):(Math.round(r*10)/10))+'倍)'}
     var left=Math.max(1,Math.round(th-v));return '基準まであと約'+left+'cm';
   }
-  function rainHtml(a){
-    var r=a.rain2||0;
-    return '<div class="rnl'+(r>0?'':' none')+'"><span class="dp-k">雨(今後2日の予想)</span><span class="dp-v"><b class="num">'+(r<=0?'なし':r<1?'&lt;1':Math.round(r))+'</b>'+(r<=0?'':'mm')+'</span></div>';
-  }
   function depthHtml(a){
     var d=a.depth;
     if(!d)return '<div class="dp none"><span class="dp-k">積雪(いま積もっている量)</span><span class="dp-v">データなし</span><span class="dp-s">日報に積雪量を入れると表示されます</span></div>';
@@ -69,7 +65,7 @@
     var fp=Math.min(100,Math.round(v/mx*100)), mp=Math.round(th/mx*100);
     return '<div class="sm'+(over?' over':v>0?' some':'')+'"><div class="sm-top"><span class="sm-lb">降雪(これから降る量) 今後2日の予想</span></div>'+
       '<div class="sm-main"><span class="sm-big">'+snowBig(v)+'</span><span class="sm-msg">'+esc(snowMsg(v,th))+'</span></div>'+
-      '<div class="sm-g" role="img" aria-label="降雪予想'+snowLabel(v)+'、出動基準'+th+'センチ"><div class="sm-f" style="width:'+fp+'%"></div><div class="sm-t" style="left:'+mp+'%"><em>基準'+th+'cm</em></div></div>'+rainHtml(a)+depthHtml(a)+'</div>';
+      '<div class="sm-g" role="img" aria-label="降雪予想'+snowLabel(v)+'、出動基準'+th+'センチ"><div class="sm-f" style="width:'+fp+'%"></div><div class="sm-t" style="left:'+mp+'%"><em>基準'+th+'cm</em></div></div>'+depthHtml(a)+'</div>';
   }
   function wxState(s){
     var w=wx[s.id];
