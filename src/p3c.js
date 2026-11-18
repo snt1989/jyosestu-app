@@ -315,6 +315,8 @@
     return "done";
   }
   function hm2m(t){var m=/^(\d{1,2}):(\d{2})/.exec(t||"");return m?(+m[1])*60+(+m[2]):null}
+  var mchFilter="all";
+  $("machBody").addEventListener("click",function(e){var b=e.target.closest("[data-mf]");if(!b)return;mchFilter=b.dataset.mf;renderMachines()});
   function renderMachines(){
     var now=new Date(), today=todayStr(), nowM=now.getHours()*60+now.getMinutes();
     var names=masters.machines.slice();
@@ -339,16 +341,18 @@
     var cnt={run:0,plan:0,done:0,idle:0}; rows.forEach(function(r){cnt[r.st]++});
     var L={run:"稼働中",plan:"予定あり",done:"本日稼働済",idle:"待機"};
     var h='<div class="mbh"><h1 class="mbt">機械管理</h1><span class="muted">'+esc(today.replace(/-/g,"/"))+' '+p2(now.getHours())+':'+p2(now.getMinutes())+' 現在</span></div>';
-    h+='<div class="mbs">'+["run","plan","done","idle"].map(function(k){return '<div class="mbsn k-'+k+'"><span class="n num">'+cnt[k]+'</span><span class="l">'+L[k]+'</span></div>'}).join("")+'</div>';
+    var shown=mchFilter==="all"?rows:rows.filter(function(r){return r.st===mchFilter});
+    h+='<div class="mfl"><div class="mfbar" aria-hidden="true">'+["run","plan","done","idle"].map(function(k){return cnt[k]?'<i class="k-'+k+'" style="flex:'+cnt[k]+'"></i>':''}).join("")+'</div><div class="mfs" role="group" aria-label="状態で絞り込み">'+[["all","すべて",rows.length]].concat(["run","plan","done","idle"].map(function(k){return [k,L[k],cnt[k]]})).map(function(x){return '<button type="button" class="mf k-'+x[0]+'" data-mf="'+x[0]+'" aria-pressed="'+(mchFilter===x[0])+'"><b class="num">'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div></div>';
     if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>下の「機械の一覧表」で機械・備品を登録すると、ここに表示されます。</div>';
-    else h+='<div class="mbg">'+rows.map(function(x){
+    else if(!shown.length)h+='<div class="empty"><b>この状態の機械はありません</b></div>';
+    else h+='<div class="mbg">'+shown.map(function(x){
       var wd=["日","月","火","水","木","金","土"];
       var bars=x.used.map(function(c,i){var d=new Date(now.getTime()-(6-i)*86400000);return '<span class="mbd'+(c?' on':'')+(i===6?' tdy':'')+'" title="'+(d.getMonth()+1)+'/'+d.getDate()+' '+c+'回"><i>'+(c||'')+'</i><em>'+wd[d.getDay()]+'</em></span>'}).join("");
       var lines=x.tr.length?x.tr.map(function(r){
         var k=r.__k||"done";
         return '<button type="button" class="mbl k-'+k+'" data-act="rep" data-id="'+esc(r.id)+'"><span class="tm num">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span><span class="nm">'+esc(r.siteName||"(現場名なし)")+'</span><span class="cw">'+esc(r.crew||"")+'</span></button>';
       }).join(""):'<div class="mbn muted">'+(x.last?'最後の稼働 '+esc(x.last.slice(5).replace("-","/"))+'':'今シーズンはまだ稼働していません')+'</div>';
-      return '<article class="card2 mbc k-'+x.st+'"><div class="mbc-h"><b class="mbnm">'+esc(x.m)+'</b>'+(mmInfo(x.m)?'<span class="mmtag">'+esc(mmInfo(x.m))+'</span>':'')+'<span class="mbp k-'+x.st+'">'+L[x.st]+'</span></div>'+
+      return '<article class="card2 mbc k-'+x.st+'"><div class="mbc-h"><div class="mbid"><b class="mbnm">'+esc(x.m)+'</b>'+mmMeta(x.m)+'</div><span class="mbp k-'+x.st+'">'+L[x.st]+'</span></div>'+
         '<div class="mbls">'+lines+'</div>'+
         '<div class="mbf"><div class="mbds" aria-label="直近7日の稼働回数">'+bars+'</div><div class="mbse"><span class="muted">今シーズン</span><b class="num">'+x.season+'</b><small>回</small></div></div></article>';
     }).join("")+'</div>';

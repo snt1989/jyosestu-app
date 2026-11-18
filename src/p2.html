@@ -52,8 +52,9 @@
 
   <section id="v-machines" class="page" hidden>
     <div id="machBody"></div>
-    <section class="card2 csbox" id="machEdit" hidden aria-labelledby="mmT" style="max-width:none"><h3 id="mmT">機械の一覧表(台帳)</h3>
+    <section class="card2 csbox" id="machEdit" hidden aria-labelledby="mmT" style="max-width:none"><div class="mmhead"><h3 id="mmT">機械の一覧表(台帳)</h3><span class="mmcnt num" id="mmCnt"></span></div>
       <p class="muted" style="margin:0 0 8px;font-size:13px">保管場所・種類・機械名・品番などを登録します。ここに登録した機械が、日報の「使用機械」の選択肢になります。</p>
+      <details id="mmAddBox" class="mmadd"><summary class="btn primary">＋ 機械を追加する</summary>
       <form id="mmForm" class="mmform" autocomplete="off">
         <label>保管場所<input id="mmPlace" maxlength="40" list="mmPlaceL" placeholder="例:第1車庫"></label>
         <label>種類<input id="mmKind" maxlength="30" list="mmKindL" placeholder="例:ローダー"></label>
@@ -63,6 +64,7 @@
         <div class="row2 mmwide"><button class="btn primary" type="submit" id="mmAdd">機械を追加</button><button class="btn" type="button" id="mmCancel" hidden>編集をやめる</button><span class="muted" id="mmMsg" role="status"></span></div>
         <datalist id="mmPlaceL"></datalist><datalist id="mmKindL"></datalist>
       </form>
+      </details>
       <div class="admtools mbtools"><input id="mmQ" type="search" placeholder="機械名・種類・保管場所・品番で検索" aria-label="機械を検索"><button class="btn" type="button" id="mmCsv">CSVで書き出す</button></div>
       <div class="mmwrap"><table class="mmtbl"><thead><tr><th style="width:15%">保管場所</th><th style="width:14%">種類</th><th style="width:22%">機械名</th><th style="width:15%">品番</th><th style="width:16%">備考</th><th style="width:18%"></th></tr></thead><tbody id="mmBody"></tbody></table></div>
       <details class="mbhelp"><summary>まとめて編集する</summary>

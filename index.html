@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181721"</script>
+<script>window.APP_BUILD="202611181732"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1224,6 +1224,51 @@ body.demo #meLine{display:none}
 .mmtbl thead{display:none}.mmtbl,.mmtbl tbody,.mmtbl tr,.mmtbl td{display:block;width:100%}
 .mmtbl tr{box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}.mmtbl td{border:0;padding:2px 4px}
 .mmtbl td[data-l]::before{content:attr(data-l)"：";color:var(--muted,#667);font-size:12px}}
+
+/* ---- 機械管理(見やすく) ---- */
+#v-machines .mbh{align-items:center;margin-bottom:14px}
+#v-machines .mbt{font-size:1.4rem;letter-spacing:.02em}
+.mfl{margin-bottom:16px}
+.mfbar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--surface2);gap:2px;margin-bottom:10px}
+.mfbar i{display:block;min-width:8px}
+.mfbar .k-run{background:var(--ok)}.mfbar .k-plan{background:#e0a100}.mfbar .k-done{background:#9fb4c7}.mfbar .k-idle{background:#cfd8e2}
+.mfs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.mf{display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 4px;border:1px solid var(--line);background:var(--surface);border-radius:10px;cursor:pointer;min-height:56px;color:var(--ink);position:relative}
+.mf b{font-size:1.45rem;line-height:1.1}.mf span{font-size:.74rem;color:var(--muted);white-space:nowrap}
+.mf.k-run b{color:var(--ok)}.mf.k-plan b{color:#a36b00}
+.mf[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 -3px 0 var(--ink);background:var(--surface2)}
+.mf:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#machBody .mbg{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+#machBody .mbc{border:1px solid var(--line);border-left:1px solid var(--line);border-top:5px solid #cfd8e2;border-radius:12px;box-shadow:0 1px 2px rgba(15,27,42,.06);gap:12px;padding:14px}
+#machBody .mbc.k-run{border-top-color:var(--ok);background:linear-gradient(180deg,var(--ok-bg),var(--surface) 70px)}
+#machBody .mbc.k-plan{border-top-color:#e0a100}
+#machBody .mbc.k-done{border-top-color:#9fb4c7}
+#machBody .mbc-h{align-items:flex-start}
+.mbid{min-width:0;display:flex;flex-direction:column;gap:6px}
+#machBody .mbnm{font-size:1.15rem;line-height:1.25;overflow-wrap:anywhere}
+.mbmeta{display:flex;flex-wrap:wrap;gap:6px}
+.mch{font-size:.76rem;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface)}
+.mch.kind{background:#e8eef6;border-color:#d3deec;color:#2a4466}
+.mch.place::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;border:2px solid currentColor;margin-right:5px;vertical-align:-1px}
+.mch.model{font-family:var(--font-num);font-weight:500}
+#machBody .mbp{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px}
+#machBody .mbp::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.7}
+#machBody .mbp.k-run::before{background:#fff;opacity:1}
+@media (prefers-reduced-motion:no-preference){#machBody .mbp.k-run::before{animation:mlamp 1.6s ease-in-out infinite}@keyframes mlamp{50%{opacity:.25}}}
+#machBody .mbf{border-top:1px dashed var(--line)}
+#machBody .mbse b{font-size:1.5rem}
+#machEdit{margin-top:24px;border-radius:12px;padding:16px}
+.mmhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.mmhead h3{margin:0;font-size:1.1rem}.mmcnt{font-size:.85rem;color:var(--muted);background:var(--surface2);border-radius:999px;padding:2px 12px}
+.mmadd{margin:10px 0 12px}
+.mmadd>summary{list-style:none;display:inline-flex;align-items:center;cursor:pointer;min-height:44px;padding:0 16px}
+.mmadd>summary::-webkit-details-marker{display:none}
+.mmadd[open]>summary{margin-bottom:12px}
+.mmadd .mmform{padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}
+.mmtbl tbody tr:nth-child(even){background:var(--surface2)}
+.mmtbl th{background:transparent}
+@media (max-width:720px){.mfs{gap:6px}.mf{padding:8px 2px}.mf b{font-size:1.25rem}.mf span{font-size:.68rem}
+.mmtbl tbody tr:nth-child(even){background:var(--surface)}}
 </style>
 </head><body>
 
@@ -1280,8 +1325,9 @@ body.demo #meLine{display:none}
 
   <section id="v-machines" class="page" hidden>
     <div id="machBody"></div>
-    <section class="card2 csbox" id="machEdit" hidden aria-labelledby="mmT" style="max-width:none"><h3 id="mmT">機械の一覧表(台帳)</h3>
+    <section class="card2 csbox" id="machEdit" hidden aria-labelledby="mmT" style="max-width:none"><div class="mmhead"><h3 id="mmT">機械の一覧表(台帳)</h3><span class="mmcnt num" id="mmCnt"></span></div>
       <p class="muted" style="margin:0 0 8px;font-size:13px">保管場所・種類・機械名・品番などを登録します。ここに登録した機械が、日報の「使用機械」の選択肢になります。</p>
+      <details id="mmAddBox" class="mmadd"><summary class="btn primary">＋ 機械を追加する</summary>
       <form id="mmForm" class="mmform" autocomplete="off">
         <label>保管場所<input id="mmPlace" maxlength="40" list="mmPlaceL" placeholder="例:第1車庫"></label>
         <label>種類<input id="mmKind" maxlength="30" list="mmKindL" placeholder="例:ローダー"></label>
@@ -1291,6 +1337,7 @@ body.demo #meLine{display:none}
         <div class="row2 mmwide"><button class="btn primary" type="submit" id="mmAdd">機械を追加</button><button class="btn" type="button" id="mmCancel" hidden>編集をやめる</button><span class="muted" id="mmMsg" role="status"></span></div>
         <datalist id="mmPlaceL"></datalist><datalist id="mmKindL"></datalist>
       </form>
+      </details>
       <div class="admtools mbtools"><input id="mmQ" type="search" placeholder="機械名・種類・保管場所・品番で検索" aria-label="機械を検索"><button class="btn" type="button" id="mmCsv">CSVで書き出す</button></div>
       <div class="mmwrap"><table class="mmtbl"><thead><tr><th style="width:15%">保管場所</th><th style="width:14%">種類</th><th style="width:22%">機械名</th><th style="width:15%">品番</th><th style="width:16%">備考</th><th style="width:18%"></th></tr></thead><tbody id="mmBody"></tbody></table></div>
       <details class="mbhelp"><summary>まとめて編集する</summary>
@@ -2872,6 +2919,8 @@ body.demo #meLine{display:none}
     return "done";
   }
   function hm2m(t){var m=/^(\d{1,2}):(\d{2})/.exec(t||"");return m?(+m[1])*60+(+m[2]):null}
+  var mchFilter="all";
+  $("machBody").addEventListener("click",function(e){var b=e.target.closest("[data-mf]");if(!b)return;mchFilter=b.dataset.mf;renderMachines()});
   function renderMachines(){
     var now=new Date(), today=todayStr(), nowM=now.getHours()*60+now.getMinutes();
     var names=masters.machines.slice();
@@ -2896,16 +2945,18 @@ body.demo #meLine{display:none}
     var cnt={run:0,plan:0,done:0,idle:0}; rows.forEach(function(r){cnt[r.st]++});
     var L={run:"稼働中",plan:"予定あり",done:"本日稼働済",idle:"待機"};
     var h='<div class="mbh"><h1 class="mbt">機械管理</h1><span class="muted">'+esc(today.replace(/-/g,"/"))+' '+p2(now.getHours())+':'+p2(now.getMinutes())+' 現在</span></div>';
-    h+='<div class="mbs">'+["run","plan","done","idle"].map(function(k){return '<div class="mbsn k-'+k+'"><span class="n num">'+cnt[k]+'</span><span class="l">'+L[k]+'</span></div>'}).join("")+'</div>';
+    var shown=mchFilter==="all"?rows:rows.filter(function(r){return r.st===mchFilter});
+    h+='<div class="mfl"><div class="mfbar" aria-hidden="true">'+["run","plan","done","idle"].map(function(k){return cnt[k]?'<i class="k-'+k+'" style="flex:'+cnt[k]+'"></i>':''}).join("")+'</div><div class="mfs" role="group" aria-label="状態で絞り込み">'+[["all","すべて",rows.length]].concat(["run","plan","done","idle"].map(function(k){return [k,L[k],cnt[k]]})).map(function(x){return '<button type="button" class="mf k-'+x[0]+'" data-mf="'+x[0]+'" aria-pressed="'+(mchFilter===x[0])+'"><b class="num">'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div></div>';
     if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>下の「機械の一覧表」で機械・備品を登録すると、ここに表示されます。</div>';
-    else h+='<div class="mbg">'+rows.map(function(x){
+    else if(!shown.length)h+='<div class="empty"><b>この状態の機械はありません</b></div>';
+    else h+='<div class="mbg">'+shown.map(function(x){
       var wd=["日","月","火","水","木","金","土"];
       var bars=x.used.map(function(c,i){var d=new Date(now.getTime()-(6-i)*86400000);return '<span class="mbd'+(c?' on':'')+(i===6?' tdy':'')+'" title="'+(d.getMonth()+1)+'/'+d.getDate()+' '+c+'回"><i>'+(c||'')+'</i><em>'+wd[d.getDay()]+'</em></span>'}).join("");
       var lines=x.tr.length?x.tr.map(function(r){
         var k=r.__k||"done";
         return '<button type="button" class="mbl k-'+k+'" data-act="rep" data-id="'+esc(r.id)+'"><span class="tm num">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span><span class="nm">'+esc(r.siteName||"(現場名なし)")+'</span><span class="cw">'+esc(r.crew||"")+'</span></button>';
       }).join(""):'<div class="mbn muted">'+(x.last?'最後の稼働 '+esc(x.last.slice(5).replace("-","/"))+'':'今シーズンはまだ稼働していません')+'</div>';
-      return '<article class="card2 mbc k-'+x.st+'"><div class="mbc-h"><b class="mbnm">'+esc(x.m)+'</b>'+(mmInfo(x.m)?'<span class="mmtag">'+esc(mmInfo(x.m))+'</span>':'')+'<span class="mbp k-'+x.st+'">'+L[x.st]+'</span></div>'+
+      return '<article class="card2 mbc k-'+x.st+'"><div class="mbc-h"><div class="mbid"><b class="mbnm">'+esc(x.m)+'</b>'+mmMeta(x.m)+'</div><span class="mbp k-'+x.st+'">'+L[x.st]+'</span></div>'+
         '<div class="mbls">'+lines+'</div>'+
         '<div class="mbf"><div class="mbds" aria-label="直近7日の稼働回数">'+bars+'</div><div class="mbse"><span class="muted">今シーズン</span><b class="num">'+x.season+'</b><small>回</small></div></div></article>';
     }).join("")+'</div>';
@@ -4212,6 +4263,7 @@ body.demo #meLine{display:none}
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・機械管理の画面を見やすくしました。状態ごとの絞り込み、種類・保管場所・品番の表示を追加しました",
       "・「機械管理」に機械の一覧表を追加しました。保管場所・種類・機械名・品番・備考を登録できます",
       "・お客様画面の「作業の履歴」に出す項目を、お客様管理で選べるようにしました",
       "・「日報を書く」ボタンを「完了報告」に変えました",
@@ -4899,6 +4951,11 @@ body.demo #meLine{display:none}
     var r=(masters.machinery||[]).filter(function(x){return x.name===name})[0];
     return r?[r.kind,r.place].filter(Boolean).join("・"):"";
   }
+  function mmMeta(name){
+    var r=(masters.machinery||[]).filter(function(x){return x.name===name})[0]; if(!r)return "";
+    var c=[]; if(r.kind)c.push('<span class="mch kind">'+esc(r.kind)+'</span>'); if(r.place)c.push('<span class="mch place">'+esc(r.place)+'</span>'); if(r.model)c.push('<span class="mch model">'+esc(r.model)+'</span>');
+    return c.length?'<div class="mbmeta">'+c.join("")+'</div>':"";
+  }
   async function mmSaveRows(rows){
     var items=rows.map(function(r){return {name:r.name,kind:r.kind||"",place:r.place||"",model:r.model||"",note:r.note||""}});
     await db.doc("masters/machinery").set({items:items});
@@ -4909,6 +4966,7 @@ body.demo #meLine{display:none}
     var box=$("machEdit"); if(!box)return;
     box.hidden=!canAdmin; if(!canAdmin)return;
     var rows=mmRows(), q=($("mmQ").value||"").trim().toLowerCase();
+    $("mmCnt").textContent=rows.length+"台";
     rows.sort(function(a,b){return String(a.place||"￿").localeCompare(String(b.place||"￿"),"ja")||String(a.kind||"").localeCompare(String(b.kind||""),"ja")||a.name.localeCompare(b.name,"ja")});
     var shown=rows.filter(function(r){return !q||[r.name,r.kind,r.place,r.model,r.note].join(" ").toLowerCase().indexOf(q)>=0});
     $("mmBody").innerHTML=shown.length?shown.map(function(r){
@@ -4921,7 +4979,7 @@ body.demo #meLine{display:none}
     var bk=$("mmBulk"); if(document.activeElement!==bk&&!bk.dataset.dirty)bk.value=rows.map(function(r){return [r.place||"",r.kind||"",r.name,r.model||"",r.note||""].join(",").replace(/,+$/,"")}).join("\n");
   }
   function mmFlash(t){var el=$("mmMsg");el.textContent=t;setTimeout(function(){if(el.textContent===t)el.textContent=""},6000)}
-  function mmReset(){mmEdit=-1;$("mmForm").reset();$("mmAdd").textContent="機械を追加";$("mmCancel").hidden=true}
+  function mmReset(){mmEdit=-1;$("mmAddBox").open=false;$("mmForm").reset();$("mmAdd").textContent="機械を追加";$("mmCancel").hidden=true}
   $("mmBulk").addEventListener("input",function(){this.dataset.dirty="1"});
   $("mmQ").addEventListener("input",machEditFill);
   $("mmCancel").addEventListener("click",mmReset);
@@ -4930,8 +4988,10 @@ body.demo #meLine{display:none}
     var r={name:$("mmName").value.trim(),place:$("mmPlace").value.trim(),kind:$("mmKind").value.trim(),model:$("mmModel").value.trim(),note:$("mmNote").value.trim()};
     if(!r.name){mmFlash("機械名を入力してください。");return}
     var rows=mmRows(), old=mmEdit>=0?mmEditName:"";
-    if(rows.some(function(x){return x.name===r.name&&x.name!==old})){mmFlash("同じ機械名がすでにあります。");return}
-    if(old)rows=rows.map(function(x){return x.name===old?r:x}); else rows.push(r);
+    var dup=rows.filter(function(x){return x.name===r.name&&x.name!==old})[0];
+    if(dup&&!dup.unreg&&(old||dup.place||dup.kind||dup.model||dup.note)){mmFlash("同じ機械名がすでにあります。");return}
+    if(old&&dup)rows=rows.filter(function(x){return x!==dup});
+    if(old)rows=rows.map(function(x){return x.name===old?r:x}); else if(dup)rows=rows.map(function(x){return x===dup?r:x}); else rows.push(r);
     $("mmAdd").disabled=true;
     try{await mmSaveRows(rows);mmFlash(old?"「"+r.name+"」を更新しました。":"「"+r.name+"」を追加しました。");mmReset();machEditFill();render()}
     catch(err){mmFlash("保存できませんでした。編集権限を確認してください。")}
@@ -4944,7 +5004,7 @@ body.demo #meLine{display:none}
       var r=mmRows().filter(function(x){return x.name===ed.dataset.mmed})[0]; if(!r)return;
       mmEdit=1; mmEditName=r.name;
       $("mmPlace").value=r.place||""; $("mmKind").value=r.kind||""; $("mmName").value=r.name; $("mmModel").value=r.model||""; $("mmNote").value=r.note||"";
-      $("mmAdd").textContent="この内容で更新"; $("mmCancel").hidden=false; $("mmName").focus(); $("mmForm").scrollIntoView({behavior:"smooth",block:"center"});
+      $("mmAdd").textContent="この内容で更新"; $("mmCancel").hidden=false; $("mmAddBox").open=true; $("mmName").focus(); $("mmForm").scrollIntoView({behavior:"smooth",block:"center"});
       return;
     }
     if(dl2){

@@ -946,6 +946,7 @@
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・機械管理の画面を見やすくしました。状態ごとの絞り込み、種類・保管場所・品番の表示を追加しました",
       "・「機械管理」に機械の一覧表を追加しました。保管場所・種類・機械名・品番・備考を登録できます",
       "・お客様画面の「作業の履歴」に出す項目を、お客様管理で選べるようにしました",
       "・「日報を書く」ボタンを「完了報告」に変えました",
@@ -1633,6 +1634,11 @@
     var r=(masters.machinery||[]).filter(function(x){return x.name===name})[0];
     return r?[r.kind,r.place].filter(Boolean).join("・"):"";
   }
+  function mmMeta(name){
+    var r=(masters.machinery||[]).filter(function(x){return x.name===name})[0]; if(!r)return "";
+    var c=[]; if(r.kind)c.push('<span class="mch kind">'+esc(r.kind)+'</span>'); if(r.place)c.push('<span class="mch place">'+esc(r.place)+'</span>'); if(r.model)c.push('<span class="mch model">'+esc(r.model)+'</span>');
+    return c.length?'<div class="mbmeta">'+c.join("")+'</div>':"";
+  }
   async function mmSaveRows(rows){
     var items=rows.map(function(r){return {name:r.name,kind:r.kind||"",place:r.place||"",model:r.model||"",note:r.note||""}});
     await db.doc("masters/machinery").set({items:items});
@@ -1643,6 +1649,7 @@
     var box=$("machEdit"); if(!box)return;
     box.hidden=!canAdmin; if(!canAdmin)return;
     var rows=mmRows(), q=($("mmQ").value||"").trim().toLowerCase();
+    $("mmCnt").textContent=rows.length+"台";
     rows.sort(function(a,b){return String(a.place||"￿").localeCompare(String(b.place||"￿"),"ja")||String(a.kind||"").localeCompare(String(b.kind||""),"ja")||a.name.localeCompare(b.name,"ja")});
     var shown=rows.filter(function(r){return !q||[r.name,r.kind,r.place,r.model,r.note].join(" ").toLowerCase().indexOf(q)>=0});
     $("mmBody").innerHTML=shown.length?shown.map(function(r){
@@ -1655,7 +1662,7 @@
     var bk=$("mmBulk"); if(document.activeElement!==bk&&!bk.dataset.dirty)bk.value=rows.map(function(r){return [r.place||"",r.kind||"",r.name,r.model||"",r.note||""].join(",").replace(/,+$/,"")}).join("\n");
   }
   function mmFlash(t){var el=$("mmMsg");el.textContent=t;setTimeout(function(){if(el.textContent===t)el.textContent=""},6000)}
-  function mmReset(){mmEdit=-1;$("mmForm").reset();$("mmAdd").textContent="機械を追加";$("mmCancel").hidden=true}
+  function mmReset(){mmEdit=-1;$("mmAddBox").open=false;$("mmForm").reset();$("mmAdd").textContent="機械を追加";$("mmCancel").hidden=true}
   $("mmBulk").addEventListener("input",function(){this.dataset.dirty="1"});
   $("mmQ").addEventListener("input",machEditFill);
   $("mmCancel").addEventListener("click",mmReset);
@@ -1664,8 +1671,10 @@
     var r={name:$("mmName").value.trim(),place:$("mmPlace").value.trim(),kind:$("mmKind").value.trim(),model:$("mmModel").value.trim(),note:$("mmNote").value.trim()};
     if(!r.name){mmFlash("機械名を入力してください。");return}
     var rows=mmRows(), old=mmEdit>=0?mmEditName:"";
-    if(rows.some(function(x){return x.name===r.name&&x.name!==old})){mmFlash("同じ機械名がすでにあります。");return}
-    if(old)rows=rows.map(function(x){return x.name===old?r:x}); else rows.push(r);
+    var dup=rows.filter(function(x){return x.name===r.name&&x.name!==old})[0];
+    if(dup&&!dup.unreg&&(old||dup.place||dup.kind||dup.model||dup.note)){mmFlash("同じ機械名がすでにあります。");return}
+    if(old&&dup)rows=rows.filter(function(x){return x!==dup});
+    if(old)rows=rows.map(function(x){return x.name===old?r:x}); else if(dup)rows=rows.map(function(x){return x===dup?r:x}); else rows.push(r);
     $("mmAdd").disabled=true;
     try{await mmSaveRows(rows);mmFlash(old?"「"+r.name+"」を更新しました。":"「"+r.name+"」を追加しました。");mmReset();machEditFill();render()}
     catch(err){mmFlash("保存できませんでした。編集権限を確認してください。")}
@@ -1678,7 +1687,7 @@
       var r=mmRows().filter(function(x){return x.name===ed.dataset.mmed})[0]; if(!r)return;
       mmEdit=1; mmEditName=r.name;
       $("mmPlace").value=r.place||""; $("mmKind").value=r.kind||""; $("mmName").value=r.name; $("mmModel").value=r.model||""; $("mmNote").value=r.note||"";
-      $("mmAdd").textContent="この内容で更新"; $("mmCancel").hidden=false; $("mmName").focus(); $("mmForm").scrollIntoView({behavior:"smooth",block:"center"});
+      $("mmAdd").textContent="この内容で更新"; $("mmCancel").hidden=false; $("mmAddBox").open=true; $("mmName").focus(); $("mmForm").scrollIntoView({behavior:"smooth",block:"center"});
       return;
     }
     if(dl2){
