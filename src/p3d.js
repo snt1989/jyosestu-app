@@ -14,11 +14,42 @@
   };
   var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械管理"],["reports","日報・連絡"],["chat","チャット"],["stats","集計"],["admin","設定"]];
   function goto(v,f){
+    var pv=view, ps=sub;
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
     if(v==="members"||v==="clients"){view="admin";sub=v}
     else{view=v;if(v==="admin"&&(sub==="members"||sub==="clients"))sub="sites"}
-    render(); window.scrollTo(0,0);
+    if(pv!==view||ps!==sub){navStack.push({view:pv,sub:ps});if(navStack.length>30)navStack.shift()}
+    hSched(); render(); window.scrollTo(0,0);
   }
+  /* ---------- 「戻る」で1つ前の画面へ(端末の戻る操作・ブラウザの戻るに対応) ----------
+     開いている画面(詳細・フォーム・ダイアログ・写真)と、移動した画面の数だけ履歴を積み、戻る操作で1つずつ戻します。 */
+  var navStack=[], hd=0, hIgnore=0, hT=0;
+  function openSheets(){return Array.prototype.filter.call(document.querySelectorAll(".sheet"),function(x){return !x.hidden})}
+  function layerCount(){return openSheets().length+($("mdl").classList.contains("open")?1:0)+($("lb").hidden?0:1)}
+  function hSched(){if(!hT)hT=setTimeout(hSync,0)}
+  function hSync(){
+    hT=0; var D=layerCount()+navStack.length;
+    if(D>hd){while(hd<D){try{history.pushState({a:1},"")}catch(e){}hd++}}
+    else if(D<hd){var n=hd-D;hd=D;hIgnore++;try{history.go(-n)}catch(e){hIgnore--}}
+  }
+  window.addEventListener("popstate",function(){
+    if(hIgnore>0){hIgnore--;return}
+    hd=Math.max(0,hd-1);
+    if(!$("lb").hidden){$("lb").hidden=true}
+    else if($("mdl").classList.contains("open")){closeModal()}
+    else{
+      var sh=openSheets();
+      if(sh.length){closeSheet(sh[sh.length-1].id)}
+      else if(navStack.length){var p=navStack.pop();view=p.view;sub=p.sub;render();window.scrollTo(0,0)}
+    }
+    hSched();
+  });
+  (function(){
+    var mo=new MutationObserver(hSched);
+    Array.prototype.forEach.call(document.querySelectorAll(".sheet"),function(x){mo.observe(x,{attributes:true,attributeFilter:["hidden"]})});
+    mo.observe($("lb"),{attributes:true,attributeFilter:["hidden"]});
+    mo.observe($("mdl"),{attributes:true,attributeFilter:["class"]});
+  })();
   window.addEventListener("blobloaded",function(){render();var lb=$("lbImg");if(lb&&lb.dataset.pid){var u=blobUrl(lb.dataset.pid);if(u)lb.src=u}});
   setInterval(function(){if(view==="machines"&&!document.hidden)render()},60000);
   var rqT=0;
@@ -946,6 +977,7 @@
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・端末の「戻る」操作(スワイプ・ボタン)で、アプリを閉じずに1つ前の画面へ戻れるようにしました",
       "・現場の詳細画面を見やすくしました。上部に現場名・状況・地区・担当・引渡時間をまとめ、パソコンでは2列で表示します",
       "・機械管理の画面を見やすくしました。状態ごとの絞り込み、種類・保管場所・品番の表示を追加しました",
       "・「機械管理」に機械の一覧表を追加しました。保管場所・種類・機械名・品番・備考を登録できます",
