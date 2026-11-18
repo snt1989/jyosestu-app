@@ -375,6 +375,7 @@
       var c=w.cur||{};
       h+='<div class="bignow">'+icon(c.weather)+'<div><div class="t">'+fmt(num(c.tempC),1)+'<small>℃</small></div><div class="w">'+esc(jp(c.weather))+'</div></div></div><div style="margin-top:12px">'+meterHtml(a)+'</div>'+tagsHtml(a,w)+'<div style="margin-top:12px">'+kvHtml(c)+'</div><div style="margin-top:10px">'+fcHtml(w.fc)+'</div>';
     }
+    if(mcp&&!bad)h+='<button class="btn hr-open" type="button" data-act="hourly" data-id="'+id+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>時間ごとの天気を見る</button>';
     if(mcp)h+='<div style="margin-top:6px"><button class="link" type="button" data-act="retry" data-id="'+id+'">この現場の天気を更新</button></div>';
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
