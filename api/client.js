@@ -34,13 +34,17 @@ module.exports = async (req, res) => {
 
     if (action === "send") {
       const sid = String(b.siteId || "");
-      const text = clip(b.text, 1000);
+      const dispatch = b.dispatch === true;
+      let text = clip(b.text, 1000);
       if (!sid || mine.indexOf(sid) < 0) return res.status(403).json({ error: "forbidden_site" });
-      if (!text) return res.status(400).json({ error: "empty" });
+      if (!text && !dispatch) return res.status(400).json({ error: "empty" });
+      if (dispatch) text = "【出動要請】除雪の出動をお願いします。" + (text ? "\n" + text : "");
       const sd = await fs.doc("sites/" + sid).get();
       if (!sd.exists) return res.status(404).json({ error: "no_site" });
       const at = Date.now();
-      const ref = await fs.collection("notes").add({ kind: "cmsg", room: "client:" + sid, siteId: sid, siteName: String(sd.data().name || ""), text, by: me.uid, at, fromClient: true });
+      const doc = { kind: "cmsg", room: "client:" + sid, siteId: sid, siteName: String(sd.data().name || ""), text, by: me.uid, at, fromClient: true };
+      if (dispatch) doc.dispatch = true;
+      const ref = await fs.collection("notes").add(doc);
       return res.status(200).json({ ok: true, id: ref.id, at });
     }
 

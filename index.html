@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181652"</script>
+<script>window.APP_BUILD="202611181656"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -2172,7 +2172,7 @@ body.demo #meLine{display:none}
     var h='<div class="hello"><span class="d">'+esc(new Date().toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"}))+'</span><span class="muted">'+(myName?esc(myName)+' 様　':'')+'全'+sites.length+'現場</span></div>';
     h+=items.length?'<div class="stack">'+items.map(function(x){
       var s=x.s, a=x.a, id=esc(s.id), n=chUnread("client:"+s.id);
-      return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+'</div><div class="sc-sub">'+esc([s.area,siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st"><div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>作業状況: <b>'+esc(ST[stOf(s)])+'</b>'+(stAt(s)?' ('+timeStr(stAt(s))+')':'')+'</span><span><button class="link" type="button" data-act="clientchat" data-id="'+id+'">連絡する'+(n?'<span class="num cbd">'+n+'</span>':'')+'</button> <button class="link" type="button" data-act="open" data-id="'+id+'">詳しく見る</button></span></div></div></article>';
+      return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+'</div><div class="sc-sub">'+esc([s.area,siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st"><div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>作業状況: <b>'+esc(ST[stOf(s)])+'</b>'+(stAt(s)?' ('+timeStr(stAt(s))+')':'')+'</span><span><button class="link" type="button" data-act="dispatch" data-id="'+id+'" style="font-weight:700;color:var(--red,#c0392b)">出動要請</button> <button class="link" type="button" data-act="clientchat" data-id="'+id+'">連絡する'+(n?'<span class="num cbd">'+n+'</span>':'')+'</button> <button class="link" type="button" data-act="open" data-id="'+id+'">詳しく見る</button></span></div></div></article>';
     }).join("")+'</div>':'<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"表示できる現場がありません")+'</b>'+(dbState==="loading"?"":"担当者に、現場の登録をご確認ください。")+'</div>';
     $("v-home").innerHTML=h;
   }
@@ -2349,7 +2349,7 @@ body.demo #meLine{display:none}
     }
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div><div class="cst">'+esc(ST[stOf(s)]||"")+'</div>'+
-      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">この現場へ連絡する</button></div></div>';
+      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="dispatch" data-id="'+id+'" style="flex:1">出動を要請する</button><button class="btn" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">連絡する</button></div></div>';
     var rs=reports.filter(function(r){return r.siteId===s.id}).slice(0,15);
     h+='<div class="sec"><h2>作業の履歴</h2></div>';
     h+=rs.length?'<div class="stack">'+rs.map(function(r){
@@ -3280,6 +3280,17 @@ body.demo #meLine{display:none}
     else if(act==="menuorder"){openMenuOrder()}
     else if(act==="sitechat"){chRoom=(isClient?"client:":"site:")+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="demoend"){demoEnd()}
+    else if(act==="dispatch"){
+      var dsite=siteById(id); if(!dsite)return;
+      if(!confirm("「"+dsite.name+"」に除雪の出動を要請します。よろしいですか?"))return;
+      if(demoOn){demoMsgs.push({id:"demo"+Date.now(),room:"client:"+id,siteId:id,text:"【出動要請】除雪の出動をお願いします。",at:Date.now(),fromClient:true,kind:"chat"});applyScope();toast("デモのため、出動要請は保存・送信されません。");render();return}
+      if(!isClient)return;
+      if(t.disabled)return; t.disabled=true;
+      window.__FB.callClient({action:"send",siteId:id,dispatch:true,text:""}).then(function(rc){
+        RAW.chat.push({id:rc.id,room:"client:"+id,siteId:id,text:"【出動要請】除雪の出動をお願いします。",at:rc.at||Date.now(),by:myId||"",kind:"chat"});
+        applyScope();pwaNotify("cmsg",rc.id);toast("出動を要請しました。スタッフに通知しました。");render();
+      }).catch(function(){toast("送信できませんでした。もう一度お試しください。")}).then(function(){t.disabled=false});
+    }
     else if(act==="clientchat"){chRoom="client:"+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="hourly"){if(s)openHourly(s)}
     else if(act==="edit"){if(canAdmin)openDlg(id)}
@@ -4111,6 +4122,7 @@ body.demo #meLine{display:none}
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・お客様の画面に「出動を要請する」ボタンを追加しました(押すとスタッフに通知が届きます)",
       "・お客様管理の「お客様画面のデモを見る」「見え方」で、お客様に見える画面を確認できます(保存・送信はされません)",
       "・メンバー管理の画面を見やすくしました(担当班ごとにまとめ、1人1行に。お客さんは別のグループ。説明文は折りたたみに)",
       "・お客さん用のログイン画面(/customer)を追加しました。「お客様管理」(メンバー管理とは別の画面)でお客様を登録し、見られる現場を選ぶと、その現場の状況・作業の履歴と、管理会社への連絡だけを見られます。連絡はチャットの「お客様」で受け取れます",

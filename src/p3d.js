@@ -88,6 +88,17 @@
     else if(act==="menuorder"){openMenuOrder()}
     else if(act==="sitechat"){chRoom=(isClient?"client:":"site:")+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="demoend"){demoEnd()}
+    else if(act==="dispatch"){
+      var dsite=siteById(id); if(!dsite)return;
+      if(!confirm("「"+dsite.name+"」に除雪の出動を要請します。よろしいですか?"))return;
+      if(demoOn){demoMsgs.push({id:"demo"+Date.now(),room:"client:"+id,siteId:id,text:"【出動要請】除雪の出動をお願いします。",at:Date.now(),fromClient:true,kind:"chat"});applyScope();toast("デモのため、出動要請は保存・送信されません。");render();return}
+      if(!isClient)return;
+      if(t.disabled)return; t.disabled=true;
+      window.__FB.callClient({action:"send",siteId:id,dispatch:true,text:""}).then(function(rc){
+        RAW.chat.push({id:rc.id,room:"client:"+id,siteId:id,text:"【出動要請】除雪の出動をお願いします。",at:rc.at||Date.now(),by:myId||"",kind:"chat"});
+        applyScope();pwaNotify("cmsg",rc.id);toast("出動を要請しました。スタッフに通知しました。");render();
+      }).catch(function(){toast("送信できませんでした。もう一度お試しください。")}).then(function(){t.disabled=false});
+    }
     else if(act==="clientchat"){chRoom="client:"+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="hourly"){if(s)openHourly(s)}
     else if(act==="edit"){if(canAdmin)openDlg(id)}
@@ -919,6 +930,7 @@
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・お客様の画面に「出動を要請する」ボタンを追加しました(押すとスタッフに通知が届きます)",
       "・お客様管理の「お客様画面のデモを見る」「見え方」で、お客様に見える画面を確認できます(保存・送信はされません)",
       "・メンバー管理の画面を見やすくしました(担当班ごとにまとめ、1人1行に。お客さんは別のグループ。説明文は折りたたみに)",
       "・お客さん用のログイン画面(/customer)を追加しました。「お客様管理」(メンバー管理とは別の画面)でお客様を登録し、見られる現場を選ぶと、その現場の状況・作業の履歴と、管理会社への連絡だけを見られます。連絡はチャットの「お客様」で受け取れます",

@@ -107,7 +107,7 @@ module.exports = async (req, res) => {
         const d = await fs.doc("notes/" + id).get(); const n = d.exists ? d.data() : null;
         if (!n || n.kind !== "cmsg" || n.by !== me.uid || !fresh(n.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
         key = "cmsg_" + id; scopeSite = String(n.siteId || "");
-        payload = { title: "お客様から連絡: " + clip(n.siteName || "現場", 30), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "cmsg_" + scopeSite, url: "/?go=chat" };
+        payload = { title: (n.dispatch === true ? "【出動要請】" : "お客様から連絡: ") + clip(n.siteName || "現場", 30), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "cmsg_" + scopeSite, url: "/?go=chat" };
       } else if (type === "ann") {
         const d = await fs.doc("announcements/" + id).get(); const a = d.exists ? d.data() : null;
         if (!a || a.by !== me.uid || !isAdm || !fresh(a.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
