@@ -802,7 +802,7 @@
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・雪と雨を分けて表示しました(予報の降水を気温で雪(cm)と雨(mm)に分け、ホーム・詳細・時間ごとの天気に別々に出します。雨の分は降雪に数えないため、気温が高い日は出動目安が出にくくなります)",
       "・「降雪」(これから降る量)と「積雪」(いま積もっている量)を分けて表示しました。積雪は3日以内の日報の実測、なければ気象観測の値です",
-      "・現場の詳細に「時間ごとの天気を見る」を追加しました(48時間分の天気・気温・降雪・降水確率とグラフ)",
+      "・現場の詳細に「時間ごとの天気を見る」を追加しました(1時間ごと48時間分と、先6時間の10分ごと。天気・気温・雪・雨・降水確率とグラフ)",
       "・積雪量を見やすくしました(大きな数字で「今後2日の降雪予想」を表示し、出動基準との差や倍率、目盛りつきのメーターで一目で分かります)"].join("\n")},
     {v:"2026.11.15",title:"アプリを更新しました(2026.11.15)",body:[
       "・チャット機能を追加しました(下の「チャット」タブ。全体と、班ごとのルームがあります)",
@@ -850,62 +850,96 @@
   setTimeout(checkAppUpdate,15000);
   setInterval(checkAppUpdate,5*60*1000);
   document.addEventListener("visibilitychange",function(){if(!document.hidden)checkAppUpdate()});
-  /* ---------- 時間ごとの天気 ---------- */
-  var hrSeq=0;
+  /* ---------- 時間ごとの天気(1時間ごと / 10分ごと) ---------- */
+  var hrSeq=0, hrCur=null;
   function hrParse(f){
     var dt=String(f.datetimeLocal||f.dateTimeISO||f.datetime||f.timestamp||"");
     var t=num(f.tempC!=null?f.tempC:f.avgTempC), p=num(f.precipMM!=null?f.precipMM:0);
-    return {dt:dt,mo:dt.slice(5,7),da:dt.slice(8,10),hh:dt.slice(11,13),t:t,p:p||0,
+    return {dt:dt,mo:dt.slice(5,7),da:dt.slice(8,10),hh:dt.slice(11,13),mi:0,t:t,p:p||0,
       pop:num(f.precipProbabilityPercent!=null?f.precipProbabilityPercent:f.pop),
-      wind:num(f.windSpeedKph!=null?f.windSpeedKph:(f.windSpeedKPH!=null?f.windSpeedKPH:f.windSpeed)),
-      w:f.weather||f.weatherPrimary||"",
-      sn:snowEst({precipMM:p||0,minTempC:t,maxTempC:t}),rn:rainEst({precipMM:p||0,minTempC:t,maxTempC:t})};
+      w:f.weather||f.weatherPrimary||""};
   }
-  function hrChart(hs){
+  function hrCalc(x,per){
+    var o={dt:x.dt,mo:x.mo,da:x.da,hh:x.hh,mi:x.mi,t:x.t,pop:x.pop,w:x.w};
+    o.p=x.p/per;
+    o.sn=snowEst({precipMM:o.p,minTempC:x.t,maxTempC:x.t});
+    o.rn=rainEst({precipMM:o.p,minTempC:x.t,maxTempC:x.t});
+    return o;
+  }
+  function lerp(a,b,f){return a==null?b:b==null?a:a+(b-a)*f}
+  /* 10分ごと: 1時間ごとの予報の間を直線でつないだ目安(先の6時間分) */
+  function hr10(hs){
+    var out=[], n=Math.min(hs.length-1,6);
+    for(var i=0;i<n;i++)for(var k=0;k<6;k++){
+      var f=k/6, A=hs[i], B=hs[i+1];
+      out.push(hrCalc({dt:A.dt,mo:A.mo,da:A.da,hh:A.hh,mi:k*10,t:lerp(A.t,B.t,f),p:lerp(A.p,B.p,f),pop:lerp(A.pop,B.pop,f),w:f<0.5?A.w:B.w},6));
+    }
+    if(hs.length)out.push(hrCalc({dt:hs[n].dt,mo:hs[n].mo,da:hs[n].da,hh:hs[n].hh,mi:0,t:hs[n].t,p:hs[n].p,pop:hs[n].pop,w:hs[n].w},6));
+    return out;
+  }
+  function hrChart(hs,unit){
     var W=480,H=150,L=28,R=8,T=10,B=22,n=hs.length, bw=(W-L-R)/n;
-    var mx=Math.max(1,Math.max.apply(null,hs.map(function(x){return Math.max(x.sn,x.rn)}))), ts=hs.map(function(x){return x.t}).filter(function(x){return x!=null});
+    var mx=Math.max(unit==="10"?0.5:1,Math.max.apply(null,hs.map(function(x){return Math.max(x.sn,x.rn)}))), ts=hs.map(function(x){return x.t}).filter(function(x){return x!=null});
     var tmin=Math.min.apply(null,ts.concat([0])), tmax=Math.max.apply(null,ts.concat([0]));
     if(tmax-tmin<4){tmax+=2;tmin-=2}
     var ph=H-T-B, X=function(i){return L+bw*i+bw/2}, Y=function(v){return T+(tmax-v)/(tmax-tmin)*ph};
-    var g='<svg class="hr-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="時間ごとの降雪量と気温のグラフ">';
+    var g='<svg class="hr-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="雪と雨と気温のグラフ">';
     g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(0)+'" y2="'+Y(0)+'" stroke="#9AA9BA" stroke-dasharray="3 3"/><text x="'+(L-4)+'" y="'+(Y(0)+4)+'" text-anchor="end" font-size="10" fill="#5B6B7D">0℃</text>';
     hs.forEach(function(x,i){
       if(x.sn>0){var bh=Math.max(2,x.sn/mx*ph*0.9);g+='<rect x="'+(L+bw*i+1)+'" y="'+(T+ph-bh)+'" width="'+Math.max(1,bw-2)+'" height="'+bh+'" fill="#7FB4EA" rx="1"/>'}
       if(x.rn>0){var rh=Math.max(2,x.rn/mx*ph*0.9);g+='<rect x="'+(L+bw*i+1)+'" y="'+(T+ph-rh)+'" width="'+Math.max(1,bw-2)+'" height="'+rh+'" fill="#2F8F83" rx="1"/>'}
-      if(x.hh%6===0)g+='<text x="'+X(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" fill="#5B6B7D">'+(x.hh|0)+'時</text>';
+      if(x.mi===0&&(unit==="10"||x.hh%6===0))g+='<text x="'+X(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" fill="#5B6B7D">'+(x.hh|0)+'時</text>';
     });
     var pts=hs.map(function(x,i){return x.t==null?null:X(i)+","+Y(x.t)}).filter(Boolean).join(" ");
     if(pts)g+='<polyline points="'+pts+'" fill="none" stroke="#D43D2E" stroke-width="2" stroke-linejoin="round"/>';
-    return g+'</svg><div class="hr-leg"><span><i style="background:#7FB4EA"></i>雪(cm/時)</span><span><i style="background:#2F8F83"></i>雨(mm/時)</span><span><i style="background:#D43D2E"></i>気温</span></div>';
+    var per=unit==="10"?"10分":"時";
+    return g+'</svg><div class="hr-leg"><span><i style="background:#7FB4EA"></i>雪(cm/'+per+')</span><span><i style="background:#2F8F83"></i>雨(mm/'+per+')</span><span><i style="background:#D43D2E"></i>気温</span></div>';
   }
-  function hrHtml(s,fc){
-    var hs=fc.map(hrParse).filter(function(x){return x.dt});
-    if(!hs.length)return '<div class="nt-empty">時間ごとのデータを取得できませんでした</div>';
-    var s24=0,s48=0,r24=0,r48=0; hs.forEach(function(x,i){if(i<24){s24+=x.sn;r24+=x.rn} s48+=x.sn; r48+=x.rn});
+  function amt(v,u,d){return v<(d?0.05:0.2)?"":(v<1&&!d?"<1":fmt(v,d?1:0))+u}
+  function hrHtml(s,fc,unit){
+    var raw=fc.map(hrParse).filter(function(x){return x.dt});
+    if(!raw.length)return '<div class="nt-empty">時間ごとのデータを取得できませんでした</div>';
+    var hs=raw.map(function(x){return hrCalc(x,1)});
+    var s24=0,r24=0; hs.forEach(function(x,i){if(i<24){s24+=x.sn;r24+=x.rn}});
     var peak=hs.reduce(function(a,b){return b.sn>a.sn?b:a},hs[0]);
-    var th=+s.threshold||10, big=s24>=th;
-    var h='<div class="hr-sum'+(big?' over':'')+'"><div><span class="hr-k">雪(24時間)</span><b class="num">'+(s24<=0?'なし':s24<1?'<1cm':'約'+Math.round(s24)+'cm')+'</b></div><div><span class="hr-k">雨(24時間)</span><b class="num">'+(r24<=0?'なし':r24<1?'<1mm':'約'+Math.round(r24)+'mm')+'</b></div><div><span class="hr-k">降雪が強い時間</span><b>'+(peak.sn>0?(+peak.mo)+'/'+(+peak.da)+' '+(+peak.hh)+'時ごろ':'なし')+'</b></div></div>';
-    h+='<div class="hr-note">降水を気温で「雪」と「雨」に分けています(0℃以下は雪、2℃以上は雨、その間はみぞれで両方)。雪はcm、雨はmmで、どちらも目安です。出動基準は'+th+'cmです。</div>'+hrChart(hs);
-    h+='<div class="hr-list">'+'<div class="hr-head2"><span>時刻</span><span></span><span>天気</span><span>気温</span><span>雪</span><span>雨</span><span>確率</span></div>';
+    var th=+s.threshold||10, big=s24>=th, is10=unit==="10";
+    var rows=is10?hr10(raw):hs;
+    var h='<div class="hr-tabs" role="tablist"><button type="button" role="tab" data-hrunit="60" aria-selected="'+(!is10)+'">1時間ごと</button><button type="button" role="tab" data-hrunit="10" aria-selected="'+is10+'">10分ごと</button></div>';
+    h+='<div class="hr-sum'+(big?' over':'')+'"><div><span class="hr-k">雪(24時間)</span><b class="num">'+(s24<=0?'なし':s24<1?'<1cm':'約'+Math.round(s24)+'cm')+'</b></div><div><span class="hr-k">雨(24時間)</span><b class="num">'+(r24<=0?'なし':r24<1?'<1mm':'約'+Math.round(r24)+'mm')+'</b></div><div><span class="hr-k">降雪が強い時間</span><b>'+(peak.sn>0?(+peak.mo)+'/'+(+peak.da)+' '+(+peak.hh)+'時ごろ':'なし')+'</b></div></div>';
+    h+='<div class="hr-note">降水を気温で「雪」と「雨」に分けています(0℃以下は雪、2℃以上は雨、その間はみぞれで両方)。雪はcm、雨はmmで、どちらも目安です。出動基準は'+th+'cmです。'+(is10?'<br><b>10分ごとは、1時間ごとの予報の間を直線でつないだ目安です(先の6時間分)。10分単位の実際の予報ではありません。</b>':'')+'</div>'+hrChart(rows,unit);
+    h+='<div class="hr-list"><div class="hr-head2"><span>時刻</span><span></span><span>天気</span><span>気温</span><span>雪</span><span>雨</span><span>確率</span></div>';
     var day="";
-    hs.forEach(function(x){
+    rows.forEach(function(x){
       var dk=x.mo+"-"+x.da;
       if(dk!==day){day=dk;h+='<div class="hr-day">'+(+x.mo)+'月'+(+x.da)+'日</div>'}
-      h+='<div class="hr-row'+(x.sn>=0.5?' sn':x.rn>=0.3?' rn':'')+'"><span class="hr-t num">'+(+x.hh)+'時</span><span class="hr-ic">'+icon(x.w)+'</span><span class="hr-w">'+esc(jpS(x.w))+'</span><span class="hr-tp num">'+(x.t==null?'–':fmt(x.t,0)+'℃')+'</span><span class="hr-s num">'+(x.sn>0?(x.sn<1?'<1':Math.round(x.sn))+'cm':'')+'</span><span class="hr-r num">'+(x.rn>=0.2?(x.rn<1?'<1':Math.round(x.rn))+'mm':'')+'</span><span class="hr-p num">'+(x.pop==null?'':Math.round(x.pop)+'%')+'</span></div>';
+      var tm=is10?(+x.hh)+':'+("0"+x.mi).slice(-2):(+x.hh)+'時';
+      h+='<div class="hr-row'+(x.mi?' m':'')+(x.sn>=(is10?0.1:0.5)?' sn':x.rn>=(is10?0.05:0.3)?' rn':'')+'"><span class="hr-t num">'+tm+'</span><span class="hr-ic">'+icon(x.w)+'</span><span class="hr-w">'+esc(jpS(x.w))+'</span><span class="hr-tp num">'+(x.t==null?'–':fmt(x.t,is10?1:0)+'℃')+'</span><span class="hr-s num">'+amt(x.sn,'cm',is10)+'</span><span class="hr-r num">'+amt(x.rn,'mm',is10)+'</span><span class="hr-p num">'+(x.pop==null?'':Math.round(x.pop)+'%')+'</span></div>';
     });
     return h+'</div>';
   }
+  var hrUnit="60";
+  function hrShow(){
+    if(!hrCur)return;
+    var body=document.querySelector("#mdBox .modal-body"); if(!body)return;
+    body.innerHTML=hrHtml(hrCur.s,hrCur.fc,hrUnit); body.scrollTop=0;
+  }
+  document.addEventListener("click",function(e){
+    var b=e.target.closest&&e.target.closest("[data-hrunit]"); if(!b||!hrCur)return;
+    hrUnit=b.getAttribute("data-hrunit"); hrShow();
+  });
   async function openHourly(s){
-    var my=++hrSeq, loc=effLoc(s);
-    openModal(s.name+" の時間ごとの天気",'<div class="nt-empty">読み込み中…</div>','<button class="btn" type="button" data-mclose>閉じる</button>');
+    var my=++hrSeq, loc=effLoc(s); hrCur=null;
+    var ttl=s.name+" の時間ごとの天気", foot='<button class="btn" type="button" data-mclose>閉じる</button>';
+    openModal(ttl,'<div class="nt-empty">読み込み中…</div>',foot);
     try{
       var r=await call("xweather_get_forecast_weather",{location:loc,forecast_filter:"1hr",limit:48,fields:["datetime_local","temp_c","precip_mm","precip_probability_percent","wind_speed_kph","weather_primary"]},false);
       if(my!==hrSeq)return;
       var p=pl(r), fc=Array.isArray(p.forecasts)?p.forecasts:[];
-      openModal(s.name+" の時間ごとの天気",hrHtml(s,fc),'<button class="btn" type="button" data-mclose>閉じる</button>');
+      hrCur={s:s,fc:fc};
+      openModal(ttl,hrHtml(s,fc,hrUnit),foot);
     }catch(e){
       if(my!==hrSeq)return;
-      openModal(s.name+" の時間ごとの天気",'<div class="nt-empty">'+esc(errText(e))+'</div>','<button class="btn" type="button" data-mclose>閉じる</button>');
+      openModal(ttl,'<div class="nt-empty">'+esc(errText(e))+'</div>',foot);
     }
   }
   var relDone=false;
