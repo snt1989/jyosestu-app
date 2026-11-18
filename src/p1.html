@@ -1058,4 +1058,44 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   .sr .wx .sw .sx .th{display:none}
   .sr select.stsel{min-height:38px;padding:0 8px;font-size:.84rem;max-width:104px}
 }
+.smr{display:flex;flex-direction:column;gap:2px;min-width:0}
+.smr-t{font-size:.9rem;white-space:nowrap}
+.smr-t b{font-size:1.05rem}
+.smr.over .smr-t b{color:var(--crit)}
+.smr-b{color:var(--muted,#5B6B7D);font-size:.8rem}
+.sm-g.mini{height:8px;margin:2px 0 0;border-radius:2px}
+.sm-g.mini .sm-t{top:-3px;bottom:-3px;width:2px;margin-left:-1px}
+.smr-d{font-size:.78rem;color:var(--muted,#5B6B7D)}
+/* PC表示を短く */
+@media (min-width:900px){
+  #v-sites .bar{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+  #v-sites .bar .r{display:contents}
+  #v-sites .bar input[type=search]{flex:1 1 150px;min-width:140px}
+  #v-sites .bar select{flex:0 1 150px;min-width:128px}
+  #v-sites .bar #filtBtn{display:none}
+  .sr{grid-template-columns:92px minmax(0,1.5fr) minmax(0,1.1fr) minmax(0,1.2fr) 112px auto;grid-template-areas:"pill nm wx sn st mv";gap:4px 16px;padding:8px 14px 8px 18px;margin-bottom:6px}
+  .sr .stg{display:none}
+  .sr .mvb{display:flex;grid-area:mv;grid-column:auto;gap:4px}
+  .sr .mvb button{width:32px;height:32px}
+  .sr .nm b{font-size:1rem}
+  .sr .wx svg{width:32px;height:32px}
+  .sr .wx .sw .wn{display:inline}
+  .sr .wx .sw .sx{display:none}
+  .sr select.stsel{min-height:36px;font-size:.86rem}
+  .chips{padding:4px 0;margin-bottom:6px}
+  .chips button{min-height:36px;padding:0 14px}
+  .pill{min-height:0}
+}
+.smr.over .sm-f{background:var(--crit)}
+.smr .sm-f{background:var(--accent)}
+@media (min-width:900px){
+  #v-home.page{max-width:1000px}
+  .sc .sm-lb{font-size:.76rem}
+  .sc .sm-big b{font-size:2.1rem}
+  .sc .sm-main{margin-bottom:4px}
+  .sc .sm-g{margin-bottom:16px}
+  .sc .dp{padding-top:4px;grid-template-columns:1fr auto}
+  .sc .dp.none .dp-s{display:none}
+  .sc .dp-v b{font-size:1.3rem}
+}
 </style>

@@ -60,6 +60,10 @@
     var tot=d.v+(a.snow2||0);
     return '<div class="dp"><span class="dp-k">積雪(いま積もっている量)</span><span class="dp-v"><b class="num">'+(d.v<=0?'0':fmt(d.v,d.v%1?1:0))+'</b>cm</span><span class="dp-s">'+esc(d.src)+(a.snow2>=1?' / このまま降ると約'+Math.round(tot)+'cm(融雪は考慮せず)':'')+'</span></div>';
   }
+  function meterRow(a){
+    var th=a.th||10, v=a.snow2||0, over=v>=th, mx=Math.max(th*2,v), fp=Math.min(100,Math.round(v/mx*100)), mp=Math.round(th/mx*100);
+    return '<div class="smr'+(over?' over':'')+'" title="出動基準 '+th+'cm"><span class="smr-t">降雪 <b class="num">'+snowLabel(v)+'</b>'+(a.depth?'<span class="smr-d">　積雪 '+fmt(a.depth.v,a.depth.v%1?1:0)+'cm</span>':'')+'</span><div class="sm-g mini" role="img" aria-label="降雪予想'+snowLabel(v)+'、出動基準'+th+'センチ"><div class="sm-f" style="width:'+fp+'%"></div><div class="sm-t" style="left:'+mp+'%"></div></div></div>';
+  }
   function meterHtml(a){
     var th=a.th||10, v=a.snow2||0, over=v>=th, mx=Math.max(th*2,v);
     var fp=Math.min(100,Math.round(v/mx*100)), mp=Math.round(th/mx*100);
@@ -106,7 +110,7 @@
       if(a.snowing)tg+='<span class="ice">降雪中</span>';
     }
     var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw"><span class="wn">'+esc(jp(c.weather))+'</span><span class="sx">　降雪 '+snowLabel(a.snow2)+'<span class="th"> / 基準'+(a.th||10)+'cm</span></span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
-    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterHtml(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
+    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterRow(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
   }
   var layout="row";
   try{var L0=localStorage.getItem("josetsu.layout2");if(L0==="card"||L0==="row")layout=L0}catch(e){}
@@ -211,6 +215,9 @@
     }).join("")+'</div>'+(idle.length?'<p class="muted whi">待機: '+idle.map(function(g){return esc(g.n)}).join("・")+'</p>':'');
     return h;
   }
+  var mqPC=window.matchMedia?window.matchMedia("(min-width:900px)"):null;
+  if(mqPC&&mqPC.addEventListener)mqPC.addEventListener("change",function(){render()});
+  function homeCard(s){return (mqPC&&mqPC.matches)?siteRow(s):siteCard(s)}
   function renderHome(){
     var items=sites.map(function(s){return {s:s,a:assess(s)}});
     var c3=0,c2=0,out=0;
@@ -226,11 +233,11 @@
     h+='<button class="btn mp-home" type="button" data-act="openmap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>全体マップで現場を見る</button>';
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
-    h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return siteCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
+    h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return homeCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
     h+=whoHtml();
     var outs=items.filter(function(x){return stOf(x.s)==="out"});
     if(outs.length){
-      h+='<div class="sec"><h2>出動中<span class="gc num">'+outs.length+'件</span></h2></div><div class="stack">'+outs.map(function(x){return siteCard(x.s)}).join("")+'</div>';
+      h+='<div class="sec"><h2>出動中<span class="gc num">'+outs.length+'件</span></h2></div><div class="stack">'+outs.map(function(x){return homeCard(x.s)}).join("")+'</div>';
     }
     var nt=notes.slice(0,3);
     h+='<div class="sec"><h2>最新の連絡</h2><button class="link" type="button" data-nav="notes">連絡板を開く</button></div>';

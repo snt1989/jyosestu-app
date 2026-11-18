@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181609"</script>
+<script>window.APP_BUILD="202611181611"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1065,6 +1065,46 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   .sr .wx .sw .sx .th{display:none}
   .sr select.stsel{min-height:38px;padding:0 8px;font-size:.84rem;max-width:104px}
 }
+.smr{display:flex;flex-direction:column;gap:2px;min-width:0}
+.smr-t{font-size:.9rem;white-space:nowrap}
+.smr-t b{font-size:1.05rem}
+.smr.over .smr-t b{color:var(--crit)}
+.smr-b{color:var(--muted,#5B6B7D);font-size:.8rem}
+.sm-g.mini{height:8px;margin:2px 0 0;border-radius:2px}
+.sm-g.mini .sm-t{top:-3px;bottom:-3px;width:2px;margin-left:-1px}
+.smr-d{font-size:.78rem;color:var(--muted,#5B6B7D)}
+/* PC表示を短く */
+@media (min-width:900px){
+  #v-sites .bar{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+  #v-sites .bar .r{display:contents}
+  #v-sites .bar input[type=search]{flex:1 1 150px;min-width:140px}
+  #v-sites .bar select{flex:0 1 150px;min-width:128px}
+  #v-sites .bar #filtBtn{display:none}
+  .sr{grid-template-columns:92px minmax(0,1.5fr) minmax(0,1.1fr) minmax(0,1.2fr) 112px auto;grid-template-areas:"pill nm wx sn st mv";gap:4px 16px;padding:8px 14px 8px 18px;margin-bottom:6px}
+  .sr .stg{display:none}
+  .sr .mvb{display:flex;grid-area:mv;grid-column:auto;gap:4px}
+  .sr .mvb button{width:32px;height:32px}
+  .sr .nm b{font-size:1rem}
+  .sr .wx svg{width:32px;height:32px}
+  .sr .wx .sw .wn{display:inline}
+  .sr .wx .sw .sx{display:none}
+  .sr select.stsel{min-height:36px;font-size:.86rem}
+  .chips{padding:4px 0;margin-bottom:6px}
+  .chips button{min-height:36px;padding:0 14px}
+  .pill{min-height:0}
+}
+.smr.over .sm-f{background:var(--crit)}
+.smr .sm-f{background:var(--accent)}
+@media (min-width:900px){
+  #v-home.page{max-width:1000px}
+  .sc .sm-lb{font-size:.76rem}
+  .sc .sm-big b{font-size:2.1rem}
+  .sc .sm-main{margin-bottom:4px}
+  .sc .sm-g{margin-bottom:16px}
+  .sc .dp{padding-top:4px;grid-template-columns:1fr auto}
+  .sc .dp.none .dp-s{display:none}
+  .sc .dp-v b{font-size:1.3rem}
+}
 </style>
 </head><body>
 
@@ -1851,6 +1891,10 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     var tot=d.v+(a.snow2||0);
     return '<div class="dp"><span class="dp-k">積雪(いま積もっている量)</span><span class="dp-v"><b class="num">'+(d.v<=0?'0':fmt(d.v,d.v%1?1:0))+'</b>cm</span><span class="dp-s">'+esc(d.src)+(a.snow2>=1?' / このまま降ると約'+Math.round(tot)+'cm(融雪は考慮せず)':'')+'</span></div>';
   }
+  function meterRow(a){
+    var th=a.th||10, v=a.snow2||0, over=v>=th, mx=Math.max(th*2,v), fp=Math.min(100,Math.round(v/mx*100)), mp=Math.round(th/mx*100);
+    return '<div class="smr'+(over?' over':'')+'" title="出動基準 '+th+'cm"><span class="smr-t">降雪 <b class="num">'+snowLabel(v)+'</b>'+(a.depth?'<span class="smr-d">　積雪 '+fmt(a.depth.v,a.depth.v%1?1:0)+'cm</span>':'')+'</span><div class="sm-g mini" role="img" aria-label="降雪予想'+snowLabel(v)+'、出動基準'+th+'センチ"><div class="sm-f" style="width:'+fp+'%"></div><div class="sm-t" style="left:'+mp+'%"></div></div></div>';
+  }
   function meterHtml(a){
     var th=a.th||10, v=a.snow2||0, over=v>=th, mx=Math.max(th*2,v);
     var fp=Math.min(100,Math.round(v/mx*100)), mp=Math.round(th/mx*100);
@@ -1897,7 +1941,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
       if(a.snowing)tg+='<span class="ice">降雪中</span>';
     }
     var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw"><span class="wn">'+esc(jp(c.weather))+'</span><span class="sx">　降雪 '+snowLabel(a.snow2)+'<span class="th"> / 基準'+(a.th||10)+'cm</span></span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
-    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterHtml(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
+    return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterRow(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
   }
   var layout="row";
   try{var L0=localStorage.getItem("josetsu.layout2");if(L0==="card"||L0==="row")layout=L0}catch(e){}
@@ -2002,6 +2046,9 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     }).join("")+'</div>'+(idle.length?'<p class="muted whi">待機: '+idle.map(function(g){return esc(g.n)}).join("・")+'</p>':'');
     return h;
   }
+  var mqPC=window.matchMedia?window.matchMedia("(min-width:900px)"):null;
+  if(mqPC&&mqPC.addEventListener)mqPC.addEventListener("change",function(){render()});
+  function homeCard(s){return (mqPC&&mqPC.matches)?siteRow(s):siteCard(s)}
   function renderHome(){
     var items=sites.map(function(s){return {s:s,a:assess(s)}});
     var c3=0,c2=0,out=0;
@@ -2017,11 +2064,11 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     h+='<button class="btn mp-home" type="button" data-act="openmap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>全体マップで現場を見る</button>';
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
-    h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return siteCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
+    h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return homeCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
     h+=whoHtml();
     var outs=items.filter(function(x){return stOf(x.s)==="out"});
     if(outs.length){
-      h+='<div class="sec"><h2>出動中<span class="gc num">'+outs.length+'件</span></h2></div><div class="stack">'+outs.map(function(x){return siteCard(x.s)}).join("")+'</div>';
+      h+='<div class="sec"><h2>出動中<span class="gc num">'+outs.length+'件</span></h2></div><div class="stack">'+outs.map(function(x){return homeCard(x.s)}).join("")+'</div>';
     }
     var nt=notes.slice(0,3);
     h+='<div class="sec"><h2>最新の連絡</h2><button class="link" type="button" data-nav="notes">連絡板を開く</button></div>';
@@ -3746,7 +3793,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
-      "・現場一覧(一覧表示)をスマホで短くしました(1件の高さをおよそ6割に。警報などの細かい表示は、現場を開くと見られます)",
+      "・現場一覧(一覧表示)を短くしました(スマホは1件の高さをおよそ6割に、パソコンは1/7ほどに。警報などの細かい表示は、現場を開くと見られます)。パソコンの絞り込みは1行にまとめ、ホームの「要対応の現場」も一覧の形にしました",
       "・「日報」と「連絡」を1つのメニュー「日報・連絡」にまとめました(画面の上のボタンで切り替えます)",
       "・メニューの並び替えができるようになりました(ホームの一番下、またはパソコン表示の左メニューの「メニューの並び替え」から。この端末だけに保存されます)",
       "・メニューの「機械」を「機械管理」に変えました",
