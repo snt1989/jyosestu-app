@@ -184,6 +184,9 @@
     // 本日の日報(完了した作業)を、日報の班名から班に振り分ける
     var names=order.filter(Boolean);
     reports.filter(function(r){return r.date===td}).forEach(function(r){
+      /* ホームで状況を「待機」「準備中」「出動中」に変えた現場は、日報があっても「完了」に残さない */
+      var rs0=sites.filter(function(x){return x.id===r.siteId})[0];
+      if(rs0){var rst=stOf(rs0),rat=stAt(rs0); if(rst==="out"||rst==="prep"||(rst!=="done"&&rat&&dstr(new Date(rat))===td))return}
       var cn="";names.forEach(function(n){if(!cn&&r.crew&&String(r.crew).indexOf(n)>=0)cn=n});
       var g=C(cn);
       if(g.done.some(function(d){return d.id===r.siteId}))return;
