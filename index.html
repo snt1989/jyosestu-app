@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181656"</script>
+<script>window.APP_BUILD="202611181657"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1195,6 +1195,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
 #demoBar .btn{background:#fff;color:var(--ink);min-height:34px}
 .mbhead{gap:8px;flex-wrap:wrap}
 body.demo #meLine{display:none}
+.rc .cnote{margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--bg2,#eef4fb);font-size:13px;line-height:1.6}
 </style>
 </head><body>
 
@@ -1609,6 +1610,8 @@ body.demo #meLine{display:none}
       <div><div class="lab2">使用機械</div><div class="tgs" id="rfMach"></div></div>
       <label class="chk" for="rfHai"><input type="checkbox" id="rfHai"> 排雪あり(雪を運び出した)</label>
       <label for="rfNote">メモ<textarea id="rfNote" maxlength="500" placeholder="例:駐車場の北側に雪山を作った。入口の段差に注意。"></textarea></label>
+      <label for="rfCNote">お客様への連絡(任意)<textarea id="rfCNote" maxlength="300" placeholder="例:本日の除雪は完了しました。入口付近は凍結しやすいためご注意ください。"></textarea></label>
+      <div class="muted" style="font-size:12px;margin:-4px 0 8px">ここに書いた内容だけが、お客様の画面の「作業の履歴」に表示されます。上のメモはお客様には見えません。</div>
       <div id="rfPhotoSec">
         <div class="lab2">写真</div>
         <div class="two" style="align-items:end">
@@ -2354,7 +2357,7 @@ body.demo #meLine{display:none}
     h+='<div class="sec"><h2>作業の履歴</h2></div>';
     h+=rs.length?'<div class="stack">'+rs.map(function(r){
       var ln=[]; if(r.snowCm!=null&&r.snowCm!=="")ln.push('積雪 '+esc(r.snowCm)+'cm'); if(r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
-      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+'</article>';
+      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+(r.clientNote?'<div class="cnote">'+esc(r.clientNote).replace(/\n/g,'<br>')+'</div>':'')+'</article>';
     }).join("")+'</div>':'<div class="empty"><b>まだ作業の記録はありません</b>作業が行われると、ここに表示されます。</div>';
     return h+'</div>';
   }
@@ -2877,7 +2880,7 @@ body.demo #meLine{display:none}
     $("rfSnow").value=r&&r.snowCm!=null?r.snowCm:"";
     renderMachChips(r?(r.machines||[]):[]);
     $("rfHai").checked=!!(r&&r.haisetsu);
-    $("rfNote").value=r?(r.note||""):"";
+    $("rfNote").value=r?(r.note||""):""; $("rfCNote").value=r?(r.clientNote||""):"";
     $("rfKind").value="after"; $("rfFile").value="";
     $("rfPhotoSec").hidden=!(canPhoto&&assets)&&!rf.photos.length;
     $("rfFile").closest("label").hidden=!(canPhoto&&assets);
@@ -2941,7 +2944,7 @@ body.demo #meLine{display:none}
     var data={
       siteId:sid, siteName:s?s.name:(old&&old.siteName)||"", date:date,
       start:$("rfStart").value||"", end:$("rfEnd").value||"", crew:$("rfCrew").value.trim(),
-      snowCm:isFinite(sn)?sn:"", machines:machSel(), haisetsu:$("rfHai").checked, note:$("rfNote").value.trim(),
+      snowCm:isFinite(sn)?sn:"", machines:machSel(), haisetsu:$("rfHai").checked, note:$("rfNote").value.trim(), clientNote:$("rfCNote").value.trim(),
       photos:rf.photos.map(function(p){return {id:p.id,kind:p.kind}}), updatedAt:Date.now()
     };
     $("rfSave").disabled=true; $("rfErr").textContent="";
@@ -4122,6 +4125,7 @@ body.demo #meLine{display:none}
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・日報に「お客様への連絡」欄を追加しました。書いた内容がお客様の「作業の履歴」に表示されます",
       "・お客様の画面に「出動を要請する」ボタンを追加しました(押すとスタッフに通知が届きます)",
       "・お客様管理の「お客様画面のデモを見る」「見え方」で、お客様に見える画面を確認できます(保存・送信はされません)",
       "・メンバー管理の画面を見やすくしました(担当班ごとにまとめ、1人1行に。お客さんは別のグループ。説明文は折りたたみに)",

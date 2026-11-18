@@ -10,7 +10,7 @@ function init() {
   return true;
 }
 const SITE_FIELDS = ["name", "area", "address", "loc", "threshold", "sqm", "handovers", "handover", "createdAt"];
-const REPORT_FIELDS = ["date", "siteId", "siteName", "start", "end", "snowCm", "haisetsu", "machines", "at"];
+const REPORT_FIELDS = ["date", "siteId", "siteName", "start", "end", "snowCm", "haisetsu", "machines", "clientNote", "at"];
 const pick = (o, keys) => { const r = {}; keys.forEach((k) => { if (o && o[k] !== undefined) r[k] = o[k]; }); return r; };
 const clip = (s, n) => String(s || "").replace(/\r/g, "").trim().slice(0, n);
 

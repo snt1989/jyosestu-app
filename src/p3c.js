@@ -394,7 +394,7 @@
     $("rfSnow").value=r&&r.snowCm!=null?r.snowCm:"";
     renderMachChips(r?(r.machines||[]):[]);
     $("rfHai").checked=!!(r&&r.haisetsu);
-    $("rfNote").value=r?(r.note||""):"";
+    $("rfNote").value=r?(r.note||""):""; $("rfCNote").value=r?(r.clientNote||""):"";
     $("rfKind").value="after"; $("rfFile").value="";
     $("rfPhotoSec").hidden=!(canPhoto&&assets)&&!rf.photos.length;
     $("rfFile").closest("label").hidden=!(canPhoto&&assets);
@@ -458,7 +458,7 @@
     var data={
       siteId:sid, siteName:s?s.name:(old&&old.siteName)||"", date:date,
       start:$("rfStart").value||"", end:$("rfEnd").value||"", crew:$("rfCrew").value.trim(),
-      snowCm:isFinite(sn)?sn:"", machines:machSel(), haisetsu:$("rfHai").checked, note:$("rfNote").value.trim(),
+      snowCm:isFinite(sn)?sn:"", machines:machSel(), haisetsu:$("rfHai").checked, note:$("rfNote").value.trim(), clientNote:$("rfCNote").value.trim(),
       photos:rf.photos.map(function(p){return {id:p.id,kind:p.kind}}), updatedAt:Date.now()
     };
     $("rfSave").disabled=true; $("rfErr").textContent="";

@@ -406,7 +406,7 @@
     h+='<div class="sec"><h2>作業の履歴</h2></div>';
     h+=rs.length?'<div class="stack">'+rs.map(function(r){
       var ln=[]; if(r.snowCm!=null&&r.snowCm!=="")ln.push('積雪 '+esc(r.snowCm)+'cm'); if(r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
-      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+'</article>';
+      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+(r.clientNote?'<div class="cnote">'+esc(r.clientNote).replace(/\n/g,'<br>')+'</div>':'')+'</article>';
     }).join("")+'</div>':'<div class="empty"><b>まだ作業の記録はありません</b>作業が行われると、ここに表示されます。</div>';
     return h+'</div>';
   }
