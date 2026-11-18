@@ -260,8 +260,7 @@
         <h3 class="mbft" id="mbFormTitle">メンバーを追加</h3>
         <div class="form-row"><label for="mbName">氏名<span class="req">必須</span></label><div><input id="mbName" maxlength="40" required placeholder="例:山田 太郎"></div></div>
         <div class="form-row"><label for="mbCrew">担当班</label><div><select id="mbCrew" data-crew="none"></select></div></div>
-        <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option><option>お客さん</option></select></div></div>
-        <div class="form-row" id="mbSitesRow" hidden><label>見られる現場</label><div><div id="mbSites" class="mbsites"></div><span class="help">お客さんは、ここで選んだ現場の状況・作業の履歴と、管理会社との連絡だけを見られます(お客さんの専用ログイン画面は /customer です)。</span></div></div>
+        <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option></select></div></div>
         <div class="form-row"><label for="mbTel" id="mbTelLab">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
         <div class="form-row"><label for="mbNote">備考</label><div><input id="mbNote" maxlength="100" placeholder="例:大型除雪機の資格あり"></div></div>
         <div class="form-row" id="mbPwRow" hidden><label for="mbPw">ログインパスワード</label><div><input id="mbPw" type="text" maxlength="60" autocomplete="off" placeholder="4文字以上"><span class="help" id="mbPwHelp">この電話番号と、このパスワードでログインします。</span></div></div>
@@ -281,6 +280,24 @@
       <div class="admtools mbtools"><input id="mbQ" type="search" placeholder="氏名・担当班・電話で検索" aria-label="メンバーを検索"><select id="mbF" aria-label="絞り込み"></select></div>
       <div id="mbList"></div>
       <details class="mbhelp"><summary>名簿とログインについて</summary><p class="legend" id="mbLegend">ここは社内の名簿です。アプリを開ける人・編集できる人は、このページの「共有」で決まります。「全体設定」でログインの制限を「する」にすると、ログインアカウントを連携したメンバーだけが画面を使えます(画面上の制限です)。電話番号などの個人情報は、管理者だけが見られます。</p></details>
+    </div>
+
+    <div id="adm-clients" hidden>
+      <div class="ahead mbhead"><button class="btn primary" type="button" id="cmAdd">＋ お客様を登録</button></div>
+      <div class="mbstat" id="cmStat"></div>
+      <form class="card2 f" id="cmForm" hidden style="padding:0 0 4px;max-width:760px">
+        <h3 class="mbft" id="cmFormTitle">お客様を登録</h3>
+        <div class="form-row"><label for="cmName">会社名・お名前<span class="req">必須</span></label><div><input id="cmName" maxlength="40" required placeholder="例:○○管理株式会社"></div></div>
+        <div class="form-row"><label for="cmTel" id="cmTelLab">ログインID<span class="req">必須</span></label><div><input id="cmTel" type="text" maxlength="80" autocomplete="off" placeholder="電話番号(例:03-1234-5678)またはメールアドレス"><span class="help">お客様はこのIDとパスワードで、専用のログイン画面(/customer)からログインします。</span></div></div>
+        <div class="form-row"><label for="cmPw">パスワード</label><div><input id="cmPw" type="text" maxlength="60" autocomplete="off" placeholder="4文字以上(メールアドレスの場合は6文字以上)"><span class="help" id="cmPwHelp"></span></div></div>
+        <div class="form-row"><label>見られる現場<span class="req">必須</span></label><div><div id="cmSites" class="mbsites"></div><span class="help">選んだ現場の天気・作業状況・作業の履歴と、管理会社との連絡だけが見られます。</span></div></div>
+        <div class="form-row"><label for="cmNote">備考</label><div><input id="cmNote" maxlength="100" placeholder="例:担当は田中様"></div></div>
+        <div class="form-row"><label for="cmActive">状態</label><div><select id="cmActive"><option value="1">利用中</option><option value="0">停止中(ログイン不可)</option></select></div></div>
+        <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="cmSave">保存</button><button class="btn" type="button" id="cmCancel">キャンセル</button><span class="muted" id="cmMsg" role="status"></span></div></div>
+      </form>
+      <div class="admtools mbtools"><input id="cmQ" type="search" placeholder="会社名・ID・現場名で検索" aria-label="お客様を検索"></div>
+      <div id="cmList"></div>
+      <details class="mbhelp"><summary>お客様のログインについて</summary><p class="legend">お客様は、メンバーとは別の専用画面(/customer)からログインします。見られるのは、選んだ現場の状況と作業の履歴、管理会社との連絡だけです。連絡はチャットの「お客様」で受け取り、返信できます。</p></details>
     </div>
 
     <div id="adm-photos" hidden>

@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181643"</script>
+<script>window.APP_BUILD="202611181647"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1455,8 +1455,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
         <h3 class="mbft" id="mbFormTitle">メンバーを追加</h3>
         <div class="form-row"><label for="mbName">氏名<span class="req">必須</span></label><div><input id="mbName" maxlength="40" required placeholder="例:山田 太郎"></div></div>
         <div class="form-row"><label for="mbCrew">担当班</label><div><select id="mbCrew" data-crew="none"></select></div></div>
-        <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option><option>お客さん</option></select></div></div>
-        <div class="form-row" id="mbSitesRow" hidden><label>見られる現場</label><div><div id="mbSites" class="mbsites"></div><span class="help">お客さんは、ここで選んだ現場の状況・作業の履歴と、管理会社との連絡だけを見られます(お客さんの専用ログイン画面は /customer です)。</span></div></div>
+        <div class="form-row"><label for="mbRole">役割</label><div><select id="mbRole"><option>現場スタッフ</option><option>リーダー</option><option>管理者</option><option>事務</option></select></div></div>
         <div class="form-row"><label for="mbTel" id="mbTelLab">電話番号</label><div><input id="mbTel" type="tel" maxlength="20" placeholder="例:090-1234-5678"></div></div>
         <div class="form-row"><label for="mbNote">備考</label><div><input id="mbNote" maxlength="100" placeholder="例:大型除雪機の資格あり"></div></div>
         <div class="form-row" id="mbPwRow" hidden><label for="mbPw">ログインパスワード</label><div><input id="mbPw" type="text" maxlength="60" autocomplete="off" placeholder="4文字以上"><span class="help" id="mbPwHelp">この電話番号と、このパスワードでログインします。</span></div></div>
@@ -1476,6 +1475,24 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
       <div class="admtools mbtools"><input id="mbQ" type="search" placeholder="氏名・担当班・電話で検索" aria-label="メンバーを検索"><select id="mbF" aria-label="絞り込み"></select></div>
       <div id="mbList"></div>
       <details class="mbhelp"><summary>名簿とログインについて</summary><p class="legend" id="mbLegend">ここは社内の名簿です。アプリを開ける人・編集できる人は、このページの「共有」で決まります。「全体設定」でログインの制限を「する」にすると、ログインアカウントを連携したメンバーだけが画面を使えます(画面上の制限です)。電話番号などの個人情報は、管理者だけが見られます。</p></details>
+    </div>
+
+    <div id="adm-clients" hidden>
+      <div class="ahead mbhead"><button class="btn primary" type="button" id="cmAdd">＋ お客様を登録</button></div>
+      <div class="mbstat" id="cmStat"></div>
+      <form class="card2 f" id="cmForm" hidden style="padding:0 0 4px;max-width:760px">
+        <h3 class="mbft" id="cmFormTitle">お客様を登録</h3>
+        <div class="form-row"><label for="cmName">会社名・お名前<span class="req">必須</span></label><div><input id="cmName" maxlength="40" required placeholder="例:○○管理株式会社"></div></div>
+        <div class="form-row"><label for="cmTel" id="cmTelLab">ログインID<span class="req">必須</span></label><div><input id="cmTel" type="text" maxlength="80" autocomplete="off" placeholder="電話番号(例:03-1234-5678)またはメールアドレス"><span class="help">お客様はこのIDとパスワードで、専用のログイン画面(/customer)からログインします。</span></div></div>
+        <div class="form-row"><label for="cmPw">パスワード</label><div><input id="cmPw" type="text" maxlength="60" autocomplete="off" placeholder="4文字以上(メールアドレスの場合は6文字以上)"><span class="help" id="cmPwHelp"></span></div></div>
+        <div class="form-row"><label>見られる現場<span class="req">必須</span></label><div><div id="cmSites" class="mbsites"></div><span class="help">選んだ現場の天気・作業状況・作業の履歴と、管理会社との連絡だけが見られます。</span></div></div>
+        <div class="form-row"><label for="cmNote">備考</label><div><input id="cmNote" maxlength="100" placeholder="例:担当は田中様"></div></div>
+        <div class="form-row"><label for="cmActive">状態</label><div><select id="cmActive"><option value="1">利用中</option><option value="0">停止中(ログイン不可)</option></select></div></div>
+        <div class="form-row" style="grid-template-columns:1fr"><div class="row2"><button class="btn primary" type="submit" id="cmSave">保存</button><button class="btn" type="button" id="cmCancel">キャンセル</button><span class="muted" id="cmMsg" role="status"></span></div></div>
+      </form>
+      <div class="admtools mbtools"><input id="cmQ" type="search" placeholder="会社名・ID・現場名で検索" aria-label="お客様を検索"></div>
+      <div id="cmList"></div>
+      <details class="mbhelp"><summary>お客様のログインについて</summary><p class="legend">お客様は、メンバーとは別の専用画面(/customer)からログインします。見られるのは、選んだ現場の状況と作業の履歴、管理会社との連絡だけです。連絡はチャットの「お客様」で受け取り、返信できます。</p></details>
     </div>
 
     <div id="adm-photos" hidden>
@@ -3174,14 +3191,15 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     notes:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM8.5 11h7M8.5 15h5"/>',
     chat:'<path d="M4 5h16v11H9l-5 4z"/>',
     stats:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    clients:'<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
     members:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.2c2.7 0 4.5 2 4.5 4.8"/>',
     admin:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'
   };
   var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械管理"],["reports","日報・連絡"],["chat","チャット"],["stats","集計"],["admin","設定"]];
   function goto(v,f){
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
-    if(v==="members"){view="admin";sub="members"}
-    else{view=v;if(v==="admin"&&sub==="members")sub="sites"}
+    if(v==="members"||v==="clients"){view="admin";sub=v}
+    else{view=v;if(v==="admin"&&(sub==="members"||sub==="clients"))sub="sites"}
     render(); window.scrollTo(0,0);
   }
   window.addEventListener("blobloaded",function(){render();var lb=$("lbImg");if(lb&&lb.dataset.pid){var u=blobUrl(lb.dataset.pid);if(u)lb.src=u}});
@@ -3193,8 +3211,8 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     if(isClient&&view!=="chat")view="home";
     var NAV=navOrdered();
     $("tabbar").innerHTML=NAV.map(function(t){
-      var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):t[0]==="reports"?(view==="reports"||view==="notes"):view===t[0];
-      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー",reports:"日報・連絡"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
+      var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="clients"?(view==="admin"&&sub==="clients"):t[0]==="admin"?(view==="admin"&&sub!=="members"&&sub!=="clients"):t[0]==="reports"?(view==="reports"||view==="notes"):view===t[0];
+      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー",clients:"お客様",reports:"日報・連絡"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
     }).join("")+'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a><button type="button" class="tabmo" data-act="menuorder">メニューの並び替え</button>';
     TABS.map(function(t){return t[0]}).concat(["notes"]).forEach(function(k){$("v-"+k).hidden=(view!==k)});
     Array.prototype.forEach.call(document.querySelectorAll(".rn-seg button"),function(b){b.setAttribute("aria-selected",String(b.getAttribute("data-nav")===view))});
@@ -3484,6 +3502,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
   function mbVisible(){
     var q=($("mbQ").value||"").trim().toLowerCase(), f=$("mbF").value;
     return members.filter(function(m){
+      if(m.role===CLIENT_ROLE)return false;
       if(f==="off"&&m.active!==false)return false;
       if(f.indexOf("c:")===0&&(m.crew||"")!==f.slice(2))return false;
       if(f==="on"&&m.active===false)return false;
@@ -3491,15 +3510,16 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
       return !q||[m.name,m.crew,m.phone,m.role,m.note].join(" ").toLowerCase().indexOf(q)>=0;
     }).sort(function(a,b){return String(a.crew||"~").localeCompare(String(b.crew||"~"),"ja")||String(a.name).localeCompare(String(b.name),"ja")});
   }
+  function mbAll(){return members.filter(function(m){return m.role!==CLIENT_ROLE})}
   function renderMembers(){
-    var on=members.filter(function(m){return m.active!==false&&m.role!==CLIENT_ROLE}).length, off=members.filter(function(m){return m.active===false}).length, cl=members.filter(function(m){return m.role===CLIENT_ROLE}).length;
-    $("mbStat").innerHTML='<span>在籍 <b class="num">'+on+'</b>人</span>'+(off?'<span>休止中 <b class="num">'+off+'</b>人</span>':'')+(cl?'<span>お客さん <b class="num">'+cl+'</b>件</span>':'');
-    var crews={};members.forEach(function(m){if(m.active!==false&&m.crew&&m.role!==CLIENT_ROLE)crews[m.crew]=1});
+    var on=mbAll().filter(function(m){return m.active!==false}).length, off=mbAll().filter(function(m){return m.active===false}).length;
+    $("mbStat").innerHTML='<span>在籍 <b class="num">'+on+'</b>人</span>'+(off?'<span>休止中 <b class="num">'+off+'</b>人</span>':'');
+    var crews={};mbAll().forEach(function(m){if(m.active!==false&&m.crew)crews[m.crew]=1});
     var cur=$("mbF").value||"all";
-    $("mbF").innerHTML='<option value="all">すべて</option><option value="on">在籍のみ</option><option value="off">休止中のみ</option>'+(cl?'<option value="client">お客さんのみ</option>':'')+Object.keys(crews).sort().map(function(c){return '<option value="c:'+esc(c)+'">'+esc(c)+'</option>'}).join("");
+    $("mbF").innerHTML='<option value="all">すべて</option><option value="on">在籍のみ</option><option value="off">休止中のみ</option>'+Object.keys(crews).sort().map(function(c){return '<option value="c:'+esc(c)+'">'+esc(c)+'</option>'}).join("");
     $("mbF").value=cur; if($("mbF").value!==cur)$("mbF").value="all";
     var rows=mbVisible(), groups=[], gi={};
-    rows.forEach(function(m){var g=m.role===CLIENT_ROLE?"お客さん":(m.crew||"担当班なし");if(!(g in gi)){gi[g]=groups.length;groups.push({n:g,l:[]})}groups[gi[g]].l.push(m)});
+    rows.forEach(function(m){var g=(m.crew||"担当班なし");if(!(g in gi)){gi[g]=groups.length;groups.push({n:g,l:[]})}groups[gi[g]].l.push(m)});
     groups.sort(function(a,b){var ra=a.n==="お客さん"?2:a.n==="担当班なし"?1:0,rb=b.n==="お客さん"?2:b.n==="担当班なし"?1:0;return ra-rb||a.n.localeCompare(b.n,"ja")});
     function row(m){
       var id=esc(m.id), askDel=mbDel===m.id, isC=m.role===CLIENT_ROLE, ch=String(m.name||"?").charAt(0);
@@ -3509,24 +3529,13 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
       return '<article class="mxr'+(m.active===false?' off':'')+'"><span class="mxav'+(isC?' c':'')+'" aria-hidden="true">'+esc(ch)+'</span><div class="mxm"><div class="mxn"><b>'+esc(m.name)+'</b>'+bd+'</div><div class="mxs">'+esc(sub.join("　"))+(ph?'　'+ph:'')+(m.note?'　'+esc(m.note):'')+'</div></div>'+
         '<div class="mxe"><button class="btn sm" type="button" data-mb="edit" data-id="'+id+'">編集</button><button class="mxdel'+(askDel?' on':'')+'" type="button" data-mb="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div></article>';
     }
-    $("mbList").innerHTML=groups.length?groups.map(function(g){return '<div class="mxg">'+esc(g.n)+'<span class="num">'+g.l.length+'</span></div><div class="mxgl">'+g.l.map(row).join("")+'</div>'}).join(""):'<div class="empty"><b>'+(members.length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(members.length?'':'「メンバーを追加」から登録してください。')+'</div>';
+    $("mbList").innerHTML=groups.length?groups.map(function(g){return '<div class="mxg">'+esc(g.n)+'<span class="num">'+g.l.length+'</span></div><div class="mxgl">'+g.l.map(row).join("")+'</div>'}).join(""):'<div class="empty"><b>'+(mbAll().length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(mbAll().length?'':'「メンバーを追加」から登録してください。')+'</div>';
   }
   var CLIENT_ROLE="お客さん";
-  /* 役割が「お客さん」のときだけ、見られる現場の選択を出す(担当班は使わない) */
-  function mbKindSync(sel){
-    var cl=$("mbRole").value===CLIENT_ROLE;
-    $("mbSitesRow").hidden=!cl; $("mbCrew").closest(".form-row").hidden=cl;
-    if(!cl)return;
-    var keep=sel||mbPickedSites();
-    $("mbSites").innerHTML=RAW.sites.length?RAW.sites.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")}).map(function(s){return '<label class="mbsite"><input type="checkbox" value="'+esc(s.id)+'"'+(keep.indexOf(s.id)>=0?' checked':'')+'><span>'+esc(s.name)+'</span></label>'}).join(""):'<span class="help">現場がまだありません。</span>';
-  }
-  function mbPickedSites(){return Array.prototype.map.call($("mbSites").querySelectorAll("input:checked"),function(i){return i.value})}
-  $("mbRole").addEventListener("change",function(){mbKindSync(null)});
   function mbOpen(m){
     mbEdit=m?m.id:null; $("mbFormTitle").textContent=m?"メンバーを編集":"メンバーを追加";
     $("mbName").value=m?m.name:""; setCrewSel("mbCrew",m&&m.crew||""); $("mbRole").value=m&&m.role||"現場スタッフ";
     $("mbTel").value=m&&m.phone||""; $("mbNote").value=m&&m.note||""; $("mbActive").value=m&&m.active===false?"0":"1";
-    mbKindSync(m&&m.sites||[]);
     mbUid=m&&m.uid||""; mbAcctShow(); $("mbAcctQ").value=""; $("mbAcctRes").innerHTML="";
     var simple=!!(window.__FB&&window.__FB.createAccount);
     $("mbAcctRow").hidden=simple; $("mbPwRow").hidden=!simple; $("mbPw").value="";
@@ -3755,10 +3764,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
   $("mbForm").addEventListener("submit",async function(e){
     e.preventDefault();
     var name=$("mbName").value.trim(); if(!name){$("mbMsg").textContent="氏名を入力してください。";return}
-    var isCl=$("mbRole").value===CLIENT_ROLE;
-    var data={name:name,crew:isCl?"":$("mbCrew").value.trim(),role:$("mbRole").value,phone:$("mbTel").value.trim(),note:$("mbNote").value.trim(),active:$("mbActive").value==="1"};
-    if(isCl){data.sites=mbPickedSites(); if(!data.sites.length){$("mbMsg").textContent="お客さんが見られる現場を、1つ以上選んでください。";return}}
-    else data.sites=[];
+    var data={name:name,crew:$("mbCrew").value.trim(),role:$("mbRole").value,phone:$("mbTel").value.trim(),note:$("mbNote").value.trim(),active:$("mbActive").value==="1"};
     if(!db){$("mbMsg").textContent="保存できませんでした。";return}
     var simple=!!(window.__FB&&window.__FB.createAccount), pw=simple?$("mbPw").value:"";
     if(simple){
@@ -3772,10 +3778,10 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     try{
       if(simple){
         var o0=mbEdit?members.filter(function(x){return x.id===mbEdit})[0]:null, EM={create:"作成",upd:"更新"};
-        if(!mbUid){mbUid=await window.__FB.createAccount({id:data.phone,password:pw,name:data.name,active:data.active,client:isCl,sites:data.sites})}
+        if(!mbUid){mbUid=await window.__FB.createAccount({id:data.phone,password:pw,name:data.name,active:data.active})}
         else{
           var changed=!o0||String(o0.phone||"").replace(/[^0-9]/g,"")!==digits;
-          await window.__FB.updateAccount(mbUid,{id:changed?data.phone:"",password:pw,name:data.name,active:data.active,client:isCl,sites:data.sites});
+          await window.__FB.updateAccount(mbUid,{id:changed?data.phone:"",password:pw,name:data.name,active:data.active});
         }
       }
       data.uid=mbUid;
@@ -3783,7 +3789,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
       if(mbEdit){await db.doc("members/"+mbEdit).update(data)}
       else{data.createdAt=Date.now();var ref=await db.collection("members").add(data);mid=ref&&ref.id||""}
       if(old&&old.uid&&old.uid!==mbUid){try{await db.doc("access/"+old.uid).delete()}catch(e1){}if(window.__FB)try{await window.__FB.setRole(old.uid,"pending")}catch(e1){}}
-      if(mbUid&&window.__FB)await window.__FB.setRole(mbUid,data.active?(isCl?"client":"member"):"pending");
+      if(mbUid&&window.__FB)await window.__FB.setRole(mbUid,data.active?"member":"pending");
       if(mbUid)await db.doc("access/"+mbUid).set({memberId:mid,name:data.name,crew:data.crew,role:data.role,active:data.active});
       $("mbForm").hidden=true; mbEdit=null; toast("メンバーを保存しました。");
     }catch(err){$("mbMsg").textContent=(CERR[err&&err.message]||"")||"保存できませんでした。編集権限を確認してください。"}
@@ -3797,6 +3803,83 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     mbDel=null;
     try{if(m.uid&&window.__FB&&window.__FB.deleteAccount){try{await window.__FB.deleteAccount(m.uid)}catch(e0){if(e0&&e0.message==="cannot_delete_admin"){toast("管理者のアカウントは削除できません。");return}}}
       await db.doc("members/"+id).delete();if(m.uid){try{await db.doc("access/"+m.uid).delete()}catch(e1){}if(window.__FB&&!window.__FB.deleteAccount)try{await window.__FB.setRole(m.uid,"pending")}catch(e1){}}toast("「"+m.name+"」を削除しました。")}catch(err){toast("削除できませんでした。");renderMembers()}
+  });
+
+  /* ---------- お客様の登録(メンバーとは別画面・別フォーム) ---------- */
+  var cmEdit=null, cmDel=null, cmUid="";
+  function cmAll(){return members.filter(function(m){return m.role===CLIENT_ROLE})}
+  function cmSiteNames(m){return (m.sites||[]).map(function(id){var s=RAW.sites.filter(function(x){return x.id===id})[0];return s?s.name:""}).filter(Boolean)}
+  function renderClients(){
+    var all=cmAll(), on=all.filter(function(m){return m.active!==false}).length, off=all.length-on;
+    $("cmStat").innerHTML='<span>利用中 <b class="num">'+on+'</b>件</span>'+(off?'<span>停止中 <b class="num">'+off+'</b>件</span>':'');
+    var q=($("cmQ").value||"").trim().toLowerCase();
+    var rows=all.filter(function(m){return !q||[m.name,m.phone,m.note,cmSiteNames(m).join(" ")].join(" ").toLowerCase().indexOf(q)>=0}).sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")});
+    $("cmList").innerHTML=rows.length?'<div class="mxgl" style="margin-top:6px">'+rows.map(function(m){
+      var id=esc(m.id), askDel=cmDel===m.id, names=cmSiteNames(m), ch=String(m.name||"?").charAt(0);
+      var bd=(m.active===false?'<i class="mxb off">停止中</i>':'')+(m.uid?'':'<i class="mxb warn">ログイン未設定</i>');
+      return '<article class="mxr'+(m.active===false?' off':'')+'"><span class="mxav c" aria-hidden="true">'+esc(ch)+'</span><div class="mxm"><div class="mxn"><b>'+esc(m.name)+'</b>'+bd+'</div><div class="mxs">'+esc(m.phone||"")+(names.length?'　見られる現場 '+names.length+'件('+esc(names.slice(0,2).join("・")+(names.length>2?" ほか":""))+')':'　見られる現場なし')+(m.note?'　'+esc(m.note):'')+'</div></div>'+
+        '<div class="mxe"><button class="btn sm" type="button" data-cm="edit" data-id="'+id+'">編集</button><button class="mxdel'+(askDel?' on':'')+'" type="button" data-cm="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div></article>';
+    }).join("")+'</div>':'<div class="empty"><b>'+(all.length?'該当するお客様はいません':'お客様が登録されていません')+'</b>'+(all.length?'':'「お客様を登録」から、IDとパスワード、見られる現場を決めてください。')+'</div>';
+  }
+  function cmPicked(){return Array.prototype.map.call($("cmSites").querySelectorAll("input:checked"),function(i){return i.value})}
+  function cmDrawSites(sel){
+    $("cmSites").innerHTML=RAW.sites.length?RAW.sites.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")}).map(function(s){return '<label class="mbsite"><input type="checkbox" value="'+esc(s.id)+'"'+(sel.indexOf(s.id)>=0?' checked':'')+'><span>'+esc(s.name)+'</span></label>'}).join(""):'<span class="help">現場がまだありません。</span>';
+  }
+  function cmOpen(m){
+    cmEdit=m?m.id:null; cmUid=m&&m.uid||"";
+    $("cmFormTitle").textContent=m?"お客様を編集":"お客様を登録";
+    $("cmName").value=m?m.name:""; $("cmTel").value=m&&m.phone||""; $("cmNote").value=m&&m.note||""; $("cmActive").value=m&&m.active===false?"0":"1"; $("cmPw").value="";
+    $("cmPwHelp").textContent=cmUid?"パスワードを忘れたお客様は、ここで新しく決め直せます。変えないときは空のままにします。":"このパスワードを、お客様にお伝えください。";
+    cmDrawSites(m&&m.sites||[]);
+    $("cmMsg").textContent=""; $("cmForm").hidden=false; $("cmName").focus();
+  }
+  $("cmAdd").addEventListener("click",function(){cmOpen(null)});
+  $("cmCancel").addEventListener("click",function(){$("cmForm").hidden=true;cmEdit=null});
+  $("cmQ").addEventListener("input",renderClients);
+  $("cmForm").addEventListener("submit",async function(e){
+    e.preventDefault();
+    var name=$("cmName").value.trim(), idv=$("cmTel").value.trim(), pw=$("cmPw").value, M=$("cmMsg");
+    if(!name){M.textContent="会社名・お名前を入力してください。";return}
+    var sites=cmPicked(); if(!sites.length){M.textContent="見られる現場を、1つ以上選んでください。";return}
+    var data={name:name,crew:"",role:CLIENT_ROLE,phone:idv,note:$("cmNote").value.trim(),active:$("cmActive").value==="1",sites:sites};
+    if(!db){M.textContent="保存できませんでした。";return}
+    var simple=!!(window.__FB&&window.__FB.createAccount), isMail=idv.indexOf("@")>=0, key=isMail?idv.toLowerCase():idv.replace(/[^0-9０-９]/g,"").replace(/[０-９]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248)});
+    if(simple){
+      if(isMail?!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(idv):!/^\d{9,15}$/.test(key)){M.textContent="ログインIDは、電話番号(数字9〜15桁)かメールアドレスで入力してください。";return}
+      var norm=function(x){x=String(x||"");return x.indexOf("@")>=0?x.toLowerCase():x.replace(/[^0-9]/g,"")};
+      if(members.some(function(x){return x.id!==cmEdit&&norm(x.phone)===key})){M.textContent="このIDは、ほかの登録(メンバー・お客様)で使われています。";return}
+      var minPw=isMail?6:4;
+      if(!cmUid&&pw.length<minPw){M.textContent="パスワードを"+minPw+"文字以上で入力してください。";return}
+      if(cmUid&&pw&&pw.length<minPw){M.textContent="パスワードは"+minPw+"文字以上にしてください。";return}
+    }
+    $("cmSave").disabled=true;
+    try{
+      var o0=cmEdit?members.filter(function(x){return x.id===cmEdit})[0]:null, uid=cmUid;
+      if(simple){
+        if(!uid){uid=await window.__FB.createAccount({id:idv,password:pw,name:name,active:data.active,client:true,sites:sites})}
+        else{
+          var changed=!o0||String(o0.phone||"")!==idv;
+          await window.__FB.updateAccount(uid,{id:changed?idv:"",password:pw,name:name,active:data.active,client:true,sites:sites});
+        }
+      }
+      data.uid=uid||"";
+      var mid=cmEdit;
+      if(cmEdit){await db.doc("members/"+cmEdit).update(data)}
+      else{data.createdAt=Date.now();var ref=await db.collection("members").add(data);mid=ref&&ref.id||""}
+      if(uid&&window.__FB)await window.__FB.setRole(uid,data.active?"client":"pending");
+      if(uid)await db.doc("access/"+uid).set({memberId:mid,name:name,crew:"",role:CLIENT_ROLE,active:data.active});
+      $("cmForm").hidden=true; cmEdit=null; toast("お客様を保存しました。");
+    }catch(err){M.textContent=(CERR[err&&err.message]||"")||"保存できませんでした。編集権限を確認してください。"}
+    $("cmSave").disabled=false;
+  });
+  $("cmList").addEventListener("click",async function(e){
+    var b=e.target.closest("button[data-cm]"); if(!b)return;
+    var id=b.dataset.id, m=members.filter(function(x){return x.id===id})[0]; if(!m)return;
+    if(b.dataset.cm==="edit"){cmDel=null;cmOpen(m);window.scrollTo({top:0,behavior:"smooth"});return}
+    if(cmDel!==id){cmDel=id;renderClients();clearTimeout(cmOpen.t);cmOpen.t=setTimeout(function(){cmDel=null;renderClients()},4000);return}
+    cmDel=null;
+    try{if(m.uid&&window.__FB&&window.__FB.deleteAccount){try{await window.__FB.deleteAccount(m.uid)}catch(e0){if(e0&&e0.message==="cannot_delete_admin"){toast("管理者のアカウントは削除できません。");return}}}
+      await db.doc("members/"+id).delete();if(m.uid){try{await db.doc("access/"+m.uid).delete()}catch(e1){}}toast("「"+m.name+"」を削除しました。")}catch(err){toast("削除できませんでした。");renderClients()}
   });
 
   /* ---------- お知らせ(ベル) ---------- */
@@ -3992,7 +4075,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・メンバー管理の画面を見やすくしました(担当班ごとにまとめ、1人1行に。お客さんは別のグループ。説明文は折りたたみに)",
-      "・お客さん用のログイン画面(/customer)を追加しました。メンバー管理で、役割を「お客さん」にして見られる現場を選ぶと、その現場の状況・作業の履歴と、管理会社への連絡だけを見られます。連絡はチャットの「お客様」で受け取れます",
+      "・お客さん用のログイン画面(/customer)を追加しました。「お客様管理」(メンバー管理とは別の画面)でお客様を登録し、見られる現場を選ぶと、その現場の状況・作業の履歴と、管理会社への連絡だけを見られます。連絡はチャットの「お客様」で受け取れます",
       "・チャットを「全体」「業者(班)ごと」「現場ごと」に分けました(現場の詳細の「この現場のチャット」からも開けます。現場のチャットは、その現場の担当班と管理者だけに見えます)",
       "・設定の「現場の一覧」を「一覧」と「カード」の表示にして、見やすくしました(スマホの一覧は1件を短く、カードは項目ごとに色分け)",
       "・現場一覧(一覧表示)を短くしました(スマホは1件の高さをおよそ6割に、パソコンは1/7ほどに。警報などの細かい表示は、現場を開くと見られます)。パソコンの絞り込みは1行にまとめ、ホームの「要対応の現場」も一覧の形にしました",
@@ -4053,7 +4136,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
   function navBase(){
     if(isClient)return [["home","ホーム"],["chat","連絡"]];
     var n=TABS.filter(function(t){return t[0]!=="admin"});
-    if(canAdmin){n.push(["members","メンバー管理"]);n.push(["admin","設定"])}
+    if(canAdmin){n.push(["members","メンバー管理"]);n.push(["clients","お客様管理"]);n.push(["admin","設定"])}
     return n;
   }
   function menuOrder(){try{var v=JSON.parse(localStorage.getItem("josetsu.menuOrder")||"null");return Array.isArray(v)?v:null}catch(e){return null}}
@@ -4251,16 +4334,17 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     Array.prototype.forEach.call($("subtabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.sub===sub))});
     var DESC={photos:"案件・日報の写真を一覧で確認し、まとめて削除・軽量化します。",members:"社内メンバーの名簿を管理します。担当班は、マスタの担当班から選べます。",sites:"現場の登録・編集と、出動基準・担当班のまとめ変更、作業状況のリセットができます。",master:"地区・担当班・使用機械の選択肢を管理します。現場や日報の入力欄の候補になります。",set:"出動目安の判定に使う基準と、天気の自動更新の間隔を設定します。"};
     $("admDesc").textContent=DESC[sub]||"";
-    $("subtabs").hidden=(sub==="members");
-    var h1=document.querySelector(".admh1"); if(h1)h1.textContent=(sub==="members"?"メンバー管理":"設定");
+    $("subtabs").hidden=(sub==="members"||sub==="clients");
+    var h1=document.querySelector(".admh1"); if(h1)h1.textContent=(sub==="members"?"メンバー管理":sub==="clients"?"お客様管理":"設定");
     Array.prototype.forEach.call($("siteTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.st===stab))});
     Array.prototype.forEach.call($("mTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.mt===mtab))});
     $("adm-s-list").hidden=stab!=="list"; $("adm-s-csv").hidden=stab!=="csv";
     $("mp-area").hidden=mtab!=="area"; $("mp-crew").hidden=mtab!=="crew"; $("mp-mach").hidden=mtab!=="mach"; $("mp-work").hidden=mtab!=="work";
-    $("adm-sites").hidden=sub!=="sites"; $("adm-master").hidden=sub!=="master"; $("adm-set").hidden=sub!=="set"; $("adm-members").hidden=sub!=="members"; $("adm-photos").hidden=sub!=="photos";
+    $("adm-sites").hidden=sub!=="sites"; $("adm-master").hidden=sub!=="master"; $("adm-set").hidden=sub!=="set"; $("adm-members").hidden=sub!=="members"; $("adm-clients").hidden=sub!=="clients"; $("adm-photos").hidden=sub!=="photos";
     if(sub==="sites")renderAdmin();
     else if(sub==="master")renderMaster(false);
     else if(sub==="members")renderMembers();
+    else if(sub==="clients")renderClients();
     else if(sub==="photos")renderPhotos();
   }
   var stab="list", mtab="area", pg=0, pgSize=20, admV="list";
@@ -5046,6 +5130,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
       if(canAdmin)db.collection("members").onSnapshot(function(snap){
         members=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
         if(sub==="members")renderMembers();
+        if(sub==="clients")renderClients();
       },function(){});
       if(canAdmin)db.collection("prices").onSnapshot(function(snap){
         prices={};
