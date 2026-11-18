@@ -120,7 +120,12 @@
     else if(act==="repdel"){
       if(!arm("rd"+id,t,"削除"))return;
       var r1=reports.filter(function(x){return x.id===id})[0];
-      try{await db.doc("reports/"+id).delete();if(r1)dropAssets((r1.photos||[]).map(function(p){return p.id}));closeSheet("rview");toast("日報を削除しました。")}
+      try{await db.doc("reports/"+id).delete();if(r1)dropAssets((r1.photos||[]).map(function(p){return p.id}));closeSheet("rview");toast("日報を削除しました。");
+        /* 日報で「完了」にした現場は、その日の日報がなくなったら「待機」に戻す(ホームの出動状況に残らないように) */
+        var rs1=r1&&siteById(r1.siteId), td1=todayStr();
+        if(rs1&&r1.date===td1&&stOf(rs1)==="done"&&stAt(rs1)&&dstr(new Date(stAt(rs1)))===td1&&!reports.some(function(x){return x.id!==id&&x.siteId===r1.siteId&&x.date===td1})){
+          try{await db.doc("ops/"+rs1.id).set({status:"standby",statusAt:Date.now(),statusBy:myName||""});pwaNotify("status",rs1.id)}catch(e5){}
+        }}
       catch(err){toast("削除できませんでした。")}
     }
     else if(act==="chdel"){
@@ -931,6 +936,7 @@
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
+      "・日報を削除したとき、その日「完了」にしていた現場は「待機」に戻り、ホームの出動状況に残らないようにしました",
       "・日報に「お客様への連絡」欄を追加しました。書いた内容がお客様の「作業の履歴」に表示されます",
       "・お客様の画面に「出動を要請する」ボタンを追加しました(押すとスタッフに通知が届きます)",
       "・お客様管理の「お客様画面のデモを見る」「見え方」で、お客様に見える画面を確認できます(保存・送信はされません)",
