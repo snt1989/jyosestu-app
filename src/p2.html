@@ -254,7 +254,7 @@
     </div>
 
     <div id="adm-members" hidden>
-      <div class="ahead"><h2 class="ah" style="margin-top:6px">メンバー管理</h2><button class="btn primary" type="button" id="mbAdd">メンバーを追加</button></div>
+      <div class="ahead mbhead"><button class="btn primary" type="button" id="mbAdd">＋ メンバーを追加</button></div>
       <div class="mbstat" id="mbStat"></div>
       <form class="card2 f" id="mbForm" hidden style="padding:0 0 4px;max-width:760px">
         <h3 class="mbft" id="mbFormTitle">メンバーを追加</h3>
@@ -280,7 +280,7 @@
       </form>
       <div class="admtools mbtools"><input id="mbQ" type="search" placeholder="氏名・担当班・電話で検索" aria-label="メンバーを検索"><select id="mbF" aria-label="絞り込み"></select></div>
       <div id="mbList"></div>
-      <p class="legend" id="mbLegend">ここは社内の名簿です。アプリを開ける人・編集できる人は、このページの「共有」で決まります。「全体設定」でログインの制限を「する」にすると、ログインアカウントを連携したメンバーだけが画面を使えます(画面上の制限です)。電話番号などの個人情報は、管理者だけが見られます。</p>
+      <details class="mbhelp"><summary>名簿とログインについて</summary><p class="legend" id="mbLegend">ここは社内の名簿です。アプリを開ける人・編集できる人は、このページの「共有」で決まります。「全体設定」でログインの制限を「する」にすると、ログインアカウントを連携したメンバーだけが画面を使えます(画面上の制限です)。電話番号などの個人情報は、管理者だけが見られます。</p></details>
     </div>
 
     <div id="adm-photos" hidden>

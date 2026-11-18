@@ -321,23 +321,29 @@
       if(f==="off"&&m.active!==false)return false;
       if(f.indexOf("c:")===0&&(m.crew||"")!==f.slice(2))return false;
       if(f==="on"&&m.active===false)return false;
+      if(f==="client"&&m.role!==CLIENT_ROLE)return false;
       return !q||[m.name,m.crew,m.phone,m.role,m.note].join(" ").toLowerCase().indexOf(q)>=0;
     }).sort(function(a,b){return String(a.crew||"~").localeCompare(String(b.crew||"~"),"ja")||String(a.name).localeCompare(String(b.name),"ja")});
   }
   function renderMembers(){
-    var act=members.filter(function(m){return m.active!==false}).length;
-    var crews={};members.forEach(function(m){if(m.active!==false&&m.crew)crews[m.crew]=(crews[m.crew]||0)+1});
-    $("mbStat").innerHTML='<div class="ms">在籍<b class="num">'+act+'人</b></div><div class="ms">休止中<b class="num">'+(members.length-act)+'人</b></div>'+Object.keys(crews).sort().map(function(c){return '<div class="ms">'+esc(c)+'<b class="num">'+crews[c]+'人</b></div>'}).join("");
+    var on=members.filter(function(m){return m.active!==false&&m.role!==CLIENT_ROLE}).length, off=members.filter(function(m){return m.active===false}).length, cl=members.filter(function(m){return m.role===CLIENT_ROLE}).length;
+    $("mbStat").innerHTML='<span>在籍 <b class="num">'+on+'</b>人</span>'+(off?'<span>休止中 <b class="num">'+off+'</b>人</span>':'')+(cl?'<span>お客さん <b class="num">'+cl+'</b>件</span>':'');
+    var crews={};members.forEach(function(m){if(m.active!==false&&m.crew&&m.role!==CLIENT_ROLE)crews[m.crew]=1});
     var cur=$("mbF").value||"all";
-    $("mbF").innerHTML='<option value="all">すべて</option><option value="on">在籍のみ</option><option value="off">休止中のみ</option>'+Object.keys(crews).sort().map(function(c){return '<option value="c:'+esc(c)+'">'+esc(c)+'</option>'}).join("");
+    $("mbF").innerHTML='<option value="all">すべて</option><option value="on">在籍のみ</option><option value="off">休止中のみ</option>'+(cl?'<option value="client">お客さんのみ</option>':'')+Object.keys(crews).sort().map(function(c){return '<option value="c:'+esc(c)+'">'+esc(c)+'</option>'}).join("");
     $("mbF").value=cur; if($("mbF").value!==cur)$("mbF").value="all";
-    var rows=mbVisible();
-    $("mbList").innerHTML=rows.length?rows.map(function(m){
-      var id=esc(m.id), askDel=mbDel===m.id;
-      return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc(m.role===CLIENT_ROLE?["お客さん","見られる現場 "+((m.sites||[]).length)+"件"].join("　"):[m.crew||"担当班 未設定",m.role||"現場スタッフ"].join("　"))+'</span></div>'+
-        '<div class="ed"><button class="btn sm" type="button" data-mb="edit" data-id="'+id+'">編集</button><button class="btn sm'+(askDel?' danger':'')+'" type="button" data-mb="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div>'+
-        '<div class="kvs">'+(m.active===false?'<span class="k">休止中</span>':'')+'<span class="k">'+(window.__FB&&window.__FB.createAccount?(m.uid?'ログインできます':'ログイン未設定'):(m.uid?'ログイン連携済':'ログイン未連携'))+'</span>'+(m.phone?'<span class="k">電話 <a href="tel:'+esc(String(m.phone).replace(/[^0-9+]/g,""))+'">'+esc(m.phone)+'</a></span>':'')+(m.note?'<span class="k">'+esc(m.note)+'</span>':'')+'</div></article>';
-    }).join(""):'<div class="empty"><b>'+(members.length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(members.length?'':'「メンバーを追加」から登録してください。')+'</div>';
+    var rows=mbVisible(), groups=[], gi={};
+    rows.forEach(function(m){var g=m.role===CLIENT_ROLE?"お客さん":(m.crew||"担当班なし");if(!(g in gi)){gi[g]=groups.length;groups.push({n:g,l:[]})}groups[gi[g]].l.push(m)});
+    groups.sort(function(a,b){var ra=a.n==="お客さん"?2:a.n==="担当班なし"?1:0,rb=b.n==="お客さん"?2:b.n==="担当班なし"?1:0;return ra-rb||a.n.localeCompare(b.n,"ja")});
+    function row(m){
+      var id=esc(m.id), askDel=mbDel===m.id, isC=m.role===CLIENT_ROLE, ch=String(m.name||"?").charAt(0);
+      var sub=[isC?("見られる現場 "+((m.sites||[]).length)+"件"):(m.role||"現場スタッフ")];
+      var ph=m.phone?'<a href="tel:'+esc(String(m.phone).replace(/[^0-9+]/g,""))+'">'+esc(m.phone)+'</a>':'';
+      var bd=(isC?'<i class="mxb c">お客さん</i>':'')+(m.active===false?'<i class="mxb off">休止中</i>':'')+(m.uid?'':'<i class="mxb warn">ログイン未設定</i>');
+      return '<article class="mxr'+(m.active===false?' off':'')+'"><span class="mxav'+(isC?' c':'')+'" aria-hidden="true">'+esc(ch)+'</span><div class="mxm"><div class="mxn"><b>'+esc(m.name)+'</b>'+bd+'</div><div class="mxs">'+esc(sub.join("　"))+(ph?'　'+ph:'')+(m.note?'　'+esc(m.note):'')+'</div></div>'+
+        '<div class="mxe"><button class="btn sm" type="button" data-mb="edit" data-id="'+id+'">編集</button><button class="mxdel'+(askDel?' on':'')+'" type="button" data-mb="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div></article>';
+    }
+    $("mbList").innerHTML=groups.length?groups.map(function(g){return '<div class="mxg">'+esc(g.n)+'<span class="num">'+g.l.length+'</span></div><div class="mxgl">'+g.l.map(row).join("")+'</div>'}).join(""):'<div class="empty"><b>'+(members.length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(members.length?'':'「メンバーを追加」から登録してください。')+'</div>';
   }
   var CLIENT_ROLE="お客さん";
   /* 役割が「お客さん」のときだけ、見られる現場の選択を出す(担当班は使わない) */
@@ -819,6 +825,7 @@
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・メンバー管理の画面を見やすくしました(担当班ごとにまとめ、1人1行に。お客さんは別のグループ。説明文は折りたたみに)",
       "・お客さん用のログイン画面(/customer)を追加しました。メンバー管理で、役割を「お客さん」にして見られる現場を選ぶと、その現場の状況・作業の履歴と、管理会社への連絡だけを見られます。連絡はチャットの「お客様」で受け取れます",
       "・チャットを「全体」「業者(班)ごと」「現場ごと」に分けました(現場の詳細の「この現場のチャット」からも開けます。現場のチャットは、その現場の担当班と管理者だけに見えます)",
       "・設定の「現場の一覧」を「一覧」と「カード」の表示にして、見やすくしました(スマホの一覧は1件を短く、カードは項目ごとに色分け)",
