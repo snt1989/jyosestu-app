@@ -3,7 +3,7 @@
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const ADMINS = String(process.env.ADMIN_EMAILS || "admin@sanoh-ltd.jp").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-const TYPES = ["note", "chat", "ann", "status", "report", "urgent"];
+const TYPES = ["note", "chat", "ann", "status", "report", "urgent", "cmsg"];
 const ST = { prep: "準備中", out: "出動中", done: "完了" };
 
 function init() {
@@ -59,7 +59,9 @@ module.exports = async (req, res) => {
     const ud = await fs.doc("users/" + me.uid).get();
     const role = ud.exists ? ud.data().role : "";
     const isAdm = ADMINS.indexOf(String(me.email || "").toLowerCase()) >= 0 || role === "admin";
-    if (!(isAdm || role === "member")) return res.status(403).json({ error: "forbidden" });
+    // お客さん(client)は、自分の連絡(cmsg)をスタッフへ知らせる通知だけ送れる
+    const clientOnlyCmsg = role === "client" && String(req.body && (typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body).type || "") === "cmsg";
+    if (!(isAdm || role === "member" || clientOnlyCmsg)) return res.status(403).json({ error: "forbidden" });
     const myName = (ud.exists && ud.data().name) || "";
     const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const action = String(b.action || "");
@@ -101,6 +103,11 @@ module.exports = async (req, res) => {
         const isSite = room.indexOf("site:") === 0;
         if (isSite) scopeSite = room.slice(5); else if (room !== "all") scopeCrews = [room];
         payload = { title: "チャット: " + (room === "all" ? "全体" : isSite ? clip(n.siteName || "現場", 30) : room), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "chat_" + room, url: "/?go=chat" };
+      } else if (type === "cmsg") {
+        const d = await fs.doc("notes/" + id).get(); const n = d.exists ? d.data() : null;
+        if (!n || n.kind !== "cmsg" || n.by !== me.uid || !fresh(n.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
+        key = "cmsg_" + id; scopeSite = String(n.siteId || "");
+        payload = { title: "お客様から連絡: " + clip(n.siteName || "現場", 30), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "cmsg_" + scopeSite, url: "/?go=chat" };
       } else if (type === "ann") {
         const d = await fs.doc("announcements/" + id).get(); const a = d.exists ? d.data() : null;
         if (!a || a.by !== me.uid || !isAdm || !fresh(a.at, 600000)) return res.status(200).json({ ok: true, skipped: true });

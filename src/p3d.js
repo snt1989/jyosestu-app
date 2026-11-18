@@ -24,6 +24,7 @@
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
   function doRender(){
     if(!canAdmin&&view==="admin")view="home";
+    if(isClient&&view!=="chat")view="home";
     var NAV=navOrdered();
     $("tabbar").innerHTML=NAV.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):t[0]==="reports"?(view==="reports"||view==="notes"):view===t[0];
@@ -34,7 +35,7 @@
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
     $("fab").classList.toggle("nof",view==="sites");
     $("upd").textContent=lastAt?timeStr(lastAt):"--:--";
-    if(view==="home")renderHome();
+    if(view==="home")(isClient?renderClientHome:renderHome)();
     else if(view==="sites")renderSites();
     else if(view==="machines")renderMachines();
     else if(view==="reports")renderReports();
@@ -84,7 +85,8 @@
     else if(act==="anopen"){openAnnView(id)}
     else if(act==="retry"){if(s)loadOne(s,true)}
     else if(act==="menuorder"){openMenuOrder()}
-    else if(act==="sitechat"){chRoom="site:"+id;chStick=true;closeSheet("detail");goto("chat")}
+    else if(act==="sitechat"){chRoom=(isClient?"client:":"site:")+id;chStick=true;closeSheet("detail");goto("chat")}
+    else if(act==="clientchat"){chRoom="client:"+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="hourly"){if(s)openHourly(s)}
     else if(act==="edit"){if(canAdmin)openDlg(id)}
     else if(act==="copy"){if(canAdmin)openDlg(id,true)}
@@ -332,15 +334,27 @@
     var rows=mbVisible();
     $("mbList").innerHTML=rows.length?rows.map(function(m){
       var id=esc(m.id), askDel=mbDel===m.id;
-      return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc([m.crew||"担当班 未設定",m.role||"現場スタッフ"].join("　"))+'</span></div>'+
+      return '<article class="mr'+(m.active===false?' off':'')+'"><div class="nm"><b>'+esc(m.name)+'</b><span>'+esc(m.role===CLIENT_ROLE?["お客さん","見られる現場 "+((m.sites||[]).length)+"件"].join("　"):[m.crew||"担当班 未設定",m.role||"現場スタッフ"].join("　"))+'</span></div>'+
         '<div class="ed"><button class="btn sm" type="button" data-mb="edit" data-id="'+id+'">編集</button><button class="btn sm'+(askDel?' danger':'')+'" type="button" data-mb="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div>'+
         '<div class="kvs">'+(m.active===false?'<span class="k">休止中</span>':'')+'<span class="k">'+(window.__FB&&window.__FB.createAccount?(m.uid?'ログインできます':'ログイン未設定'):(m.uid?'ログイン連携済':'ログイン未連携'))+'</span>'+(m.phone?'<span class="k">電話 <a href="tel:'+esc(String(m.phone).replace(/[^0-9+]/g,""))+'">'+esc(m.phone)+'</a></span>':'')+(m.note?'<span class="k">'+esc(m.note)+'</span>':'')+'</div></article>';
     }).join(""):'<div class="empty"><b>'+(members.length?'該当するメンバーはいません':'メンバーが登録されていません')+'</b>'+(members.length?'':'「メンバーを追加」から登録してください。')+'</div>';
   }
+  var CLIENT_ROLE="お客さん";
+  /* 役割が「お客さん」のときだけ、見られる現場の選択を出す(担当班は使わない) */
+  function mbKindSync(sel){
+    var cl=$("mbRole").value===CLIENT_ROLE;
+    $("mbSitesRow").hidden=!cl; $("mbCrew").closest(".form-row").hidden=cl;
+    if(!cl)return;
+    var keep=sel||mbPickedSites();
+    $("mbSites").innerHTML=RAW.sites.length?RAW.sites.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")}).map(function(s){return '<label class="mbsite"><input type="checkbox" value="'+esc(s.id)+'"'+(keep.indexOf(s.id)>=0?' checked':'')+'><span>'+esc(s.name)+'</span></label>'}).join(""):'<span class="help">現場がまだありません。</span>';
+  }
+  function mbPickedSites(){return Array.prototype.map.call($("mbSites").querySelectorAll("input:checked"),function(i){return i.value})}
+  $("mbRole").addEventListener("change",function(){mbKindSync(null)});
   function mbOpen(m){
     mbEdit=m?m.id:null; $("mbFormTitle").textContent=m?"メンバーを編集":"メンバーを追加";
     $("mbName").value=m?m.name:""; setCrewSel("mbCrew",m&&m.crew||""); $("mbRole").value=m&&m.role||"現場スタッフ";
     $("mbTel").value=m&&m.phone||""; $("mbNote").value=m&&m.note||""; $("mbActive").value=m&&m.active===false?"0":"1";
+    mbKindSync(m&&m.sites||[]);
     mbUid=m&&m.uid||""; mbAcctShow(); $("mbAcctQ").value=""; $("mbAcctRes").innerHTML="";
     var simple=!!(window.__FB&&window.__FB.createAccount);
     $("mbAcctRow").hidden=simple; $("mbPwRow").hidden=!simple; $("mbPw").value="";
@@ -569,7 +583,10 @@
   $("mbForm").addEventListener("submit",async function(e){
     e.preventDefault();
     var name=$("mbName").value.trim(); if(!name){$("mbMsg").textContent="氏名を入力してください。";return}
-    var data={name:name,crew:$("mbCrew").value.trim(),role:$("mbRole").value,phone:$("mbTel").value.trim(),note:$("mbNote").value.trim(),active:$("mbActive").value==="1"};
+    var isCl=$("mbRole").value===CLIENT_ROLE;
+    var data={name:name,crew:isCl?"":$("mbCrew").value.trim(),role:$("mbRole").value,phone:$("mbTel").value.trim(),note:$("mbNote").value.trim(),active:$("mbActive").value==="1"};
+    if(isCl){data.sites=mbPickedSites(); if(!data.sites.length){$("mbMsg").textContent="お客さんが見られる現場を、1つ以上選んでください。";return}}
+    else data.sites=[];
     if(!db){$("mbMsg").textContent="保存できませんでした。";return}
     var simple=!!(window.__FB&&window.__FB.createAccount), pw=simple?$("mbPw").value:"";
     if(simple){
@@ -583,10 +600,10 @@
     try{
       if(simple){
         var o0=mbEdit?members.filter(function(x){return x.id===mbEdit})[0]:null, EM={create:"作成",upd:"更新"};
-        if(!mbUid){mbUid=await window.__FB.createAccount({id:data.phone,password:pw,name:data.name,active:data.active})}
+        if(!mbUid){mbUid=await window.__FB.createAccount({id:data.phone,password:pw,name:data.name,active:data.active,client:isCl,sites:data.sites})}
         else{
           var changed=!o0||String(o0.phone||"").replace(/[^0-9]/g,"")!==digits;
-          await window.__FB.updateAccount(mbUid,{id:changed?data.phone:"",password:pw,name:data.name,active:data.active});
+          await window.__FB.updateAccount(mbUid,{id:changed?data.phone:"",password:pw,name:data.name,active:data.active,client:isCl,sites:data.sites});
         }
       }
       data.uid=mbUid;
@@ -594,7 +611,7 @@
       if(mbEdit){await db.doc("members/"+mbEdit).update(data)}
       else{data.createdAt=Date.now();var ref=await db.collection("members").add(data);mid=ref&&ref.id||""}
       if(old&&old.uid&&old.uid!==mbUid){try{await db.doc("access/"+old.uid).delete()}catch(e1){}if(window.__FB)try{await window.__FB.setRole(old.uid,"pending")}catch(e1){}}
-      if(mbUid&&window.__FB)await window.__FB.setRole(mbUid,data.active?"member":"pending");
+      if(mbUid&&window.__FB)await window.__FB.setRole(mbUid,data.active?(isCl?"client":"member"):"pending");
       if(mbUid)await db.doc("access/"+mbUid).set({memberId:mid,name:data.name,crew:data.crew,role:data.role,active:data.active});
       $("mbForm").hidden=true; mbEdit=null; toast("メンバーを保存しました。");
     }catch(err){$("mbMsg").textContent=(CERR[err&&err.message]||"")||"保存できませんでした。編集権限を確認してください。"}
@@ -671,7 +688,7 @@
   var urgSent={};
   try{urgSent=JSON.parse(localStorage.getItem("josetsu.urgsent")||"{}")}catch(e){}
   function urgentCheck(s){
-    if(!pwaOn()||!s)return;
+    if(!pwaOn()||!s||isClient)return;
     var a=assess(s); if(a.lv<2||stOf(s)==="out")return;
     var day=new Date(Date.now()+9*36e5).toISOString().slice(0,10), p=String(urgSent[s.id]||"").split("|");
     if(p[1]===day&&+p[0]>=a.lv)return;
@@ -802,6 +819,7 @@
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・お客さん用のログイン画面(/customer)を追加しました。メンバー管理で、役割を「お客さん」にして見られる現場を選ぶと、その現場の状況・作業の履歴と、管理会社への連絡だけを見られます。連絡はチャットの「お客様」で受け取れます",
       "・チャットを「全体」「業者(班)ごと」「現場ごと」に分けました(現場の詳細の「この現場のチャット」からも開けます。現場のチャットは、その現場の担当班と管理者だけに見えます)",
       "・設定の「現場の一覧」を「一覧」と「カード」の表示にして、見やすくしました(スマホの一覧は1件を短く、カードは項目ごとに色分け)",
       "・現場一覧(一覧表示)を短くしました(スマホは1件の高さをおよそ6割に、パソコンは1/7ほどに。警報などの細かい表示は、現場を開くと見られます)。パソコンの絞り込みは1行にまとめ、ホームの「要対応の現場」も一覧の形にしました",
@@ -860,6 +878,7 @@
   document.addEventListener("visibilitychange",function(){if(!document.hidden)checkAppUpdate()});
   /* ---------- メニューの並び替え(この端末に保存) ---------- */
   function navBase(){
+    if(isClient)return [["home","ホーム"],["chat","連絡"]];
     var n=TABS.filter(function(t){return t[0]!=="admin"});
     if(canAdmin){n.push(["members","メンバー管理"]);n.push(["admin","設定"])}
     return n;
@@ -1773,6 +1792,30 @@
     try{ dl=await claude.use("downloads"); }catch(e){dl=null}
     try{ var pw=user&&user.can?await user.can("assets.write"):null; canPhoto=!!assets&&pw!==false; }catch(e){canPhoto=!!assets}
     mcpState=mcp?"ready":"none";
+    if(window.__FB&&window.__FB.isClient&&window.__FB.isClient()){
+      /* お客さん: Firestore は読めないので、サーバー(/api/client)が絞って返す内容だけを一定間隔で取得する */
+      isClient=true; canAdmin=false; canStatus=false; canPhoto=false;
+      document.body.classList.add("custm");
+      var cFirst=true;
+      var cPull=async function(){
+        try{
+          var j=await window.__FB.callClient({action:"get"});
+          RAW.sites=j.sites||[]; RAW.ops=j.ops||{}; RAW.reports=j.reports||[];
+          RAW.chat=(j.msgs||[]).map(function(m){m.by=m.mine?myId:"staff";return m});
+          masters.areas=Array.isArray(j.areas)?j.areas:[];
+          if(Array.isArray(j.works)&&j.works.length)masters.works=j.works.map(cleanWork).filter(function(w){return w.name});
+          settings=Object.assign({},DEF,j.settings||{});
+          if(window.__applyBrand)window.__applyBrand(settings.brand||{},true);
+          if(j.name&&!myName)myName=j.name;
+          dbState="ready"; applyScope(); checkGate(); render();
+          if(mcp){var need=sites.filter(function(s){return !wx[s.id]||wx[s.id].loc!==effLoc(s)});if(cFirst||need.length){cFirst=false;if(need.length===sites.length)refreshAll(false);else need.forEach(function(s){loadOne(s,false)})}}
+        }catch(e){if(dbState==="loading"){dbState="unavailable";render()}}
+      };
+      cPull(); setInterval(function(){if(!document.hidden)cPull()},30000);
+      document.addEventListener("visibilitychange",function(){if(!document.hidden)cPull()});
+      render(); schedule();
+      return;
+    }
     if(!db){dbState="unavailable";render();}
     else{
       db.doc("masters/areas").onSnapshot(function(snap){
@@ -1806,8 +1849,8 @@
       },function(){});
       db.collection("notes").orderBy("at","desc").limit(1000).onSnapshot(function(snap){
         var all=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
-        RAW.notes=all.filter(function(o){return o.kind!=="chat"});
-        RAW.chat=all.filter(function(o){return o.kind==="chat"}).sort(function(a,b){return (a.at||0)-(b.at||0)});
+        RAW.notes=all.filter(function(o){return o.kind!=="chat"&&o.kind!=="cmsg"});
+        RAW.chat=all.filter(function(o){return o.kind==="chat"||o.kind==="cmsg"}).map(function(o){if(o.kind==="cmsg"&&!o.room)o.room="client:"+o.siteId;return o}).sort(function(a,b){return (a.at||0)-(b.at||0)});
         applyScope(); render(); resolveNames();
       },function(){});
       db.collection("sphotos").orderBy("at","desc").limit(1000).onSnapshot(function(snap){

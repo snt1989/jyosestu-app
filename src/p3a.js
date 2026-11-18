@@ -61,19 +61,22 @@
   function siteCrews(s){return String(s&&s.crew||"").split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
   function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
   function myCrews(){return String(myCrewName()).split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
+  var isClient=false;   // お客さんのアカウント(閲覧と連絡だけ)
   function chatVisible(m){
-    if(!m.room||m.room==="all"||canAdmin)return true;
-    if(String(m.room).indexOf("site:")===0){var sid=String(m.room).slice(5);return sites.some(function(s){return s.id===sid})}
+    var rm=String(m.room||"all");
+    if(isClient)return rm.indexOf("client:")===0;
+    if(rm==="all"||canAdmin)return true;
+    if(rm.indexOf("site:")===0||rm.indexOf("client:")===0){var sid=rm.slice(rm.indexOf(":")+1);return sites.some(function(s){return s.id===sid})}
     return myCrews().indexOf(m.room)>=0;
   }
   function applyScope(){
-    var c=myCrewName(), vs={};
-    sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
-    ops={};Object.keys(RAW.ops).forEach(function(k){if(canAdmin||vs[k])ops[k]=RAW.ops[k]});
-    reports=RAW.reports.filter(function(r){return canAdmin||vs[r.siteId]});
-    notes=RAW.notes.filter(function(n){return canAdmin||!n.siteId||vs[n.siteId]});
+    var c=myCrewName(), vs={}, all=canAdmin||isClient;
+    sites=RAW.sites.filter(function(s){var v=all||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
+    ops={};Object.keys(RAW.ops).forEach(function(k){if(all||vs[k])ops[k]=RAW.ops[k]});
+    reports=RAW.reports.filter(function(r){return all||vs[r.siteId]});
+    notes=RAW.notes.filter(function(n){return all||!n.siteId||vs[n.siteId]});
     chat=RAW.chat.filter(function(m){return chatVisible(m)});
-    sphotos=RAW.sphotos.filter(function(x){return canAdmin||vs[x.siteId]});
+    sphotos=RAW.sphotos.filter(function(x){return all||vs[x.siteId]});
     announcements=RAW.ann.filter(annVisible);
   }
   function annVisible(x){var c=x&&x.crews;return canAdmin||!Array.isArray(c)||!c.length||c.indexOf(myCrewName())>=0}

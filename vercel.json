@@ -1,6 +1,9 @@
 {
   "buildCommand": "sh build.sh",
   "outputDirectory": ".",
+  "rewrites": [
+    { "source": "/customer", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -24,7 +24,8 @@
   function toast(t){var el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){el.hidden=true},3200)}
   function flash(id,txt){var el=$(id);el.textContent=txt;setTimeout(function(){if(el.textContent===txt)el.textContent=""},6000)}
   var ST={standby:"待機",prep:"準備中",out:"出動中",done:"完了"};
-  var canWrite=function(){return !!db&&canStatus};
+  var canWrite=function(){return !!db&&canStatus&&!isClient};
+  var canChat=function(){return isClient?true:canWrite()};
 
   function kvHtml(c){
     return '<div class="kv"><div><small>いまの降雪</small><b>'+fmt(num(c.snowCM),1)+' cm</b></div><div><small>風(突風)</small><b>'+fmt(ms(num(c.windSpeedKPH)),1)+'<span style="font-weight:400"> ('+fmt(ms(num(c.windGustKPH)),0)+')</span> m/s</b></div><div><small>視程</small><b>'+fmt(num(c.visibilityKM),1)+' km</b></div></div>';
@@ -218,6 +219,15 @@
   var mqPC=window.matchMedia?window.matchMedia("(min-width:900px)"):null;
   if(mqPC&&mqPC.addEventListener)mqPC.addEventListener("change",function(){render()});
   function homeCard(s){return (mqPC&&mqPC.matches)?siteRow(s):siteCard(s)}
+  function renderClientHome(){
+    var items=sites.map(function(s){return {s:s,a:assess(s)}}).sort(function(x,y){return y.a.lv-x.a.lv||String(x.s.name).localeCompare(String(y.s.name),"ja")});
+    var h='<div class="hello"><span class="d">'+esc(new Date().toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"}))+'</span><span class="muted">'+(myName?esc(myName)+' 様　':'')+'全'+sites.length+'現場</span></div>';
+    h+=items.length?'<div class="stack">'+items.map(function(x){
+      var s=x.s, a=x.a, id=esc(s.id), n=chUnread("client:"+s.id);
+      return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+'</div><div class="sc-sub">'+esc([s.area,siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st"><div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>作業状況: <b>'+esc(ST[stOf(s)])+'</b>'+(stAt(s)?' ('+timeStr(stAt(s))+')':'')+'</span><span><button class="link" type="button" data-act="clientchat" data-id="'+id+'">連絡する'+(n?'<span class="num cbd">'+n+'</span>':'')+'</button> <button class="link" type="button" data-act="open" data-id="'+id+'">詳しく見る</button></span></div></div></article>';
+    }).join("")+'</div>':'<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"表示できる現場がありません")+'</b>'+(dbState==="loading"?"":"担当者に、現場の登録をご確認ください。")+'</div>';
+    $("v-home").innerHTML=h;
+  }
   function renderHome(){
     var items=sites.map(function(s){return {s:s,a:assess(s)}});
     var c3=0,c2=0,out=0;
@@ -380,7 +390,28 @@
     var sy=seasonOf(todayStr()), r=seasonRange(sy);
     return reports.filter(function(x){return x.siteId===id&&x.date>=r[0]&&x.date<=r[1]&&lineMatch(kind,x)}).length;
   }
+  /* お客さん向けの現場詳細(天気・作業状況・作業の履歴・連絡) */
+  function clientDetailHtml(s){
+    var a=assess(s), w=wx[s.id], id=esc(s.id), bad=wxState(s), h='<div class="dv cdv">';
+    h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc(s.area||"")+'</span></div>';
+    if(bad)h+=bad;
+    else{
+      var c=w.cur||{};
+      h+='<div class="bignow">'+icon(c.weather)+'<div><div class="t">'+fmt(num(c.tempC),1)+'<small>℃</small></div><div class="w">'+esc(jp(c.weather))+'</div></div></div><div style="margin-top:12px">'+meterHtml(a)+'</div>'+tagsHtml(a,w)+'<div style="margin-top:10px">'+fcHtml(w.fc)+'</div>';
+    }
+    h+='</div>';
+    h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div><div class="cst">'+esc(ST[stOf(s)]||"")+'</div>'+
+      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">この現場へ連絡する</button></div></div>';
+    var rs=reports.filter(function(r){return r.siteId===s.id}).slice(0,15);
+    h+='<div class="sec"><h2>作業の履歴</h2></div>';
+    h+=rs.length?'<div class="stack">'+rs.map(function(r){
+      var ln=[]; if(r.snowCm!=null&&r.snowCm!=="")ln.push('積雪 '+esc(r.snowCm)+'cm'); if(r.machines&&r.machines.length)ln.push(esc(r.machines.join("・")));
+      return '<article class="rc"><div class="top"><span class="nm">'+esc(dlabel(r.date))+(r.haisetsu?' <span class="tag ice">排雪</span>':'')+'</span><span class="tm">'+esc(r.start||"--:--")+'〜'+esc(r.end||"--:--")+'</span></div>'+(ln.length?'<div class="ln"><span>'+ln.join('</span><span>')+'</span></div>':'')+'</article>';
+    }).join("")+'</div>':'<div class="empty"><b>まだ作業の記録はありません</b>作業が行われると、ここに表示されます。</div>';
+    return h+'</div>';
+  }
   function detailHtml(s){
+    if(isClient)return clientDetailHtml(s);
     var a=assess(s), w=wx[s.id], id=esc(s.id), h='<div class="dv">';
     var bad=wxState(s);
     h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</span></div>';

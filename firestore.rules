@@ -11,6 +11,8 @@ service cloud.firestore {
         (request.auth.token.email != null && request.auth.token.email.lower() in adminEmails()) ||
         (hasUser() && udoc().role == 'admin'));
     }
+    // role == 'client'(お客さん)は、Firestore を直接読み書きできません。情報は /api/client(サーバー側で現場を絞って返す)だけ経由です。
+    // isMember に含めないので、下のルールはすべて「お客さんは不可」になります。
     function isMember() { return isAdmin() || (signed() && hasUser() && udoc().role == 'member'); }
 
     // 現場・設定・マスタ・お知らせ・ログイン連携: みんなが読めて、管理者だけが書ける

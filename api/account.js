@@ -17,6 +17,7 @@ function toId(v) {
   const d = v.replace(/[\s\-－ー‐()（）+]/g, "").replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 65248));
   return /^\d{9,15}$/.test(d) ? d + PD : "";
 }
+const cleanSites = (a) => (Array.isArray(a) ? a : []).map((x) => String(x || "")).filter((x) => x && x.indexOf("/") < 0).slice(0, 60);
 const SUF = "~Js1"; // 電話番号アカウントは、Firebase の6文字以上の決まりに合わせて、決まった文字を足して保存する
 const isAdminEmail = (e) => ADMINS.indexOf(String(e || "").toLowerCase()) >= 0;
 
@@ -48,7 +49,10 @@ module.exports = async (req, res) => {
       const isPhone = email.slice(-PD.length) === PD;
       if (pw.length < (isPhone ? 4 : 6)) return res.status(400).json({ error: "weak_password" });
       const u = await admin.auth().createUser({ email, password: isPhone ? pw + SUF : pw, displayName: name || undefined });
-      await fs.doc("users/" + u.uid).set({ name: name || email.replace(PD, ""), email, role: b.active === false ? "pending" : "member", createdAt: Date.now() });
+      const isClient = b.client === true;
+      const udata = { name: name || email.replace(PD, ""), email, role: b.active === false ? "pending" : (isClient ? "client" : "member"), createdAt: Date.now() };
+      if (isClient) { udata.client = true; udata.clientSites = cleanSites(b.sites); }
+      await fs.doc("users/" + u.uid).set(udata);
       return res.status(200).json({ ok: true, uid: u.uid });
     }
 
@@ -82,7 +86,13 @@ module.exports = async (req, res) => {
     const patch = {};
     if (email) patch.email = email;
     if (name) patch.name = name;
-    if (typeof b.active === "boolean" && !targetIsAdmin) patch.role = b.active ? "member" : "pending";
+    const wasClient = !!(udoc.exists && (udoc.data().client === true || udoc.data().role === "client"));
+    const targetIsClient = typeof b.client === "boolean" ? b.client : wasClient;
+    if (typeof b.active === "boolean" && !targetIsAdmin) patch.role = b.active ? (targetIsClient ? "client" : "member") : "pending";
+    if (!targetIsAdmin && (targetIsClient || wasClient)) {
+      patch.client = targetIsClient;
+      patch.clientSites = targetIsClient && Array.isArray(b.sites) ? cleanSites(b.sites) : (targetIsClient ? (udoc.data().clientSites || []) : []);
+    }
     if (Object.keys(patch).length) await fs.doc("users/" + uid).set(patch, { merge: true });
     if (!Object.keys(upd).length && !Object.keys(patch).length) return res.status(400).json({ error: "nothing" });
     return res.status(200).json({ ok: true });

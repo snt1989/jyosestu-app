@@ -111,8 +111,17 @@
       if(!r.ok)throw new Error(j.error||("http"+r.status));
       return j;
     },
-    createAccount:function(o){return window.__FB.callAccount({action:"create",id:o.id,password:o.password,name:o.name,active:o.active!==false}).then(function(j){return j.uid})},
-    updateAccount:function(uid,o){return window.__FB.callAccount({action:"update",uid:uid,id:o.id||"",password:o.password||"",name:o.name||"",active:o.active})},
+    isClient:function(){return !!(cur&&cur.isClient)},
+    callClient:async function(body){
+      var u=auth.currentUser; if(!u)throw new Error("login");
+      var tok=await u.getIdToken();
+      var r=await fetch("/api/client",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify(body)});
+      var j={};try{j=await r.json()}catch(e){}
+      if(!r.ok)throw new Error(j.error||("http"+r.status));
+      return j;
+    },
+    createAccount:function(o){return window.__FB.callAccount({action:"create",id:o.id,password:o.password,name:o.name,active:o.active!==false,client:o.client===true,sites:o.sites||[]}).then(function(j){return j.uid})},
+    updateAccount:function(uid,o){return window.__FB.callAccount({action:"update",uid:uid,id:o.id||"",password:o.password||"",name:o.name||"",active:o.active,client:o.client===true,sites:o.sites})},
     deleteAccount:function(uid){return window.__FB.callAccount({action:"delete",uid:uid})}
   };
 
@@ -124,15 +133,17 @@
   }
   function disp(e){e=String(e||"");return e.slice(-PD.length)===PD?e.slice(0,-PD.length):e}
   function showLogin(){
-    var mode="in";
+    var mode="in", cust=/^\/customer\/?$/.test(location.pathname)||/[?&]c=1(&|$)/.test(location.search);
     function draw(msg,ok){
-      var el=overlay(title(mode==="in"?"ログイン":"新規登録")+
-        '<label style="font-size:.85rem;font-weight:700">電話番号<input id="fbMail" type="text" inputmode="tel" autocomplete="username" placeholder="例:09012345678" style="'+INPUT+'"></label>'+
+      var el=overlay(title(cust?"お客様ログイン":(mode==="in"?"ログイン":"新規登録"))+
+        (cust?'<p style="font-size:.85rem;color:#5C6459;line-height:1.6;margin:0 0 12px">管理会社からご案内した、IDとパスワードを入力してください。</p>':'')+
+        '<label style="font-size:.85rem;font-weight:700">'+(cust?'ID(電話番号またはメールアドレス)':'電話番号')+'<input id="fbMail" type="text" inputmode="'+(cust?'email':'tel')+'" autocomplete="username" placeholder="'+(cust?'ご案内したID':'例:09012345678')+'" style="'+INPUT+'"></label>'+
         '<label style="font-size:.85rem;font-weight:700">パスワード'+(mode==='up'?'(6文字以上)':'')+'<input id="fbPw" type="password" autocomplete="'+(mode==="in"?"current-password":"new-password")+'" style="'+INPUT+'"></label>'+
         '<div id="fbMsg" role="status" style="min-height:1.4em;font-size:.85rem;color:'+(ok?"#1E6B45":"#C1443C")+';margin-bottom:8px">'+esc(msg||"")+'</div>'+
         '<button id="fbGo" type="button" style="'+BTN+'">'+(mode==="in"?"ログイン":"登録する")+'</button>'+
         '<div style="text-align:center;margin-top:10px"></div>'+
-        (mode==="in"?'<p style="font-size:.8rem;color:#5C6459;line-height:1.6;text-align:center">ログインできないときは、管理者に連絡してください。</p>':''));
+        (mode==="in"?'<p style="font-size:.8rem;color:#5C6459;line-height:1.6;text-align:center">ログインできないときは、'+(cust?'ご案内した担当者':'管理者')+'に連絡してください。</p>':'')+
+        '<div style="text-align:center;margin-top:4px"><a href="'+(cust?'/':'/customer')+'" style="'+LINK+'font-size:.8rem">'+(cust?'社内スタッフの方はこちら':'お客様はこちら')+'</a></div>');
       var mail=el.querySelector("#fbMail"), pw=el.querySelector("#fbPw");
       var rs=el.querySelector("#fbRs"); if(rs)rs.onclick=function(){
         var m=toId(mail.value); if(!m||m.slice(-PD.length)===PD){draw(m?"電話番号のパスワード再設定は、管理者に依頼してください。":"メールアドレスを入力してください。");return}
@@ -184,8 +195,8 @@
         }
         var d=snap.data()||{}, email=String(u.email||"").toLowerCase();
         var isAdm=ADMINS.indexOf(email)>=0||d.role==="admin";
-        if(!(isAdm||d.role==="member")){showPending(u.email);return}
-        cur={u:u,d:d,isAdm:isAdm,name:d.name||u.displayName||disp(email)};
+        if(!(isAdm||d.role==="member"||d.role==="client")){showPending(u.email);return}
+        cur={u:u,d:d,isAdm:isAdm,isClient:!isAdm&&d.role==="client",name:d.name||u.displayName||disp(email)};
         resolve(cur);
       }catch(e){showPending(u.email,"確認できませんでした。通信状況と、Firestore のルールが公開されているかを確認してください。("+(e&&e.code||"error")+")")}
     });
@@ -221,7 +232,7 @@
         can:async function(){return true},
         id:async function(){return s.u.uid},
         me:async function(){return {id:s.u.uid,name:s.name}},
-        profiles:async function(ids){var us=await allUsers(),o={};(ids||[]).forEach(function(i){o[i]={id:i,name:us[i]?us[i].name:""}});return o},
+        profiles:async function(ids){var us={};try{us=await allUsers()}catch(e){}var o={};(ids||[]).forEach(function(i){o[i]={id:i,name:us[i]?us[i].name:""}});return o},
         search:async function(q){
           var us=await allUsers(), t=String(q||"").toLowerCase();
           return Object.keys(us).map(function(k){return us[k]}).filter(function(x){return !t||(x.name+" "+x.email).toLowerCase().indexOf(t)>=0}).slice(0,20).map(function(x){return {id:x.id,name:x.name||x.email}});
