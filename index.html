@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181611"</script>
+<script>window.APP_BUILD="202611181629"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1105,6 +1105,46 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   .sc .dp.none .dp-s{display:none}
   .sc .dp-v b{font-size:1.3rem}
 }
+/* 設定の現場一覧(一覧・カード)を見やすく */
+.admv-row{margin:2px 0 8px}
+.ac,.ar{border-color:#D5DDE7}
+.ac:hover,.ar:hover{border-color:var(--ink)}
+.ac .nm b,.ar .nm b{font-weight:700;letter-spacing:.01em}
+.ar .kvs{border-top:0;padding-top:0;gap:8px}
+.ar .k{background:var(--surface2);border-radius:8px;padding:6px 10px}
+.ar .k.emp{background:transparent;border:1px dashed var(--line)}
+.ar .ct{background:var(--surface2);border:0;border-left:4px solid var(--amber);border-radius:6px}
+.ar .cr{border-top-color:var(--line)}
+.ar .ed{display:flex;gap:6px}
+@media (max-width:899px){
+  .ac{grid-template-columns:32px minmax(0,1fr) auto;grid-template-areas:"ck nm ed" "ck mt mt";gap:4px 8px;padding:8px 10px;align-items:start}
+  .ac .ck{min-height:36px}
+  .ac .nm b{font-size:1rem;line-height:1.3}
+  .ac .nm span{font-size:.78rem}
+  .ac .ed{grid-area:ed;justify-self:end}
+  .ac .ed .btn:not(.primary){display:none}
+  .ac .ed .btn{min-height:36px;padding:2px 14px}
+  .ac .mt{padding-top:4px;border-top:0;gap:4px 12px}
+  .ac .c.emp,.ac .ccs,.ac .stc{display:none}
+  .ac .c small{font-size:.7rem}
+  .ar .nm b{font-size:1.02rem}
+  .ar .kvs{grid-template-columns:1fr 1fr;gap:6px}
+  .ar .k{padding:5px 9px;font-size:.9rem}
+  .ar .ed{justify-content:flex-end}
+}
+@media (min-width:900px){
+  .ac-h,.ac{grid-template-columns:36px minmax(170px,1.2fr) minmax(0,4fr) 208px;column-gap:12px}
+  .ac .ed{justify-content:flex-end}
+  .ac-h .hm,.ac .mt{grid-template-columns:minmax(70px,.8fr) 50px 70px minmax(90px,1fr) minmax(110px,1.6fr);column-gap:10px}
+  .ac .ed{gap:4px}
+  .ac .ed .btn{min-height:34px;padding:2px 10px}
+  .ac .cxl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ac:nth-child(even){background:#FBFCFD}
+}
+@media (min-width:900px){
+  .ar .kvs{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .ar .k.wide{grid-column:span 2}
+}
 </style>
 </head><body>
 
@@ -1242,7 +1282,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
           <label for="admSort"><span class="vh">並び替え</span><select id="admSort"><option value="manual">手動(↑↓で並べ替え)</option><option value="area">地区順</option><option value="name">現場名順</option><option value="crew">担当班順</option><option value="th">出動基準が大きい順</option><option value="contract">契約回数が多い順</option><option value="new">登録が新しい順</option><option value="old">登録が古い順</option></select></label>
         </div>
       </div>
-      <div class="admv-row"><div class="seg admv" id="admView" role="group" aria-label="表示の切り替え"><button type="button" data-av="list" aria-pressed="true">一覧</button><button type="button" data-av="card" aria-pressed="false">詳細</button></div></div>
+      <div class="admv-row"><div class="seg admv" id="admView" role="group" aria-label="表示の切り替え"><button type="button" data-av="list" aria-pressed="true">一覧</button><button type="button" data-av="card" aria-pressed="false">カード</button></div></div>
       <div class="panel" id="bulk" hidden>
         <div><b class="num" id="bulkN">0</b> 件を選択中。入力した項目だけを、選択した現場にまとめて反映します。</div>
         <div class="fields">
@@ -3793,6 +3833,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・設定の「現場の一覧」を「一覧」と「カード」の表示にして、見やすくしました(スマホの一覧は1件を短く、カードは項目ごとに色分け)",
       "・現場一覧(一覧表示)を短くしました(スマホは1件の高さをおよそ6割に、パソコンは1/7ほどに。警報などの細かい表示は、現場を開くと見られます)。パソコンの絞り込みは1行にまとめ、ホームの「要対応の現場」も一覧の形にしました",
       "・「日報」と「連絡」を1つのメニュー「日報・連絡」にまとめました(画面の上のボタンで切り替えます)",
       "・メニューの並び替えができるようになりました(ホームの一番下、またはパソコン表示の左メニューの「メニューの並び替え」から。この端末だけに保存されます)",

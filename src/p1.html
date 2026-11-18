@@ -1098,4 +1098,44 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   .sc .dp.none .dp-s{display:none}
   .sc .dp-v b{font-size:1.3rem}
 }
+/* 設定の現場一覧(一覧・カード)を見やすく */
+.admv-row{margin:2px 0 8px}
+.ac,.ar{border-color:#D5DDE7}
+.ac:hover,.ar:hover{border-color:var(--ink)}
+.ac .nm b,.ar .nm b{font-weight:700;letter-spacing:.01em}
+.ar .kvs{border-top:0;padding-top:0;gap:8px}
+.ar .k{background:var(--surface2);border-radius:8px;padding:6px 10px}
+.ar .k.emp{background:transparent;border:1px dashed var(--line)}
+.ar .ct{background:var(--surface2);border:0;border-left:4px solid var(--amber);border-radius:6px}
+.ar .cr{border-top-color:var(--line)}
+.ar .ed{display:flex;gap:6px}
+@media (max-width:899px){
+  .ac{grid-template-columns:32px minmax(0,1fr) auto;grid-template-areas:"ck nm ed" "ck mt mt";gap:4px 8px;padding:8px 10px;align-items:start}
+  .ac .ck{min-height:36px}
+  .ac .nm b{font-size:1rem;line-height:1.3}
+  .ac .nm span{font-size:.78rem}
+  .ac .ed{grid-area:ed;justify-self:end}
+  .ac .ed .btn:not(.primary){display:none}
+  .ac .ed .btn{min-height:36px;padding:2px 14px}
+  .ac .mt{padding-top:4px;border-top:0;gap:4px 12px}
+  .ac .c.emp,.ac .ccs,.ac .stc{display:none}
+  .ac .c small{font-size:.7rem}
+  .ar .nm b{font-size:1.02rem}
+  .ar .kvs{grid-template-columns:1fr 1fr;gap:6px}
+  .ar .k{padding:5px 9px;font-size:.9rem}
+  .ar .ed{justify-content:flex-end}
+}
+@media (min-width:900px){
+  .ac-h,.ac{grid-template-columns:36px minmax(170px,1.2fr) minmax(0,4fr) 208px;column-gap:12px}
+  .ac .ed{justify-content:flex-end}
+  .ac-h .hm,.ac .mt{grid-template-columns:minmax(70px,.8fr) 50px 70px minmax(90px,1fr) minmax(110px,1.6fr);column-gap:10px}
+  .ac .ed{gap:4px}
+  .ac .ed .btn{min-height:34px;padding:2px 10px}
+  .ac .cxl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ac:nth-child(even){background:#FBFCFD}
+}
+@media (min-width:900px){
+  .ar .kvs{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .ar .k.wide{grid-column:span 2}
+}
 </style>
