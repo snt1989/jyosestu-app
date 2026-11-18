@@ -945,6 +945,7 @@
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
+      "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
       "・お客様画面の「作業の履歴」に出す項目を、お客様管理で選べるようにしました",
       "・「日報を書く」ボタンを「完了報告」に変えました",
       "・「完了」ボタンをなくしました。完了は日報を提出したときに自動で付きます",
@@ -1217,7 +1218,7 @@
     Array.prototype.forEach.call($("siteTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.st===stab))});
     Array.prototype.forEach.call($("mTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.mt===mtab))});
     $("adm-s-list").hidden=stab!=="list"; $("adm-s-csv").hidden=stab!=="csv";
-    $("mp-area").hidden=mtab!=="area"; $("mp-crew").hidden=mtab!=="crew"; $("mp-mach").hidden=mtab!=="mach"; $("mp-work").hidden=mtab!=="work";
+    $("mp-area").hidden=mtab!=="area"; $("mp-crew").hidden=mtab!=="crew"; $("mp-work").hidden=mtab!=="work";
     $("adm-sites").hidden=sub!=="sites"; $("adm-master").hidden=sub!=="master"; $("adm-set").hidden=sub!=="set"; $("adm-members").hidden=sub!=="members"; $("adm-clients").hidden=sub!=="clients"; $("adm-photos").hidden=sub!=="photos";
     if(sub==="sites")renderAdmin();
     else if(sub==="master")renderMaster(false);
@@ -1540,7 +1541,6 @@
       return '<tr><td><input data-an="'+i+'" value="'+esc(a.name)+'" maxlength="30" aria-label="地区名"></td><td><input data-al="'+i+'" value="'+esc(a.loc||"")+'" maxlength="80" placeholder="未設定" aria-label="代表地点"></td><td class="num">'+(cnt[a.name]||0)+'</td><td><div class="row2"><button class="btn" type="button" data-mact="save" data-i="'+i+'">保存</button><button class="btn" type="button" data-mact="apply" data-i="'+i+'">地区の現場に反映</button><button class="btn danger" type="button" data-mact="del" data-i="'+i+'">削除</button></div></td></tr>';
     }).join(""):'<tr><td colspan="4" class="muted">地区が登録されていません。下の欄から追加してください。</td></tr>';
     $("ctags").innerHTML=tagList(masters.crews,"crews","担当班が登録されていません。");
-    $("mtags").innerHTML=tagList(masters.machines,"machines","使用機械が登録されていません。");
     renderWorkMaster();
     mFill(false);
   }
@@ -1619,6 +1619,46 @@
   });
 
 
+
+  /* ---------- 機械の登録・編集(機械管理の画面から) ---------- */
+  var mmArm="";
+  function machEditFill(){
+    var box=$("machEdit"); if(!box)return;
+    box.hidden=!canAdmin; if(!canAdmin)return;
+    $("mtags").innerHTML=tagList(masters.machines,"machines","使用機械が登録されていません。").replace(/data-mact="ldel" data-list="machines"/g,'data-mdel="1"');
+    var bk=$("mmBulk"); if(document.activeElement!==bk&&!bk.dataset.dirty)bk.value=masters.machines.join("\n");
+  }
+  function mmFlash(t){var el=$("mmMsg");el.textContent=t;setTimeout(function(){if(el.textContent===t)el.textContent=""},6000)}
+  $("mmBulk").addEventListener("input",function(){this.dataset.dirty="1"});
+  $("mmAdd").addEventListener("click",async function(){
+    if(!db||!canAdmin)return;
+    var name=$("mmName").value.trim();
+    if(!name){mmFlash("機械の名前を入力してください。");return}
+    if(masters.machines.indexOf(name)>=0){mmFlash("同じ名前がすでにあります。");return}
+    try{await saveList("machines",masters.machines.concat([name]));$("mmName").value="";machEditFill();render();mmFlash("「"+name+"」を追加しました。")}
+    catch(err){mmFlash("保存できませんでした。編集権限を確認してください。")}
+  });
+  $("mmName").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();$("mmAdd").click()}});
+  $("machEdit").addEventListener("click",async function(e){
+    var b=e.target.closest("[data-mdel]"); if(!b||!db||!canAdmin)return;
+    var i=+b.dataset.i, nm=masters.machines[i]; if(nm==null)return;
+    var ak="md"+i;
+    if(mmArm!==ak){mmArm=ak;var o=b.textContent;b.textContent="削除?";setTimeout(function(){if(mmArm===ak){mmArm="";b.textContent=o}},4000);return}
+    mmArm="";
+    try{await saveList("machines",masters.machines.filter(function(x,j){return j!==i}));machEditFill();render();mmFlash("「"+nm+"」を削除しました。過去の日報の記録は変わりません。")}
+    catch(err){mmFlash("保存できませんでした。編集権限を確認してください。")}
+  });
+  $("mmBulkGo").addEventListener("click",async function(){
+    if(!db||!canAdmin)return;
+    var seen={},items=[],bad="";
+    $("mmBulk").value.split(/\r?\n/).forEach(function(l){l=l.trim();if(!l||seen[l])return;seen[l]=1;if(l.length>30)bad=l;items.push(l)});
+    if(bad){mmFlash("「"+bad.slice(0,12)+"…」は名前が長すぎます(30文字まで)。");return}
+    var del=masters.machines.filter(function(x){return !seen[x]}).length;
+    if(del&&mmArm!=="bulk"){mmArm="bulk";mmFlash(del+"件が削除されます。よろしければ、もう一度押してください。");setTimeout(function(){if(mmArm==="bulk")mmArm=""},6000);return}
+    mmArm="";
+    try{await saveList("machines",items);delete $("mmBulk").dataset.dirty;machEditFill();render();mmFlash("置き換えました。")}
+    catch(err){mmFlash("保存できませんでした。編集権限を確認してください。")}
+  });
 
   /* ---------- 作業内容マスタ(契約・金額で選ぶ作業内容。単価はここに入れない) ---------- */
   var KW={all:"すべて",joset:"除雪",hai:"排雪",other:"その他"};

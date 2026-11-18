@@ -52,6 +52,17 @@
 
   <section id="v-machines" class="page" hidden>
     <div id="machBody"></div>
+    <section class="card2 csbox" id="machEdit" hidden aria-labelledby="mmT"><h3 id="mmT">機械の登録・編集</h3>
+      <p class="muted" style="margin:0 0 8px;font-size:13px">ここで登録した機械が、日報の「使用機械」の選択肢になります。</p>
+      <div class="ctags" id="mtags"></div>
+      <div class="fields"><label for="mmName">機械の名前<input id="mmName" maxlength="30" placeholder="例:除雪トラック"></label></div>
+      <div class="row2"><button class="btn primary" type="button" id="mmAdd">機械を追加</button><span class="muted" id="mmMsg" role="status"></span></div>
+      <details class="mbhelp"><summary>まとめて編集する</summary>
+        <label for="mmBulk" class="help muted">1行に1つずつ書きます</label>
+        <textarea id="mmBulk" rows="6" style="width:100%;font-family:inherit" spellcheck="false"></textarea>
+        <div class="row2" style="margin-top:8px"><button class="btn" type="button" id="mmBulkGo">この内容に置き換える</button></div>
+      </details>
+    </section>
   </section>
 
   <section id="v-reports" class="page" hidden>
@@ -184,7 +195,7 @@
 
     <div id="adm-master" hidden>
       <div class="muted" id="mMsg" role="status" style="min-height:1.5em"></div>
-      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="mach" aria-pressed="false">使用機械</button><button type="button" class="admtab" data-mt="work" aria-pressed="false">作業内容</button></div>
+      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="work" aria-pressed="false">作業内容</button></div>
       <div id="mp-area">
       <h2 class="ah">地区マスタ</h2>
       <p class="muted" style="margin:0 0 8px;max-width:80ch">地区ごとに代表地点(緯度・経度)を登録しておくと、現場に場所が入っていないとき、その地点の天気を表示します。現場を登録するときの地区の選択肢にもなります。</p>
@@ -208,14 +219,6 @@
         <div class="ctags" id="ctags"></div>
         <div class="fields"><label for="mcName">班の名前<input id="mcName" maxlength="40" placeholder="例:A班 山田"></label></div>
         <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="crews" data-in="mcName">担当班を追加</button></div>
-      </div>
-      </div>
-      <div id="mp-mach" hidden>
-      <h2 class="ah">使用機械マスタ</h2>
-      <div class="panel">
-        <div class="ctags" id="mtags"></div>
-        <div class="fields"><label for="mmName">機械の名前<input id="mmName" maxlength="30" placeholder="例:除雪トラック"></label></div>
-        <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="machines" data-in="mmName">機械を追加</button></div>
       </div>
       </div>
       <div id="mp-work" hidden>

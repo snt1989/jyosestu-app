@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181713"</script>
+<script>window.APP_BUILD="202611181717"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1264,6 +1264,17 @@ body.demo #meLine{display:none}
 
   <section id="v-machines" class="page" hidden>
     <div id="machBody"></div>
+    <section class="card2 csbox" id="machEdit" hidden aria-labelledby="mmT"><h3 id="mmT">機械の登録・編集</h3>
+      <p class="muted" style="margin:0 0 8px;font-size:13px">ここで登録した機械が、日報の「使用機械」の選択肢になります。</p>
+      <div class="ctags" id="mtags"></div>
+      <div class="fields"><label for="mmName">機械の名前<input id="mmName" maxlength="30" placeholder="例:除雪トラック"></label></div>
+      <div class="row2"><button class="btn primary" type="button" id="mmAdd">機械を追加</button><span class="muted" id="mmMsg" role="status"></span></div>
+      <details class="mbhelp"><summary>まとめて編集する</summary>
+        <label for="mmBulk" class="help muted">1行に1つずつ書きます</label>
+        <textarea id="mmBulk" rows="6" style="width:100%;font-family:inherit" spellcheck="false"></textarea>
+        <div class="row2" style="margin-top:8px"><button class="btn" type="button" id="mmBulkGo">この内容に置き換える</button></div>
+      </details>
+    </section>
   </section>
 
   <section id="v-reports" class="page" hidden>
@@ -1396,7 +1407,7 @@ body.demo #meLine{display:none}
 
     <div id="adm-master" hidden>
       <div class="muted" id="mMsg" role="status" style="min-height:1.5em"></div>
-      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="mach" aria-pressed="false">使用機械</button><button type="button" class="admtab" data-mt="work" aria-pressed="false">作業内容</button></div>
+      <div class="subtabs sm" id="mTabs" role="group" aria-label="マスタの種類"><button type="button" class="admtab" data-mt="area" aria-pressed="true">地区</button><button type="button" class="admtab" data-mt="crew" aria-pressed="false">担当班</button><button type="button" class="admtab" data-mt="work" aria-pressed="false">作業内容</button></div>
       <div id="mp-area">
       <h2 class="ah">地区マスタ</h2>
       <p class="muted" style="margin:0 0 8px;max-width:80ch">地区ごとに代表地点(緯度・経度)を登録しておくと、現場に場所が入っていないとき、その地点の天気を表示します。現場を登録するときの地区の選択肢にもなります。</p>
@@ -1420,14 +1431,6 @@ body.demo #meLine{display:none}
         <div class="ctags" id="ctags"></div>
         <div class="fields"><label for="mcName">班の名前<input id="mcName" maxlength="40" placeholder="例:A班 山田"></label></div>
         <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="crews" data-in="mcName">担当班を追加</button></div>
-      </div>
-      </div>
-      <div id="mp-mach" hidden>
-      <h2 class="ah">使用機械マスタ</h2>
-      <div class="panel">
-        <div class="ctags" id="mtags"></div>
-        <div class="fields"><label for="mmName">機械の名前<input id="mmName" maxlength="30" placeholder="例:除雪トラック"></label></div>
-        <div class="row2"><button class="btn primary" type="button" data-mact="ladd" data-list="machines" data-in="mmName">機械を追加</button></div>
       </div>
       </div>
       <div id="mp-work" hidden>
@@ -2870,7 +2873,7 @@ body.demo #meLine{display:none}
     var L={run:"稼働中",plan:"予定あり",done:"本日稼働済",idle:"待機"};
     var h='<div class="mbh"><h1 class="mbt">機械管理</h1><span class="muted">'+esc(today.replace(/-/g,"/"))+' '+p2(now.getHours())+':'+p2(now.getMinutes())+' 現在</span></div>';
     h+='<div class="mbs">'+["run","plan","done","idle"].map(function(k){return '<div class="mbsn k-'+k+'"><span class="n num">'+cnt[k]+'</span><span class="l">'+L[k]+'</span></div>'}).join("")+'</div>';
-    if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>設定のマスタで機械・備品を登録すると、ここに表示されます。</div>';
+    if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>下の「機械の登録・編集」で機械・備品を登録すると、ここに表示されます。</div>';
     else h+='<div class="mbg">'+rows.map(function(x){
       var wd=["日","月","火","水","木","金","土"];
       var bars=x.used.map(function(c,i){var d=new Date(now.getTime()-(6-i)*86400000);return '<span class="mbd'+(c?' on':'')+(i===6?' tdy':'')+'" title="'+(d.getMonth()+1)+'/'+d.getDate()+' '+c+'回"><i>'+(c||'')+'</i><em>'+wd[d.getDay()]+'</em></span>'}).join("");
@@ -2883,7 +2886,7 @@ body.demo #meLine{display:none}
         '<div class="mbf"><div class="mbds" aria-label="直近7日の稼働回数">'+bars+'</div><div class="mbse"><span class="muted">今シーズン</span><b class="num">'+x.season+'</b><small>回</small></div></div></article>';
     }).join("")+'</div>';
     h+='<p class="legend">日報の「使用機械」から自動で集計しています。開始〜終了の時刻内は「稼働中」、時刻が過ぎると「本日稼働済」と表示します。日報に機械を入れ忘れると、ここには出ません。</p>';
-    $("machBody").innerHTML=h;
+    $("machBody").innerHTML=h; machEditFill();
   }
 
   function machList(extra){
@@ -4184,6 +4187,7 @@ body.demo #meLine{display:none}
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
+      "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
       "・お客様画面の「作業の履歴」に出す項目を、お客様管理で選べるようにしました",
       "・「日報を書く」ボタンを「完了報告」に変えました",
       "・「完了」ボタンをなくしました。完了は日報を提出したときに自動で付きます",
@@ -4456,7 +4460,7 @@ body.demo #meLine{display:none}
     Array.prototype.forEach.call($("siteTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.st===stab))});
     Array.prototype.forEach.call($("mTabs").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.mt===mtab))});
     $("adm-s-list").hidden=stab!=="list"; $("adm-s-csv").hidden=stab!=="csv";
-    $("mp-area").hidden=mtab!=="area"; $("mp-crew").hidden=mtab!=="crew"; $("mp-mach").hidden=mtab!=="mach"; $("mp-work").hidden=mtab!=="work";
+    $("mp-area").hidden=mtab!=="area"; $("mp-crew").hidden=mtab!=="crew"; $("mp-work").hidden=mtab!=="work";
     $("adm-sites").hidden=sub!=="sites"; $("adm-master").hidden=sub!=="master"; $("adm-set").hidden=sub!=="set"; $("adm-members").hidden=sub!=="members"; $("adm-clients").hidden=sub!=="clients"; $("adm-photos").hidden=sub!=="photos";
     if(sub==="sites")renderAdmin();
     else if(sub==="master")renderMaster(false);
@@ -4779,7 +4783,6 @@ body.demo #meLine{display:none}
       return '<tr><td><input data-an="'+i+'" value="'+esc(a.name)+'" maxlength="30" aria-label="地区名"></td><td><input data-al="'+i+'" value="'+esc(a.loc||"")+'" maxlength="80" placeholder="未設定" aria-label="代表地点"></td><td class="num">'+(cnt[a.name]||0)+'</td><td><div class="row2"><button class="btn" type="button" data-mact="save" data-i="'+i+'">保存</button><button class="btn" type="button" data-mact="apply" data-i="'+i+'">地区の現場に反映</button><button class="btn danger" type="button" data-mact="del" data-i="'+i+'">削除</button></div></td></tr>';
     }).join(""):'<tr><td colspan="4" class="muted">地区が登録されていません。下の欄から追加してください。</td></tr>';
     $("ctags").innerHTML=tagList(masters.crews,"crews","担当班が登録されていません。");
-    $("mtags").innerHTML=tagList(masters.machines,"machines","使用機械が登録されていません。");
     renderWorkMaster();
     mFill(false);
   }
@@ -4858,6 +4861,46 @@ body.demo #meLine{display:none}
   });
 
 
+
+  /* ---------- 機械の登録・編集(機械管理の画面から) ---------- */
+  var mmArm="";
+  function machEditFill(){
+    var box=$("machEdit"); if(!box)return;
+    box.hidden=!canAdmin; if(!canAdmin)return;
+    $("mtags").innerHTML=tagList(masters.machines,"machines","使用機械が登録されていません。").replace(/data-mact="ldel" data-list="machines"/g,'data-mdel="1"');
+    var bk=$("mmBulk"); if(document.activeElement!==bk&&!bk.dataset.dirty)bk.value=masters.machines.join("\n");
+  }
+  function mmFlash(t){var el=$("mmMsg");el.textContent=t;setTimeout(function(){if(el.textContent===t)el.textContent=""},6000)}
+  $("mmBulk").addEventListener("input",function(){this.dataset.dirty="1"});
+  $("mmAdd").addEventListener("click",async function(){
+    if(!db||!canAdmin)return;
+    var name=$("mmName").value.trim();
+    if(!name){mmFlash("機械の名前を入力してください。");return}
+    if(masters.machines.indexOf(name)>=0){mmFlash("同じ名前がすでにあります。");return}
+    try{await saveList("machines",masters.machines.concat([name]));$("mmName").value="";machEditFill();render();mmFlash("「"+name+"」を追加しました。")}
+    catch(err){mmFlash("保存できませんでした。編集権限を確認してください。")}
+  });
+  $("mmName").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();$("mmAdd").click()}});
+  $("machEdit").addEventListener("click",async function(e){
+    var b=e.target.closest("[data-mdel]"); if(!b||!db||!canAdmin)return;
+    var i=+b.dataset.i, nm=masters.machines[i]; if(nm==null)return;
+    var ak="md"+i;
+    if(mmArm!==ak){mmArm=ak;var o=b.textContent;b.textContent="削除?";setTimeout(function(){if(mmArm===ak){mmArm="";b.textContent=o}},4000);return}
+    mmArm="";
+    try{await saveList("machines",masters.machines.filter(function(x,j){return j!==i}));machEditFill();render();mmFlash("「"+nm+"」を削除しました。過去の日報の記録は変わりません。")}
+    catch(err){mmFlash("保存できませんでした。編集権限を確認してください。")}
+  });
+  $("mmBulkGo").addEventListener("click",async function(){
+    if(!db||!canAdmin)return;
+    var seen={},items=[],bad="";
+    $("mmBulk").value.split(/\r?\n/).forEach(function(l){l=l.trim();if(!l||seen[l])return;seen[l]=1;if(l.length>30)bad=l;items.push(l)});
+    if(bad){mmFlash("「"+bad.slice(0,12)+"…」は名前が長すぎます(30文字まで)。");return}
+    var del=masters.machines.filter(function(x){return !seen[x]}).length;
+    if(del&&mmArm!=="bulk"){mmArm="bulk";mmFlash(del+"件が削除されます。よろしければ、もう一度押してください。");setTimeout(function(){if(mmArm==="bulk")mmArm=""},6000);return}
+    mmArm="";
+    try{await saveList("machines",items);delete $("mmBulk").dataset.dirty;machEditFill();render();mmFlash("置き換えました。")}
+    catch(err){mmFlash("保存できませんでした。編集権限を確認してください。")}
+  });
 
   /* ---------- 作業内容マスタ(契約・金額で選ぶ作業内容。単価はここに入れない) ---------- */
   var KW={all:"すべて",joset:"除雪",hai:"排雪",other:"その他"};
