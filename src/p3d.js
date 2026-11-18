@@ -11,7 +11,7 @@
     members:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.2c2.7 0 4.5 2 4.5 4.8"/>',
     admin:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'
   };
-  var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械管理"],["reports","日報"],["notes","連絡"],["chat","チャット"],["stats","集計"],["admin","設定"]];
+  var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械管理"],["reports","日報・連絡"],["chat","チャット"],["stats","集計"],["admin","設定"]];
   function goto(v,f){
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
     if(v==="members"){view="admin";sub="members"}
@@ -26,10 +26,11 @@
     if(!canAdmin&&view==="admin")view="home";
     var NAV=navOrdered();
     $("tabbar").innerHTML=NAV.map(function(t){
-      var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):view===t[0];
-      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
+      var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):t[0]==="reports"?(view==="reports"||view==="notes"):view===t[0];
+      return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー",reports:"日報・連絡"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
     }).join("")+'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a><button type="button" class="tabmo" data-act="menuorder">メニューの並び替え</button>';
-    TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
+    TABS.map(function(t){return t[0]}).concat(["notes"]).forEach(function(k){$("v-"+k).hidden=(view!==k)});
+    Array.prototype.forEach.call(document.querySelectorAll(".rn-seg button"),function(b){b.setAttribute("aria-selected",String(b.getAttribute("data-nav")===view))});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
     $("fab").classList.toggle("nof",view==="sites");
     $("upd").textContent=lastAt?timeStr(lastAt):"--:--";
@@ -800,6 +801,7 @@
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・「日報」と「連絡」を1つのメニュー「日報・連絡」にまとめました(画面の上のボタンで切り替えます)",
       "・メニューの並び替えができるようになりました(ホームの一番下、またはパソコン表示の左メニューの「メニューの並び替え」から。この端末だけに保存されます)",
       "・メニューの「機械」を「機械管理」に変えました",
       "・降雪の計算で、雨の分を雪に数えないようにしました(予報の降水を気温で雪と雨に分け、雪の分だけを表示します。気温が高い日は出動目安が出にくくなります)",
