@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611152311"</script>
+<script>window.APP_BUILD="202611181518"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -976,6 +976,23 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   .tabbar button,.tabbar a.tabext{font-size:.58rem;white-space:nowrap;letter-spacing:-.02em}
   .tabbar button .ico,.tabbar a.tabext .ico{width:19px;height:19px}
 }
+.sm{margin-top:6px}
+.sm-lb{font-size:.8rem;color:var(--muted,#5B6B7D);font-weight:700}
+.sm-main{display:flex;align-items:flex-end;gap:12px;margin:2px 0 8px;flex-wrap:wrap}
+.sm-big{display:inline-flex;align-items:baseline;gap:2px;line-height:1;color:var(--ink)}
+.sm-big b{font-family:var(--font-num);font-size:2.6rem;font-weight:700;letter-spacing:-.01em}
+.sm-big b.sz0{font-family:var(--font-body);font-size:1.5rem}
+.sm-big i{font-style:normal;font-size:1rem;font-weight:700;margin-left:2px}
+.sm-msg{font-size:.92rem;font-weight:700;color:var(--ink);padding-bottom:4px}
+.sm.some .sm-big{color:var(--accent)}
+.sm.over .sm-big,.sm.over .sm-msg{color:var(--crit)}
+.sm-g{position:relative;height:16px;background:var(--track);border-radius:3px;margin-bottom:22px}
+.sm-f{height:100%;background:var(--accent);border-radius:3px 0 0 3px}
+.sm.over .sm-f{background:var(--crit)}
+.sm-t{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;background:var(--ink)}
+.sm-t em{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;font-style:normal;font-size:.75rem;font-weight:700;white-space:nowrap;color:var(--ink)}
+.sr .sm-big b{font-size:1.9rem}
+.sr .sm-main{margin-bottom:6px}
 </style>
 </head><body>
 
@@ -1720,9 +1737,22 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     if(a.snowing)h+='<span class="tag ice">降雪中</span>';
     return h?'<div class="alerts">'+h+'</div>':'';
   }
+  function snowBig(v){
+    if(v<=0)return '<b class="num sz0">なし</b>';
+    if(v<1)return '<b class="num">&lt;1</b><i>cm</i>';
+    return '<b class="num">'+Math.round(v)+'</b><i>cm</i>';
+  }
+  function snowMsg(v,th){
+    if(v<=0)return '雪の予報はありません';
+    if(v>=th){var r=v/th;return '基準'+th+'cmを超える見込み('+(r>=10?Math.round(r):(Math.round(r*10)/10))+'倍)'}
+    var left=Math.max(1,Math.round(th-v));return '基準まであと約'+left+'cm';
+  }
   function meterHtml(a){
-    var th=a.th||10, pct=Math.min(100,Math.round(a.snow2/th*100));
-    return '<div class="sn"><span>降雪目安 <b class="num">'+snowLabel(a.snow2)+'</b></span><span class="muted">基準 '+th+'cm</span></div><div class="track" role="img" aria-label="出動基準に対して'+pct+'パーセント"><div class="fill'+(a.snow2>=th?' hot':'')+'" style="width:'+pct+'%"></div></div>';
+    var th=a.th||10, v=a.snow2||0, over=v>=th, mx=Math.max(th*2,v);
+    var fp=Math.min(100,Math.round(v/mx*100)), mp=Math.round(th/mx*100);
+    return '<div class="sm'+(over?' over':v>0?' some':'')+'"><div class="sm-top"><span class="sm-lb">今後2日の降雪予想</span></div>'+
+      '<div class="sm-main"><span class="sm-big">'+snowBig(v)+'</span><span class="sm-msg">'+esc(snowMsg(v,th))+'</span></div>'+
+      '<div class="sm-g" role="img" aria-label="降雪予想'+snowLabel(v)+'、出動基準'+th+'センチ"><div class="sm-f" style="width:'+fp+'%"></div><div class="sm-t" style="left:'+mp+'%"><em>基準'+th+'cm</em></div></div></div>';
   }
   function wxState(s){
     var w=wx[s.id];
@@ -2359,7 +2389,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     var s=p.s, a=p.a, st=stOf(s);
     return '<div class="mpp"><b>'+esc(s.name)+'</b><div class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</div>'+
       '<div class="mpp-r"><span class="pill l'+a.lv+'">'+esc(a.label)+'</span><span class="tag">'+esc(ST[st])+'</span></div>'+
-      (a.lv>0?'<div>降雪目安 <b>約'+fmt(a.snow2,0)+'cm</b> / 基準'+esc(s.threshold||10)+'cm</div>':'')+
+      (a.lv>0?'<div>今後2日の降雪予想 <b>約'+fmt(a.snow2,0)+'cm</b>(基準'+esc(s.threshold||10)+'cm)</div>':'')+
       (siteHands(s).length?'<div>引渡 '+esc(handText(s,1))+'</div>':'')+
       (p.q==="d"?'<div class="mpp-n">住所から割り出した位置です。ずれている場合は'+(canAdmin?'「位置を直す」で動かせます。':'管理者にお知らせください。')+'</div>':p.q!=="m"?'<div class="mpp-n">位置は目安です('+(p.q==="a"?'地区の代表地点':'市区町村の中心付近')+')。'+(canAdmin?'「位置を直す」で正しい場所に動かせます。':'')+'</div>':'')+
       '<div class="mpp-r"><button class="btn sm primary" type="button" data-mopen="'+esc(s.id)+'">詳細を見る</button>'+(canAdmin?'<button class="btn sm" type="button" data-mfix="'+esc(s.id)+'">位置を直す</button>':'')+'</div></div>';
@@ -3607,6 +3637,9 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   }
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
+    {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・積雪量を見やすくしました(大きな数字で「今後2日の降雪予想」を表示し、出動基準との差や倍率、目盛りつきのメーターで一目で分かります)"
+    ]},
     {v:"2026.11.15",title:"アプリを更新しました(2026.11.15)",body:[
       "・チャット機能を追加しました(下の「チャット」タブ。全体と、班ごとのルームがあります)",
       "・要対応(警戒・出動目安)の現場を、プッシュ通知でお知らせします",

@@ -44,9 +44,22 @@
     if(a.snowing)h+='<span class="tag ice">降雪中</span>';
     return h?'<div class="alerts">'+h+'</div>':'';
   }
+  function snowBig(v){
+    if(v<=0)return '<b class="num sz0">なし</b>';
+    if(v<1)return '<b class="num">&lt;1</b><i>cm</i>';
+    return '<b class="num">'+Math.round(v)+'</b><i>cm</i>';
+  }
+  function snowMsg(v,th){
+    if(v<=0)return '雪の予報はありません';
+    if(v>=th){var r=v/th;return '基準'+th+'cmを超える見込み('+(r>=10?Math.round(r):(Math.round(r*10)/10))+'倍)'}
+    var left=Math.max(1,Math.round(th-v));return '基準まであと約'+left+'cm';
+  }
   function meterHtml(a){
-    var th=a.th||10, pct=Math.min(100,Math.round(a.snow2/th*100));
-    return '<div class="sn"><span>降雪目安 <b class="num">'+snowLabel(a.snow2)+'</b></span><span class="muted">基準 '+th+'cm</span></div><div class="track" role="img" aria-label="出動基準に対して'+pct+'パーセント"><div class="fill'+(a.snow2>=th?' hot':'')+'" style="width:'+pct+'%"></div></div>';
+    var th=a.th||10, v=a.snow2||0, over=v>=th, mx=Math.max(th*2,v);
+    var fp=Math.min(100,Math.round(v/mx*100)), mp=Math.round(th/mx*100);
+    return '<div class="sm'+(over?' over':v>0?' some':'')+'"><div class="sm-top"><span class="sm-lb">今後2日の降雪予想</span></div>'+
+      '<div class="sm-main"><span class="sm-big">'+snowBig(v)+'</span><span class="sm-msg">'+esc(snowMsg(v,th))+'</span></div>'+
+      '<div class="sm-g" role="img" aria-label="降雪予想'+snowLabel(v)+'、出動基準'+th+'センチ"><div class="sm-f" style="width:'+fp+'%"></div><div class="sm-t" style="left:'+mp+'%"><em>基準'+th+'cm</em></div></div></div>';
   }
   function wxState(s){
     var w=wx[s.id];
