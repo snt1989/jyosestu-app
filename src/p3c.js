@@ -338,7 +338,7 @@
     rows.sort(function(a,b){return ord[a.st]-ord[b.st]||a.m.localeCompare(b.m,"ja")});
     var cnt={run:0,plan:0,done:0,idle:0}; rows.forEach(function(r){cnt[r.st]++});
     var L={run:"稼働中",plan:"予定あり",done:"本日稼働済",idle:"待機"};
-    var h='<div class="mbh"><h1 class="mbt">機械・備品の稼働</h1><span class="muted">'+esc(today.replace(/-/g,"/"))+' '+p2(now.getHours())+':'+p2(now.getMinutes())+' 現在</span></div>';
+    var h='<div class="mbh"><h1 class="mbt">機械管理</h1><span class="muted">'+esc(today.replace(/-/g,"/"))+' '+p2(now.getHours())+':'+p2(now.getMinutes())+' 現在</span></div>';
     h+='<div class="mbs">'+["run","plan","done","idle"].map(function(k){return '<div class="mbsn k-'+k+'"><span class="n num">'+cnt[k]+'</span><span class="l">'+L[k]+'</span></div>'}).join("")+'</div>';
     if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>設定のマスタで機械・備品を登録すると、ここに表示されます。</div>';
     else h+='<div class="mbg">'+rows.map(function(x){
