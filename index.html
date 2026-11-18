@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181732"</script>
+<script>window.APP_BUILD="202611181734"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1269,6 +1269,39 @@ body.demo #meLine{display:none}
 .mmtbl th{background:transparent}
 @media (max-width:720px){.mfs{gap:6px}.mf{padding:8px 2px}.mf b{font-size:1.25rem}.mf span{font-size:.68rem}
 .mmtbl tbody tr:nth-child(even){background:var(--surface)}}
+
+/* ---- 現場詳細(見やすく) ---- */
+#detail .page{max-width:1040px}
+.dv .dvhero{position:relative;padding:18px 20px 16px;border-radius:14px;color:#fff;background:linear-gradient(135deg,#14243a,#1d3552);border-bottom:5px solid #5b6f86;overflow:hidden}
+.dv .dvhero.lv3{border-bottom-color:var(--crit)}.dv .dvhero.lv2{border-bottom-color:var(--amber)}.dv .dvhero.lv1{border-bottom-color:#4f8fd6}
+.dvhero::after{content:"";position:absolute;right:-30px;top:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%);pointer-events:none}
+.dvhero .hrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.dvhero .hnm{margin:10px 0 10px;font-size:1.55rem;line-height:1.25;font-weight:800;letter-spacing:.01em;overflow-wrap:anywhere}
+.dvhero .hch{display:flex;flex-wrap:wrap;gap:6px}
+.dvhero .hc{font-size:.82rem;font-weight:600;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.14);color:#e9f0f8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none}
+.dvhero .hc.map{background:rgba(255,255,255,.22)}
+.dvhero .hst{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:.9rem;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.14)}
+.dvhero .hst i{width:9px;height:9px;border-radius:50%;background:#9fb4c7}
+.dvhero .hst.k-out{background:var(--ok);color:#fff}.dvhero .hst.k-out i{background:#fff}
+.dvhero .hst.k-prep{background:var(--amber);color:var(--brand)}.dvhero .hst.k-prep i{background:var(--brand)}
+.dvhero .hst small{font-weight:500;opacity:.85}
+.dv .dvtop{display:grid;gap:14px;margin-top:14px;align-items:start}
+.dv .dvtop .dva{margin-top:0}
+@media (max-width:959px){.dv .dvtop .dva{order:-1}}
+.dv .dvh,.dv .dva{box-shadow:0 1px 3px rgba(15,27,42,.07)}
+.dvdone{width:100%;min-height:50px;font-size:1.02rem;margin-top:12px}
+.dvact{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.dv .dvcols{display:grid;gap:0 18px;align-items:start}
+.dv .dvi,.dv .dvc{box-shadow:0 1px 3px rgba(15,27,42,.07);border-radius:14px}
+.dvt{background:var(--surface2)}
+.dvt .tl{background:var(--surface)}
+.dvt .tl b{font-size:1.5rem}
+.dcb .bar{height:12px}
+.dcb .bar i{background:linear-gradient(90deg,#2f7dd1,#1f5fa8)}
+.dv .sec h2{font-size:1.05rem}
+@media (min-width:960px){.dv .dvtop{grid-template-columns:1.25fr 1fr}.dv .dvcols{grid-template-columns:1fr 1fr}.dvhero .hnm{font-size:1.8rem}}
+@media (max-width:420px){.dvact .btn{padding-inline:4px;font-size:.88rem}.dvhero{padding:16px}}
+.dvr a.btn.sm{color:var(--ink);text-decoration:none;font-weight:600}
 </style>
 </head><body>
 
@@ -2482,8 +2515,11 @@ body.demo #meLine{display:none}
   function detailHtml(s){
     if(isClient)return clientDetailHtml(s);
     var a=assess(s), w=wx[s.id], id=esc(s.id), h='<div class="dv">';
-    var bad=wxState(s);
-    h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</span></div>';
+    var bad=wxState(s), hs0=siteHands(s), st0=stOf(s);
+    h+='<div class="dvhero lv'+a.lv+'"><div class="hrow"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="hst k-'+st0+'"><i></i>'+esc(ST[st0]||"")+(stAt(s)?' <small>'+timeStr(stAt(s))+'</small>':'')+'</span></div><h1 class="hnm">'+esc(s.name)+'</h1><div class="hch">'+
+      (s.area?'<span class="hc">'+esc(s.area)+'</span>':'')+(siteCrews(s)[0]?'<span class="hc">担当 '+esc(siteCrews(s).join("・"))+'</span>':'')+(hs0.length?'<span class="hc">引渡 '+esc(handText(s,1))+'</span>':'')+
+      (s.address?'<a class="hc map" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">'+esc(s.address)+'</a>':'')+'</div></div>';
+    h+='<div class="dvtop"><div class="card2 dvh">';
     if(bad)h+=bad;
     else{
       var c=w.cur||{};
@@ -2493,19 +2529,19 @@ body.demo #meLine{display:none}
     if(mcp)h+='<div style="margin-top:6px"><button class="link" type="button" data-act="retry" data-id="'+id+'">この現場の天気を更新</button></div>';
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
-      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">完了報告</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div><div class="row2" style="margin-top:8px"><button class="btn" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">この現場のチャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'" style="flex:1">報告書を作る</button></div></div>';
+      '<button class="btn primary dvdone" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+'>完了報告を出す</button><div class="dvact"><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+'>連絡を書く</button><button class="btn" type="button" data-act="sitechat" data-id="'+id+'">チャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'">報告書</button></div></div></div>';
     h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
     var n=siteSeasonCount(s.id), sl=siteLines(s);
-    h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
+    h+='<div class="dvcols"><div><div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
     h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>平米数</span>'+(+s.sqm>0?'<b class="num">'+esc(sqmText(s).replace(" ㎡",""))+'<small> ㎡</small></b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>引渡時間</span>'+(siteHands(s).length?'<b class="num hd">'+siteHands(s).map(function(h){return '<span>'+(h.label?'<small>'+esc(h.label)+' </small>':'')+esc(h.time)+'</span>'}).join("")+'</b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
     h+='<div class="dvr"><span class="k">住所</span><div class="v">'+(s.address?esc(s.address)+'<a class="btn sm" style="margin-left:8px" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図を開く</a>':'<span class="muted">未登録</span>')+'</div></div>';
     h+='<div class="dvr"><span class="k">メモ</span><div class="v" style="white-space:pre-wrap">'+(s.note?esc(s.note):'<span class="muted">なし</span>')+'</div></div></div>';
-    h+='<div class="sec" id="dvCt"><h2>契約・単価'+(canAdmin?admBadge():'')+'</h2></div><div class="card2 dvc">'+sl.map(function(l){
+    h+='</div><div><div class="sec" id="dvCt"><h2>契約・単価'+(canAdmin?admBadge():'')+'</h2></div><div class="card2 dvc">'+sl.map(function(l){
       var m=l.kind==="other"?null:siteSeasonCountK(s.id,l.kind), over=m!=null&&l.count&&m>l.count, pc=l.count&&m!=null?Math.min(100,Math.round(m/l.count*100)):0;
       return '<div class="dcr"><div class="dcn"><b>'+esc(lineLabel(l)||"全作業")+'</b>'+(over?'<span class="tag ice">契約回数を超過</span>':'')+'</div>'+
         (canAdmin?'<div class="dcp">'+(l.unitPrice>0?'<b class="num">'+yen(l.unitPrice)+'</b><small> / '+(l.unit==="時間"?"時間":"回")+'</small>':'<span class="muted">単価 未登録</span>')+'</div>':'')+
         '<div class="dcb">'+(l.count?'<div class="bar'+(over?' over':'')+'"><i style="width:'+pc+'%"></i></div><div class="bt">'+(m==null?'':'出動 <b class="num">'+m+'</b>回 / ')+'契約 <b class="num">'+l.count+'</b>回</div>':'<div class="bt muted">'+(m==null?'契約回数なし':'出動 <b class="num">'+m+'</b>回(契約回数の設定なし)')+'</div>')+'</div></div>';
-    }).join("")+'</div>';
+    }).join("")+'</div></div></div>';
     h+=siteDrawSec(s)+sitePhotoSec(s);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
     h+='<div class="sec" id="dvRp"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
@@ -4263,6 +4299,7 @@ body.demo #meLine{display:none}
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・現場の詳細画面を見やすくしました。上部に現場名・状況・地区・担当・引渡時間をまとめ、パソコンでは2列で表示します",
       "・機械管理の画面を見やすくしました。状態ごとの絞り込み、種類・保管場所・品番の表示を追加しました",
       "・「機械管理」に機械の一覧表を追加しました。保管場所・種類・機械名・品番・備考を登録できます",
       "・お客様画面の「作業の履歴」に出す項目を、お客様管理で選べるようにしました",

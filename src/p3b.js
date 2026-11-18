@@ -434,8 +434,11 @@
   function detailHtml(s){
     if(isClient)return clientDetailHtml(s);
     var a=assess(s), w=wx[s.id], id=esc(s.id), h='<div class="dv">';
-    var bad=wxState(s);
-    h+='<div class="card2 dvh"><div class="top" style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="muted">'+esc([s.area,s.crew?('担当 '+s.crew):''].filter(Boolean).join('　'))+'</span></div>';
+    var bad=wxState(s), hs0=siteHands(s), st0=stOf(s);
+    h+='<div class="dvhero lv'+a.lv+'"><div class="hrow"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="hst k-'+st0+'"><i></i>'+esc(ST[st0]||"")+(stAt(s)?' <small>'+timeStr(stAt(s))+'</small>':'')+'</span></div><h1 class="hnm">'+esc(s.name)+'</h1><div class="hch">'+
+      (s.area?'<span class="hc">'+esc(s.area)+'</span>':'')+(siteCrews(s)[0]?'<span class="hc">担当 '+esc(siteCrews(s).join("・"))+'</span>':'')+(hs0.length?'<span class="hc">引渡 '+esc(handText(s,1))+'</span>':'')+
+      (s.address?'<a class="hc map" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">'+esc(s.address)+'</a>':'')+'</div></div>';
+    h+='<div class="dvtop"><div class="card2 dvh">';
     if(bad)h+=bad;
     else{
       var c=w.cur||{};
@@ -445,19 +448,19 @@
     if(mcp)h+='<div style="margin-top:6px"><button class="link" type="button" data-act="retry" data-id="'+id+'">この現場の天気を更新</button></div>';
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
-      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">完了報告</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div><div class="row2" style="margin-top:8px"><button class="btn" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">この現場のチャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'" style="flex:1">報告書を作る</button></div></div>';
+      '<button class="btn primary dvdone" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+'>完了報告を出す</button><div class="dvact"><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+'>連絡を書く</button><button class="btn" type="button" data-act="sitechat" data-id="'+id+'">チャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'">報告書</button></div></div></div>';
     h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
     var n=siteSeasonCount(s.id), sl=siteLines(s);
-    h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
+    h+='<div class="dvcols"><div><div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
     h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>平米数</span>'+(+s.sqm>0?'<b class="num">'+esc(sqmText(s).replace(" ㎡",""))+'<small> ㎡</small></b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>引渡時間</span>'+(siteHands(s).length?'<b class="num hd">'+siteHands(s).map(function(h){return '<span>'+(h.label?'<small>'+esc(h.label)+' </small>':'')+esc(h.time)+'</span>'}).join("")+'</b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
     h+='<div class="dvr"><span class="k">住所</span><div class="v">'+(s.address?esc(s.address)+'<a class="btn sm" style="margin-left:8px" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">地図を開く</a>':'<span class="muted">未登録</span>')+'</div></div>';
     h+='<div class="dvr"><span class="k">メモ</span><div class="v" style="white-space:pre-wrap">'+(s.note?esc(s.note):'<span class="muted">なし</span>')+'</div></div></div>';
-    h+='<div class="sec" id="dvCt"><h2>契約・単価'+(canAdmin?admBadge():'')+'</h2></div><div class="card2 dvc">'+sl.map(function(l){
+    h+='</div><div><div class="sec" id="dvCt"><h2>契約・単価'+(canAdmin?admBadge():'')+'</h2></div><div class="card2 dvc">'+sl.map(function(l){
       var m=l.kind==="other"?null:siteSeasonCountK(s.id,l.kind), over=m!=null&&l.count&&m>l.count, pc=l.count&&m!=null?Math.min(100,Math.round(m/l.count*100)):0;
       return '<div class="dcr"><div class="dcn"><b>'+esc(lineLabel(l)||"全作業")+'</b>'+(over?'<span class="tag ice">契約回数を超過</span>':'')+'</div>'+
         (canAdmin?'<div class="dcp">'+(l.unitPrice>0?'<b class="num">'+yen(l.unitPrice)+'</b><small> / '+(l.unit==="時間"?"時間":"回")+'</small>':'<span class="muted">単価 未登録</span>')+'</div>':'')+
         '<div class="dcb">'+(l.count?'<div class="bar'+(over?' over':'')+'"><i style="width:'+pc+'%"></i></div><div class="bt">'+(m==null?'':'出動 <b class="num">'+m+'</b>回 / ')+'契約 <b class="num">'+l.count+'</b>回</div>':'<div class="bt muted">'+(m==null?'契約回数なし':'出動 <b class="num">'+m+'</b>回(契約回数の設定なし)')+'</div>')+'</div></div>';
-    }).join("")+'</div>';
+    }).join("")+'</div></div></div>';
     h+=siteDrawSec(s)+sitePhotoSec(s);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
     h+='<div class="sec" id="dvRp"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
