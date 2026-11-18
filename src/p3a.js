@@ -62,6 +62,7 @@
   function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
   function myCrews(){return String(myCrewName()).split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
   var isClient=false;   // お客さんのアカウント(閲覧と連絡だけ)
+  var demoOn=false, demoIds=null, demoMsgs=[];   // 管理者が「お客様の見え方」を確認するデモ
   function chatVisible(m){
     var rm=String(m.room||"all");
     if(isClient)return rm.indexOf("client:")===0;
@@ -71,11 +72,12 @@
   }
   function applyScope(){
     var c=myCrewName(), vs={}, all=canAdmin||isClient;
-    sites=RAW.sites.filter(function(s){var v=all||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
+    sites=RAW.sites.filter(function(s){var v=all?(!demoIds||demoIds.indexOf(s.id)>=0):(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
     ops={};Object.keys(RAW.ops).forEach(function(k){if(all||vs[k])ops[k]=RAW.ops[k]});
     reports=RAW.reports.filter(function(r){return all||vs[r.siteId]});
     notes=RAW.notes.filter(function(n){return all||!n.siteId||vs[n.siteId]});
     chat=RAW.chat.filter(function(m){return chatVisible(m)});
+    if(demoOn)chat=chat.concat(demoMsgs.filter(function(m){return chatVisible(m)})).sort(function(a,b){return (a.at||0)-(b.at||0)});
     sphotos=RAW.sphotos.filter(function(x){return all||vs[x.siteId]});
     announcements=RAW.ann.filter(annVisible);
   }

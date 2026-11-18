@@ -87,6 +87,7 @@
     else if(act==="retry"){if(s)loadOne(s,true)}
     else if(act==="menuorder"){openMenuOrder()}
     else if(act==="sitechat"){chRoom=(isClient?"client:":"site:")+id;chStick=true;closeSheet("detail");goto("chat")}
+    else if(act==="demoend"){demoEnd()}
     else if(act==="clientchat"){chRoom="client:"+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="hourly"){if(s)openHourly(s)}
     else if(act==="edit"){if(canAdmin)openDlg(id)}
@@ -635,7 +636,7 @@
       var id=esc(m.id), askDel=cmDel===m.id, names=cmSiteNames(m), ch=String(m.name||"?").charAt(0);
       var bd=(m.active===false?'<i class="mxb off">停止中</i>':'')+(m.uid?'':'<i class="mxb warn">ログイン未設定</i>');
       return '<article class="mxr'+(m.active===false?' off':'')+'"><span class="mxav c" aria-hidden="true">'+esc(ch)+'</span><div class="mxm"><div class="mxn"><b>'+esc(m.name)+'</b>'+bd+'</div><div class="mxs">'+esc(m.phone||"")+(names.length?'　見られる現場 '+names.length+'件('+esc(names.slice(0,2).join("・")+(names.length>2?" ほか":""))+')':'　見られる現場なし')+(m.note?'　'+esc(m.note):'')+'</div></div>'+
-        '<div class="mxe"><button class="btn sm" type="button" data-cm="edit" data-id="'+id+'">編集</button><button class="mxdel'+(askDel?' on':'')+'" type="button" data-cm="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div></article>';
+        '<div class="mxe"><button class="btn sm" type="button" data-cm="demo" data-id="'+id+'">見え方</button><button class="btn sm" type="button" data-cm="edit" data-id="'+id+'">編集</button><button class="mxdel'+(askDel?' on':'')+'" type="button" data-cm="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div></article>';
     }).join("")+'</div>':'<div class="empty"><b>'+(all.length?'該当するお客様はいません':'お客様が登録されていません')+'</b>'+(all.length?'':'「お客様を登録」から、IDとパスワード、見られる現場を決めてください。')+'</div>';
   }
   function cmPicked(){return Array.prototype.map.call($("cmSites").querySelectorAll("input:checked"),function(i){return i.value})}
@@ -692,6 +693,7 @@
   $("cmList").addEventListener("click",async function(e){
     var b=e.target.closest("button[data-cm]"); if(!b)return;
     var id=b.dataset.id, m=members.filter(function(x){return x.id===id})[0]; if(!m)return;
+    if(b.dataset.cm==="demo"){demoStart(m.sites||[],m.name);return}
     if(b.dataset.cm==="edit"){cmDel=null;cmOpen(m);window.scrollTo({top:0,behavior:"smooth"});return}
     if(cmDel!==id){cmDel=id;renderClients();clearTimeout(cmOpen.t);cmOpen.t=setTimeout(function(){cmDel=null;renderClients()},4000);return}
     cmDel=null;
@@ -699,6 +701,32 @@
       await db.doc("members/"+id).delete();if(m.uid){try{await db.doc("access/"+m.uid).delete()}catch(e1){}}toast("「"+m.name+"」を削除しました。")}catch(err){toast("削除できませんでした。");renderClients()}
   });
 
+  /* ---------- お客様画面のデモ(管理者が、お客様の見え方を確認する。保存・送信はしない) ---------- */
+  var demoSave=null;
+  function demoStart(ids,name){
+    var vis=(ids||[]).filter(function(id){return RAW.sites.some(function(s){return s.id===id})});
+    if(!vis.length){toast("見られる現場が設定されていません。");return}
+    if(demoOn)return;
+    demoSave={canAdmin:canAdmin,canStatus:canStatus,myName:myName,view:view,sub:sub};
+    demoOn=true; demoIds=vis; demoMsgs=[]; isClient=true; canAdmin=false; canStatus=false; myName=name||"デモのお客様";
+    document.body.classList.add("custm","demo");
+    var bar=document.createElement("div"); bar.id="demoBar"; bar.setAttribute("role","status");
+    bar.innerHTML='<span><b>お客様画面のデモ</b>　「'+esc(myName)+'」さんの見え方です。連絡は保存・送信されません。</span><button type="button" class="btn sm" data-act="demoend">デモを終える</button>';
+    document.body.insertBefore(bar,document.body.firstChild);
+    chRoom=""; view="home"; applyScope(); render(); window.scrollTo(0,0);
+  }
+  function demoEnd(){
+    if(!demoOn)return;
+    var b=$("demoBar"); if(b)b.remove();
+    document.body.classList.remove("custm","demo");
+    demoOn=false; demoIds=null; demoMsgs=[]; isClient=false;
+    canAdmin=demoSave.canAdmin; canStatus=demoSave.canStatus; myName=demoSave.myName; chRoom="all";
+    closeSheet("detail"); applyScope(); goto("clients");
+  }
+  $("cmDemo").addEventListener("click",function(){
+    var ids=RAW.sites.slice(0,3).map(function(s){return s.id});
+    demoStart(ids,"デモのお客様");
+  });
   /* ---------- お知らせ(ベル) ---------- */
   var announcements=[], readMap={}, annFirst=true, annEdit=null;
   function fmtDT(t){if(!t)return "";var d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+timeStr(t)}
@@ -891,6 +919,7 @@
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・お客様管理の「お客様画面のデモを見る」「見え方」で、お客様に見える画面を確認できます(保存・送信はされません)",
       "・メンバー管理の画面を見やすくしました(担当班ごとにまとめ、1人1行に。お客さんは別のグループ。説明文は折りたたみに)",
       "・お客さん用のログイン画面(/customer)を追加しました。「お客様管理」(メンバー管理とは別の画面)でお客様を登録し、見られる現場を選ぶと、その現場の状況・作業の履歴と、管理会社への連絡だけを見られます。連絡はチャットの「お客様」で受け取れます",
       "・チャットを「全体」「業者(班)ごと」「現場ごと」に分けました(現場の詳細の「この現場のチャット」からも開けます。現場のチャットは、その現場の担当班と管理者だけに見えます)",

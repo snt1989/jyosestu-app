@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181647"</script>
+<script>window.APP_BUILD="202611181652"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1191,6 +1191,10 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
 .mbhelp{margin-top:18px;font-size:.85rem;color:var(--muted)}
 .mbhelp summary{cursor:pointer;min-height:36px;display:flex;align-items:center}
 .mbhelp .legend{margin:4px 0 0}
+#demoBar{position:sticky;top:0;z-index:250;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--amber);color:#2A1D00;padding:8px 14px;font-size:.88rem}
+#demoBar .btn{background:#fff;color:var(--ink);min-height:34px}
+.mbhead{gap:8px;flex-wrap:wrap}
+body.demo #meLine{display:none}
 </style>
 </head><body>
 
@@ -1478,7 +1482,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     </div>
 
     <div id="adm-clients" hidden>
-      <div class="ahead mbhead"><button class="btn primary" type="button" id="cmAdd">＋ お客様を登録</button></div>
+      <div class="ahead mbhead"><button class="btn" type="button" id="cmDemo">お客様画面のデモを見る</button><button class="btn primary" type="button" id="cmAdd">＋ お客様を登録</button></div>
       <div class="mbstat" id="cmStat"></div>
       <form class="card2 f" id="cmForm" hidden style="padding:0 0 4px;max-width:760px">
         <h3 class="mbft" id="cmFormTitle">お客様を登録</h3>
@@ -1751,6 +1755,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
   function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
   function myCrews(){return String(myCrewName()).split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
   var isClient=false;   // お客さんのアカウント(閲覧と連絡だけ)
+  var demoOn=false, demoIds=null, demoMsgs=[];   // 管理者が「お客様の見え方」を確認するデモ
   function chatVisible(m){
     var rm=String(m.room||"all");
     if(isClient)return rm.indexOf("client:")===0;
@@ -1760,11 +1765,12 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
   }
   function applyScope(){
     var c=myCrewName(), vs={}, all=canAdmin||isClient;
-    sites=RAW.sites.filter(function(s){var v=all||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
+    sites=RAW.sites.filter(function(s){var v=all?(!demoIds||demoIds.indexOf(s.id)>=0):(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
     ops={};Object.keys(RAW.ops).forEach(function(k){if(all||vs[k])ops[k]=RAW.ops[k]});
     reports=RAW.reports.filter(function(r){return all||vs[r.siteId]});
     notes=RAW.notes.filter(function(n){return all||!n.siteId||vs[n.siteId]});
     chat=RAW.chat.filter(function(m){return chatVisible(m)});
+    if(demoOn)chat=chat.concat(demoMsgs.filter(function(m){return chatVisible(m)})).sort(function(a,b){return (a.at||0)-(b.at||0)});
     sphotos=RAW.sphotos.filter(function(x){return all||vs[x.siteId]});
     announcements=RAW.ann.filter(annVisible);
   }
@@ -3040,7 +3046,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     var list=chat.filter(function(m){return (m.room||"all")===chRoom}), h="", last="";
     list.forEach(function(m){
       var dy=chDay(m.at||0); if(dy!==last){h+='<div class="chday"><span>'+dy+'</span></div>';last=dy}
-      var mine=m.by===myId;
+      var mine=demoOn?(m.fromClient===true):m.by===myId;
       h+='<div class="chm'+(mine?' me':'')+'"><div class="chb">'+(mine?'':'<div class="chw">'+esc(isClient?"管理会社のスタッフ":who(m.by))+'</div>')+'<div class="cht">'+esc(m.text||"")+'</div></div><div class="chi">'+timeStr(m.at||0)+((!isClient&&(mine||canAdmin))?' <button type="button" class="link chx" data-act="chdel" data-id="'+esc(m.id)+'">削除</button>':'')+'</div></div>';
     });
     $("chList").innerHTML=h||'<div class="empty"><b>まだメッセージはありません</b>'+(chRoom==="all"?'全員が見られるチャットです。':esc(chName(chRoom))+(chGroupOf(chRoom)==="site"?'の担当班と管理者だけが見られます。':chGroupOf(chRoom)==="client"?'のお客様と、担当班・管理者だけが見られます。お客様への返信はここに書きます。':'のメンバーと管理者だけが見られます。'))+'</div>';
@@ -3071,7 +3077,10 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     $("chSend").disabled=true;
     try{
       var grp=chGroupOf(chRoom);
-      if(isClient){
+      if(demoOn){
+        demoMsgs.push({id:"demo"+Date.now(),room:chRoom,siteId:chRoom.slice(7),text:text,at:Date.now(),fromClient:true,kind:"chat"});
+        applyScope(); toast("デモのため、この連絡は保存・送信されません。");
+      }else if(isClient){
         var rc=await window.__FB.callClient({action:"send",siteId:chRoom.slice(7),text:text});
         RAW.chat.push({id:rc.id,room:chRoom,siteId:chRoom.slice(7),text:text,at:rc.at||Date.now(),by:myId||"",kind:"chat"});
         applyScope(); pwaNotify("cmsg",rc.id);
@@ -3270,6 +3279,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
     else if(act==="retry"){if(s)loadOne(s,true)}
     else if(act==="menuorder"){openMenuOrder()}
     else if(act==="sitechat"){chRoom=(isClient?"client:":"site:")+id;chStick=true;closeSheet("detail");goto("chat")}
+    else if(act==="demoend"){demoEnd()}
     else if(act==="clientchat"){chRoom="client:"+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="hourly"){if(s)openHourly(s)}
     else if(act==="edit"){if(canAdmin)openDlg(id)}
@@ -3818,7 +3828,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
       var id=esc(m.id), askDel=cmDel===m.id, names=cmSiteNames(m), ch=String(m.name||"?").charAt(0);
       var bd=(m.active===false?'<i class="mxb off">停止中</i>':'')+(m.uid?'':'<i class="mxb warn">ログイン未設定</i>');
       return '<article class="mxr'+(m.active===false?' off':'')+'"><span class="mxav c" aria-hidden="true">'+esc(ch)+'</span><div class="mxm"><div class="mxn"><b>'+esc(m.name)+'</b>'+bd+'</div><div class="mxs">'+esc(m.phone||"")+(names.length?'　見られる現場 '+names.length+'件('+esc(names.slice(0,2).join("・")+(names.length>2?" ほか":""))+')':'　見られる現場なし')+(m.note?'　'+esc(m.note):'')+'</div></div>'+
-        '<div class="mxe"><button class="btn sm" type="button" data-cm="edit" data-id="'+id+'">編集</button><button class="mxdel'+(askDel?' on':'')+'" type="button" data-cm="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div></article>';
+        '<div class="mxe"><button class="btn sm" type="button" data-cm="demo" data-id="'+id+'">見え方</button><button class="btn sm" type="button" data-cm="edit" data-id="'+id+'">編集</button><button class="mxdel'+(askDel?' on':'')+'" type="button" data-cm="del" data-id="'+id+'">'+(askDel?'本当に削除':'削除')+'</button></div></article>';
     }).join("")+'</div>':'<div class="empty"><b>'+(all.length?'該当するお客様はいません':'お客様が登録されていません')+'</b>'+(all.length?'':'「お客様を登録」から、IDとパスワード、見られる現場を決めてください。')+'</div>';
   }
   function cmPicked(){return Array.prototype.map.call($("cmSites").querySelectorAll("input:checked"),function(i){return i.value})}
@@ -3875,6 +3885,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
   $("cmList").addEventListener("click",async function(e){
     var b=e.target.closest("button[data-cm]"); if(!b)return;
     var id=b.dataset.id, m=members.filter(function(x){return x.id===id})[0]; if(!m)return;
+    if(b.dataset.cm==="demo"){demoStart(m.sites||[],m.name);return}
     if(b.dataset.cm==="edit"){cmDel=null;cmOpen(m);window.scrollTo({top:0,behavior:"smooth"});return}
     if(cmDel!==id){cmDel=id;renderClients();clearTimeout(cmOpen.t);cmOpen.t=setTimeout(function(){cmDel=null;renderClients()},4000);return}
     cmDel=null;
@@ -3882,6 +3893,32 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
       await db.doc("members/"+id).delete();if(m.uid){try{await db.doc("access/"+m.uid).delete()}catch(e1){}}toast("「"+m.name+"」を削除しました。")}catch(err){toast("削除できませんでした。");renderClients()}
   });
 
+  /* ---------- お客様画面のデモ(管理者が、お客様の見え方を確認する。保存・送信はしない) ---------- */
+  var demoSave=null;
+  function demoStart(ids,name){
+    var vis=(ids||[]).filter(function(id){return RAW.sites.some(function(s){return s.id===id})});
+    if(!vis.length){toast("見られる現場が設定されていません。");return}
+    if(demoOn)return;
+    demoSave={canAdmin:canAdmin,canStatus:canStatus,myName:myName,view:view,sub:sub};
+    demoOn=true; demoIds=vis; demoMsgs=[]; isClient=true; canAdmin=false; canStatus=false; myName=name||"デモのお客様";
+    document.body.classList.add("custm","demo");
+    var bar=document.createElement("div"); bar.id="demoBar"; bar.setAttribute("role","status");
+    bar.innerHTML='<span><b>お客様画面のデモ</b>　「'+esc(myName)+'」さんの見え方です。連絡は保存・送信されません。</span><button type="button" class="btn sm" data-act="demoend">デモを終える</button>';
+    document.body.insertBefore(bar,document.body.firstChild);
+    chRoom=""; view="home"; applyScope(); render(); window.scrollTo(0,0);
+  }
+  function demoEnd(){
+    if(!demoOn)return;
+    var b=$("demoBar"); if(b)b.remove();
+    document.body.classList.remove("custm","demo");
+    demoOn=false; demoIds=null; demoMsgs=[]; isClient=false;
+    canAdmin=demoSave.canAdmin; canStatus=demoSave.canStatus; myName=demoSave.myName; chRoom="all";
+    closeSheet("detail"); applyScope(); goto("clients");
+  }
+  $("cmDemo").addEventListener("click",function(){
+    var ids=RAW.sites.slice(0,3).map(function(s){return s.id});
+    demoStart(ids,"デモのお客様");
+  });
   /* ---------- お知らせ(ベル) ---------- */
   var announcements=[], readMap={}, annFirst=true, annEdit=null;
   function fmtDT(t){if(!t)return "";var d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+timeStr(t)}
@@ -4074,6 +4111,7 @@ body.custm .tabext,body.custm .tabmo,body.custm .mo-home,body.custm #btnBell{dis
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・お客様管理の「お客様画面のデモを見る」「見え方」で、お客様に見える画面を確認できます(保存・送信はされません)",
       "・メンバー管理の画面を見やすくしました(担当班ごとにまとめ、1人1行に。お客さんは別のグループ。説明文は折りたたみに)",
       "・お客さん用のログイン画面(/customer)を追加しました。「お客様管理」(メンバー管理とは別の画面)でお客様を登録し、見られる現場を選ぶと、その現場の状況・作業の履歴と、管理会社への連絡だけを見られます。連絡はチャットの「お客様」で受け取れます",
       "・チャットを「全体」「業者(班)ごと」「現場ごと」に分けました(現場の詳細の「この現場のチャット」からも開けます。現場のチャットは、その現場の担当班と管理者だけに見えます)",

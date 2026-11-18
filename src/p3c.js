@@ -563,7 +563,7 @@
     var list=chat.filter(function(m){return (m.room||"all")===chRoom}), h="", last="";
     list.forEach(function(m){
       var dy=chDay(m.at||0); if(dy!==last){h+='<div class="chday"><span>'+dy+'</span></div>';last=dy}
-      var mine=m.by===myId;
+      var mine=demoOn?(m.fromClient===true):m.by===myId;
       h+='<div class="chm'+(mine?' me':'')+'"><div class="chb">'+(mine?'':'<div class="chw">'+esc(isClient?"管理会社のスタッフ":who(m.by))+'</div>')+'<div class="cht">'+esc(m.text||"")+'</div></div><div class="chi">'+timeStr(m.at||0)+((!isClient&&(mine||canAdmin))?' <button type="button" class="link chx" data-act="chdel" data-id="'+esc(m.id)+'">削除</button>':'')+'</div></div>';
     });
     $("chList").innerHTML=h||'<div class="empty"><b>まだメッセージはありません</b>'+(chRoom==="all"?'全員が見られるチャットです。':esc(chName(chRoom))+(chGroupOf(chRoom)==="site"?'の担当班と管理者だけが見られます。':chGroupOf(chRoom)==="client"?'のお客様と、担当班・管理者だけが見られます。お客様への返信はここに書きます。':'のメンバーと管理者だけが見られます。'))+'</div>';
@@ -594,7 +594,10 @@
     $("chSend").disabled=true;
     try{
       var grp=chGroupOf(chRoom);
-      if(isClient){
+      if(demoOn){
+        demoMsgs.push({id:"demo"+Date.now(),room:chRoom,siteId:chRoom.slice(7),text:text,at:Date.now(),fromClient:true,kind:"chat"});
+        applyScope(); toast("デモのため、この連絡は保存・送信されません。");
+      }else if(isClient){
         var rc=await window.__FB.callClient({action:"send",siteId:chRoom.slice(7),text:text});
         RAW.chat.push({id:rc.id,room:chRoom,siteId:chRoom.slice(7),text:text,at:rc.at||Date.now(),by:myId||"",kind:"chat"});
         applyScope(); pwaNotify("cmsg",rc.id);
