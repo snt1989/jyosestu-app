@@ -800,6 +800,7 @@
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・雪と雨を分けて表示しました(予報の降水を気温で雪(cm)と雨(mm)に分け、ホーム・詳細・時間ごとの天気に別々に出します。雨の分は降雪に数えないため、気温が高い日は出動目安が出にくくなります)",
       "・「降雪」(これから降る量)と「積雪」(いま積もっている量)を分けて表示しました。積雪は3日以内の日報の実測、なければ気象観測の値です",
       "・現場の詳細に「時間ごとの天気を見る」を追加しました(48時間分の天気・気温・降雪・降水確率とグラフ)",
       "・積雪量を見やすくしました(大きな数字で「今後2日の降雪予想」を表示し、出動基準との差や倍率、目盛りつきのメーターで一目で分かります)"].join("\n")},
@@ -858,11 +859,11 @@
       pop:num(f.precipProbabilityPercent!=null?f.precipProbabilityPercent:f.pop),
       wind:num(f.windSpeedKph!=null?f.windSpeedKph:(f.windSpeedKPH!=null?f.windSpeedKPH:f.windSpeed)),
       w:f.weather||f.weatherPrimary||"",
-      sn:snowEst({precipMM:p||0,minTempC:t})};
+      sn:snowEst({precipMM:p||0,minTempC:t,maxTempC:t}),rn:rainEst({precipMM:p||0,minTempC:t,maxTempC:t})};
   }
   function hrChart(hs){
     var W=480,H=150,L=28,R=8,T=10,B=22,n=hs.length, bw=(W-L-R)/n;
-    var mx=Math.max(1,Math.max.apply(null,hs.map(function(x){return x.sn}))), ts=hs.map(function(x){return x.t}).filter(function(x){return x!=null});
+    var mx=Math.max(1,Math.max.apply(null,hs.map(function(x){return Math.max(x.sn,x.rn)}))), ts=hs.map(function(x){return x.t}).filter(function(x){return x!=null});
     var tmin=Math.min.apply(null,ts.concat([0])), tmax=Math.max.apply(null,ts.concat([0]));
     if(tmax-tmin<4){tmax+=2;tmin-=2}
     var ph=H-T-B, X=function(i){return L+bw*i+bw/2}, Y=function(v){return T+(tmax-v)/(tmax-tmin)*ph};
@@ -870,26 +871,27 @@
     g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(0)+'" y2="'+Y(0)+'" stroke="#9AA9BA" stroke-dasharray="3 3"/><text x="'+(L-4)+'" y="'+(Y(0)+4)+'" text-anchor="end" font-size="10" fill="#5B6B7D">0℃</text>';
     hs.forEach(function(x,i){
       if(x.sn>0){var bh=Math.max(2,x.sn/mx*ph*0.9);g+='<rect x="'+(L+bw*i+1)+'" y="'+(T+ph-bh)+'" width="'+Math.max(1,bw-2)+'" height="'+bh+'" fill="#7FB4EA" rx="1"/>'}
+      if(x.rn>0){var rh=Math.max(2,x.rn/mx*ph*0.9);g+='<rect x="'+(L+bw*i+1)+'" y="'+(T+ph-rh)+'" width="'+Math.max(1,bw-2)+'" height="'+rh+'" fill="#2F8F83" rx="1"/>'}
       if(x.hh%6===0)g+='<text x="'+X(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" fill="#5B6B7D">'+(x.hh|0)+'時</text>';
     });
     var pts=hs.map(function(x,i){return x.t==null?null:X(i)+","+Y(x.t)}).filter(Boolean).join(" ");
     if(pts)g+='<polyline points="'+pts+'" fill="none" stroke="#D43D2E" stroke-width="2" stroke-linejoin="round"/>';
-    return g+'</svg><div class="hr-leg"><span><i style="background:#7FB4EA"></i>降雪(1時間あたり)</span><span><i style="background:#D43D2E"></i>気温</span></div>';
+    return g+'</svg><div class="hr-leg"><span><i style="background:#7FB4EA"></i>雪(cm/時)</span><span><i style="background:#2F8F83"></i>雨(mm/時)</span><span><i style="background:#D43D2E"></i>気温</span></div>';
   }
   function hrHtml(s,fc){
     var hs=fc.map(hrParse).filter(function(x){return x.dt});
     if(!hs.length)return '<div class="nt-empty">時間ごとのデータを取得できませんでした</div>';
-    var s24=0,s48=0; hs.forEach(function(x,i){if(i<24)s24+=x.sn; s48+=x.sn});
+    var s24=0,s48=0,r24=0,r48=0; hs.forEach(function(x,i){if(i<24){s24+=x.sn;r24+=x.rn} s48+=x.sn; r48+=x.rn});
     var peak=hs.reduce(function(a,b){return b.sn>a.sn?b:a},hs[0]);
     var th=+s.threshold||10, big=s24>=th;
-    var h='<div class="hr-sum'+(big?' over':'')+'"><div><span class="hr-k">今後24時間</span><b class="num">'+(s24<=0?'なし':s24<1?'<1cm':'約'+Math.round(s24)+'cm')+'</b></div><div><span class="hr-k">今後48時間</span><b class="num">'+(s48<=0?'なし':s48<1?'<1cm':'約'+Math.round(s48)+'cm')+'</b></div><div><span class="hr-k">降雪が強い時間</span><b>'+(peak.sn>0?(+peak.mo)+'/'+(+peak.da)+' '+(+peak.hh)+'時ごろ':'なし')+'</b></div></div>';
-    h+='<div class="hr-note">降雪量は降水量と気温から目安として計算した値です。出動基準は'+th+'cmです。</div>'+hrChart(hs);
-    h+='<div class="hr-list">'+'<div class="hr-head2"><span>時刻</span><span></span><span>天気</span><span>気温</span><span>降雪</span><span>降水</span></div>';
+    var h='<div class="hr-sum'+(big?' over':'')+'"><div><span class="hr-k">雪(24時間)</span><b class="num">'+(s24<=0?'なし':s24<1?'<1cm':'約'+Math.round(s24)+'cm')+'</b></div><div><span class="hr-k">雨(24時間)</span><b class="num">'+(r24<=0?'なし':r24<1?'<1mm':'約'+Math.round(r24)+'mm')+'</b></div><div><span class="hr-k">降雪が強い時間</span><b>'+(peak.sn>0?(+peak.mo)+'/'+(+peak.da)+' '+(+peak.hh)+'時ごろ':'なし')+'</b></div></div>';
+    h+='<div class="hr-note">降水を気温で「雪」と「雨」に分けています(0℃以下は雪、2℃以上は雨、その間はみぞれで両方)。雪はcm、雨はmmで、どちらも目安です。出動基準は'+th+'cmです。</div>'+hrChart(hs);
+    h+='<div class="hr-list">'+'<div class="hr-head2"><span>時刻</span><span></span><span>天気</span><span>気温</span><span>雪</span><span>雨</span><span>確率</span></div>';
     var day="";
     hs.forEach(function(x){
       var dk=x.mo+"-"+x.da;
       if(dk!==day){day=dk;h+='<div class="hr-day">'+(+x.mo)+'月'+(+x.da)+'日</div>'}
-      h+='<div class="hr-row'+(x.sn>=0.5?' sn':'')+'"><span class="hr-t num">'+(+x.hh)+'時</span><span class="hr-ic">'+icon(x.w)+'</span><span class="hr-w">'+esc(jpS(x.w))+'</span><span class="hr-tp num">'+(x.t==null?'–':fmt(x.t,0)+'℃')+'</span><span class="hr-s num">'+(x.sn>0?(x.sn<1?'<1':Math.round(x.sn))+'cm':'')+'</span><span class="hr-p num">'+(x.pop==null?'':Math.round(x.pop)+'%')+'</span></div>';
+      h+='<div class="hr-row'+(x.sn>=0.5?' sn':x.rn>=0.3?' rn':'')+'"><span class="hr-t num">'+(+x.hh)+'時</span><span class="hr-ic">'+icon(x.w)+'</span><span class="hr-w">'+esc(jpS(x.w))+'</span><span class="hr-tp num">'+(x.t==null?'–':fmt(x.t,0)+'℃')+'</span><span class="hr-s num">'+(x.sn>0?(x.sn<1?'<1':Math.round(x.sn))+'cm':'')+'</span><span class="hr-r num">'+(x.rn>=0.2?(x.rn<1?'<1':Math.round(x.rn))+'mm':'')+'</span><span class="hr-p num">'+(x.pop==null?'':Math.round(x.pop)+'%')+'</span></div>';
     });
     return h+'</div>';
   }

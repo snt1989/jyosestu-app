@@ -142,25 +142,36 @@
   function jpS(w){return jp(w).replace("晴れ時々くもり","晴れ時々曇り").replace("おおむね","").replace("くもり","曇り").replace("みぞれ・凍雨","みぞれ").replace("雪(にわか)","にわか雪")}
 
   /* ---------- 判定 ---------- */
+  /* 降水(mm)を「雪」と「雨」に分ける。気温0℃以下は雪、2℃以上は雨、その間はみぞれ(混在) */
+  function wetSplit(f){
+    var p=num(f.precipMM), mn=num(f.minTempC), mx=num(f.maxTempC);
+    if(p==null||p<=0)return {snowMM:0,rainMM:0,mn:mn};
+    var t=(mn!=null&&mx!=null)?(mn+mx)/2:(mn!=null?mn:mx);
+    if(t==null)return {snowMM:0,rainMM:p,mn:mn};
+    var fs=t<=0?1:t>=2?0:(2-t)/2;
+    return {snowMM:p*fs,rainMM:p*(1-fs),mn:mn};
+  }
   function snowEst(f){
-    var p=num(f.precipMM), mn=num(f.minTempC);
-    if(p==null||p<=0||mn==null||mn>2)return 0;
+    var sp=wetSplit(f), mn=sp.mn;
+    if(sp.snowMM<=0||mn==null)return 0;
     var r=mn<=-2?1.5:(mn<=1?1:0.5);
     var k=+settings.mult>0?+settings.mult:1;
-    return p*r*k;
+    return sp.snowMM*r*k;
   }
+  function rainEst(f){return wetSplit(f).rainMM}
+  function rainLabel(v){return v<=0?"なし":(v<1?"1mm未満":"約"+Math.round(v)+"mm")}
   function snowLabel(v){return v<=0?"なし":(v<1?"1cm未満":"約"+Math.round(v)+"cm")}
   function assess(s){
     var w=wx[s.id];
     if(!w||w.state!=="ok")return {lv:0,label:w&&w.state==="err"?"取得失敗":w&&w.state==="noloc"?"場所未設定":"取得中",snow2:0,ice:false,snowing:false};
     var cur=w.cur||{}, fc=w.fc||[], al=w.alerts||[];
-    var snow2=0, ice=false;
-    for(var i=0;i<fc.length&&i<2;i++){snow2+=snowEst(fc[i]); var m=num(fc[i].minTempC); var it=num(+settings.iceTemp); if(m!=null&&m<=(it==null?0:it))ice=true;}
+    var snow2=0, rain2=0, ice=false;
+    for(var i=0;i<fc.length&&i<2;i++){snow2+=snowEst(fc[i]); rain2+=rainEst(fc[i]); var m=num(fc[i].minTempC); var it=num(+settings.iceTemp); if(m!=null&&m<=(it==null?0:it))ice=true;}
     var snowing=(num(cur.snowCM)||0)>0||cat(cur.weather)==="snow"||cat(cur.weather)==="sleet";
     var th=num(s.threshold)||10, lv=1;
     if(snow2>=th||(al.length>0&&snow2>0))lv=3;
     else if(snowing||snow2>0||al.length>0||ice)lv=2;
-    return {lv:lv,label:lv===3?"出動目安":lv===2?"警戒":"平常",snow2:snow2,ice:ice,snowing:snowing,th:th,depth:depthOf(s,cur)};
+    return {lv:lv,label:lv===3?"出動目安":lv===2?"警戒":"平常",snow2:snow2,rain2:rain2,ice:ice,snowing:snowing,th:th,depth:depthOf(s,cur)};
   }
   /* 積雪(いま積もっている量): 3日以内の日報の実測を優先し、なければ観測値 */
   function depthOf(s,cur){
