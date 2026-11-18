@@ -507,15 +507,28 @@
   try{chSeen=JSON.parse(localStorage.getItem("josetsu.chatseen")||"{}")||{}}catch(e){chSeen={}}
   if(!chSeen._i){chSeen._i=Date.now();chSave()}
   function chSave(){try{localStorage.setItem("josetsu.chatseen",JSON.stringify(chSeen))}catch(e){}}
-  function chRooms(){
-    var r=["all"];
+  /* ルーム: all=全体 / 班名=業者(班)ごと / site:現場ID=現場ごと */
+  var chLast={crew:"",site:""};
+  function chGroupOf(r){return r==="all"?"all":String(r).indexOf("site:")===0?"site":"crew"}
+  function chCrewRooms(){
+    var r=[];
     if(canAdmin){
       (masters.crews||[]).forEach(function(c){if(c&&r.indexOf(c)<0)r.push(c)});
-      chat.forEach(function(m){if(m.room&&r.indexOf(m.room)<0)r.push(m.room)});
+      chat.forEach(function(m){if(m.room&&m.room!=="all"&&String(m.room).indexOf("site:")!==0&&r.indexOf(m.room)<0)r.push(m.room)});
     }else myCrews().forEach(function(c){if(r.indexOf(c)<0)r.push(c)});
     return r;
   }
-  function chName(r){return r==="all"?"全体":r}
+  function chSiteRooms(){
+    var lastAt={}; chat.forEach(function(m){if(String(m.room||"").indexOf("site:")===0)lastAt[m.room]=Math.max(lastAt[m.room]||0,m.at||0)});
+    return sites.map(function(s){return "site:"+s.id}).sort(function(x,y){return (lastAt[y]||0)-(lastAt[x]||0)||chName(x).localeCompare(chName(y),"ja")});
+  }
+  function chRooms(){return ["all"].concat(chCrewRooms(),chSiteRooms())}
+  function chName(r){
+    if(r==="all")return "全体";
+    if(String(r).indexOf("site:")===0){var s=siteById(String(r).slice(5));return s?s.name:"(見られない現場)"}
+    return r;
+  }
+  function chGroupUnread(g){return chRooms().filter(function(r){return chGroupOf(r)===g&&r!==chRoom}).reduce(function(n,r){return n+chUnread(r)},0)}
   function chUnread(room){
     var base=chSeen[room]||chSeen._i||0;
     return chat.filter(function(m){return (m.room||"all")===room&&m.by!==myId&&(m.at||0)>base}).length;
@@ -526,7 +539,18 @@
   function renderChat(){
     ntShow();
     var rooms=chRooms(); if(rooms.indexOf(chRoom)<0)chRoom="all";
-    $("chRooms").innerHTML=rooms.map(function(r){var u=r===chRoom?0:chUnread(r);return '<button type="button" data-chroom="'+esc(r)+'" aria-pressed="'+(r===chRoom)+'">'+esc(chName(r))+(u?'<span class="num cbd">'+u+'</span>':'')+'</button>'}).join("");
+    var g=chGroupOf(chRoom); if(g!=="all")chLast[g]=chRoom;
+    var GL=[["all","全体"],["crew","業者(班)ごと"],["site","現場ごと"]];
+    var gh='<div class="chg" role="tablist" aria-label="チャットの種類">'+GL.map(function(x){var u=chGroupUnread(x[0]);return '<button type="button" role="tab" data-chgroup="'+x[0]+'" aria-selected="'+(x[0]===g)+'">'+x[1]+(u?'<span class="num cbd">'+u+'</span>':'')+'</button>'}).join("")+'</div>';
+    var sh="";
+    if(g==="crew"){
+      var cr=chCrewRooms();
+      sh=cr.length?'<div class="chs">'+cr.map(function(r){var u=r===chRoom?0:chUnread(r);return '<button type="button" data-chroom="'+esc(r)+'" aria-pressed="'+(r===chRoom)+'">'+esc(r)+(u?'<span class="num cbd">'+u+'</span>':'')+'</button>'}).join("")+'</div>':'<div class="muted chs-e">業者(班)が登録されていません。設定のマスタで担当班を登録してください。</div>';
+    }else if(g==="site"){
+      var sr=chSiteRooms();
+      sh=sr.length?'<div class="chs"><select id="chSiteSel" aria-label="現場を選ぶ">'+sr.map(function(r){var u=r===chRoom?0:chUnread(r);return '<option value="'+esc(r)+'"'+(r===chRoom?' selected':'')+'>'+esc(chName(r))+(u?'(未読'+u+')':'')+'</option>'}).join("")+'</select></div>':'<div class="muted chs-e">チャットできる現場がありません。</div>';
+    }
+    $("chRooms").innerHTML=gh+sh+'<div class="chcur">'+(g==="site"?'現場: ':g==="crew"?'業者(班): ':'')+'<b>'+esc(chName(chRoom))+'</b><span class="muted">　'+(g==="all"?'全員が見られます':g==="crew"?'この班のメンバーと管理者が見られます':'この現場の担当班と管理者が見られます')+'</span></div>';
     var near=(window.innerHeight+window.scrollY)>=document.documentElement.scrollHeight-220;
     var list=chat.filter(function(m){return (m.room||"all")===chRoom}), h="", last="";
     list.forEach(function(m){
@@ -534,15 +558,24 @@
       var mine=m.by===myId;
       h+='<div class="chm'+(mine?' me':'')+'"><div class="chb">'+(mine?'':'<div class="chw">'+esc(who(m.by))+'</div>')+'<div class="cht">'+esc(m.text||"")+'</div></div><div class="chi">'+timeStr(m.at||0)+((mine||canAdmin)?' <button type="button" class="link chx" data-act="chdel" data-id="'+esc(m.id)+'">削除</button>':'')+'</div></div>';
     });
-    $("chList").innerHTML=h||'<div class="empty"><b>まだメッセージはありません</b>'+(chRoom==="all"?'全員が見られるチャットです。':esc(chName(chRoom))+'のメンバーと管理者だけが見られます。')+'</div>';
+    $("chList").innerHTML=h||'<div class="empty"><b>まだメッセージはありません</b>'+(chRoom==="all"?'全員が見られるチャットです。':esc(chName(chRoom))+(chGroupOf(chRoom)==="site"?'の担当班と管理者だけが見られます。':'のメンバーと管理者だけが見られます。'))+'</div>';
     $("chSend").disabled=!canWrite();
     var latest=list.length?(list[list.length-1].at||0):0;
     if(latest&&(chSeen[chRoom]||0)<latest){chSeen[chRoom]=latest;chSave();render()}
     if(chStick||near){chStick=false;setTimeout(function(){window.scrollTo(0,document.documentElement.scrollHeight)},30)}
   }
   $("chRooms").addEventListener("click",function(e){
+    var gb=e.target.closest("[data-chgroup]");
+    if(gb){
+      var k=gb.dataset.chgroup;
+      chRoom=k==="all"?"all":(chLast[k]&&chRooms().indexOf(chLast[k])>=0?chLast[k]:((k==="crew"?chCrewRooms():chSiteRooms())[0]||"all"));
+      chStick=true; render(); return;
+    }
     var b=e.target.closest("[data-chroom]"); if(!b)return;
     chRoom=b.dataset.chroom; chStick=true; render();
+  });
+  $("chRooms").addEventListener("change",function(e){
+    if(e.target.id==="chSiteSel"){chRoom=e.target.value; chStick=true; render()}
   });
   $("chText").addEventListener("input",function(e){var t=e.target;t.style.height="auto";t.style.height=Math.min(140,t.scrollHeight)+"px"});
   $("chText").addEventListener("keydown",function(e){if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("chForm").requestSubmit()}});
@@ -552,7 +585,8 @@
     var text=$("chText").value.trim(); if(!text)return;
     $("chSend").disabled=true;
     try{
-      var r=await db.collection("notes").add({kind:"chat",room:chRoom,siteId:"",siteName:"",text:text,by:myId||"",at:Date.now()});
+      var cs=chGroupOf(chRoom)==="site"?siteById(chRoom.slice(5)):null;
+      var r=await db.collection("notes").add({kind:"chat",room:chRoom,siteId:cs?cs.id:"",siteName:cs?cs.name:"",text:text,by:myId||"",at:Date.now()});
       pwaNotify("chat",r&&r.id);
       $("chText").value=""; $("chText").style.height="auto"; chStick=true;
     }catch(err){toast(err&&err.code==="quota_exceeded"?"登録できる件数の上限に達しています。":"送信できませんでした。もう一度お試しください。")}

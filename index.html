@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181629"</script>
+<script>window.APP_BUILD="202611181633"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1145,6 +1145,17 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   .ar .kvs{grid-template-columns:repeat(4,minmax(0,1fr))}
   .ar .k.wide{grid-column:span 2}
 }
+#chRooms{display:block;overflow:visible}
+.chg{display:grid;grid-template-columns:repeat(3,1fr);border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.chg button{min-height:44px;border:0;background:var(--surface);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.chg button[aria-selected="true"]{background:var(--ink);color:#fff}
+.chg button+button{border-left:1px solid var(--ink)}
+.chs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.chs button{flex:none}
+.chs select{width:100%;min-height:44px}
+.chs-e{font-size:.85rem;padding:6px 0}
+.chcur{font-size:.92rem;padding:4px 2px 2px}
+.chcur .muted{font-size:.8rem}
 </style>
 </head><body>
 
@@ -1686,7 +1697,11 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   function siteCrews(s){return String(s&&s.crew||"").split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
   function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
   function myCrews(){return String(myCrewName()).split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
-  function chatVisible(m){return !m.room||m.room==="all"||canAdmin||myCrews().indexOf(m.room)>=0}
+  function chatVisible(m){
+    if(!m.room||m.room==="all"||canAdmin)return true;
+    if(String(m.room).indexOf("site:")===0){var sid=String(m.room).slice(5);return sites.some(function(s){return s.id===sid})}
+    return myCrews().indexOf(m.room)>=0;
+  }
   function applyScope(){
     var c=myCrewName(), vs={};
     sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});
@@ -2264,7 +2279,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     if(mcp)h+='<div style="margin-top:6px"><button class="link" type="button" data-act="retry" data-id="'+id+'">この現場の天気を更新</button></div>';
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
-      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div><button class="btn" type="button" data-act="rptnew" data-id="'+id+'" style="width:100%;margin-top:8px">報告書を作る</button></div>';
+      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div><div class="row2" style="margin-top:8px"><button class="btn" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">この現場のチャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'" style="flex:1">報告書を作る</button></div></div>';
     h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
     var n=siteSeasonCount(s.id), sl=siteLines(s);
     h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
@@ -2882,15 +2897,28 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   try{chSeen=JSON.parse(localStorage.getItem("josetsu.chatseen")||"{}")||{}}catch(e){chSeen={}}
   if(!chSeen._i){chSeen._i=Date.now();chSave()}
   function chSave(){try{localStorage.setItem("josetsu.chatseen",JSON.stringify(chSeen))}catch(e){}}
-  function chRooms(){
-    var r=["all"];
+  /* ルーム: all=全体 / 班名=業者(班)ごと / site:現場ID=現場ごと */
+  var chLast={crew:"",site:""};
+  function chGroupOf(r){return r==="all"?"all":String(r).indexOf("site:")===0?"site":"crew"}
+  function chCrewRooms(){
+    var r=[];
     if(canAdmin){
       (masters.crews||[]).forEach(function(c){if(c&&r.indexOf(c)<0)r.push(c)});
-      chat.forEach(function(m){if(m.room&&r.indexOf(m.room)<0)r.push(m.room)});
+      chat.forEach(function(m){if(m.room&&m.room!=="all"&&String(m.room).indexOf("site:")!==0&&r.indexOf(m.room)<0)r.push(m.room)});
     }else myCrews().forEach(function(c){if(r.indexOf(c)<0)r.push(c)});
     return r;
   }
-  function chName(r){return r==="all"?"全体":r}
+  function chSiteRooms(){
+    var lastAt={}; chat.forEach(function(m){if(String(m.room||"").indexOf("site:")===0)lastAt[m.room]=Math.max(lastAt[m.room]||0,m.at||0)});
+    return sites.map(function(s){return "site:"+s.id}).sort(function(x,y){return (lastAt[y]||0)-(lastAt[x]||0)||chName(x).localeCompare(chName(y),"ja")});
+  }
+  function chRooms(){return ["all"].concat(chCrewRooms(),chSiteRooms())}
+  function chName(r){
+    if(r==="all")return "全体";
+    if(String(r).indexOf("site:")===0){var s=siteById(String(r).slice(5));return s?s.name:"(見られない現場)"}
+    return r;
+  }
+  function chGroupUnread(g){return chRooms().filter(function(r){return chGroupOf(r)===g&&r!==chRoom}).reduce(function(n,r){return n+chUnread(r)},0)}
   function chUnread(room){
     var base=chSeen[room]||chSeen._i||0;
     return chat.filter(function(m){return (m.room||"all")===room&&m.by!==myId&&(m.at||0)>base}).length;
@@ -2901,7 +2929,18 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   function renderChat(){
     ntShow();
     var rooms=chRooms(); if(rooms.indexOf(chRoom)<0)chRoom="all";
-    $("chRooms").innerHTML=rooms.map(function(r){var u=r===chRoom?0:chUnread(r);return '<button type="button" data-chroom="'+esc(r)+'" aria-pressed="'+(r===chRoom)+'">'+esc(chName(r))+(u?'<span class="num cbd">'+u+'</span>':'')+'</button>'}).join("");
+    var g=chGroupOf(chRoom); if(g!=="all")chLast[g]=chRoom;
+    var GL=[["all","全体"],["crew","業者(班)ごと"],["site","現場ごと"]];
+    var gh='<div class="chg" role="tablist" aria-label="チャットの種類">'+GL.map(function(x){var u=chGroupUnread(x[0]);return '<button type="button" role="tab" data-chgroup="'+x[0]+'" aria-selected="'+(x[0]===g)+'">'+x[1]+(u?'<span class="num cbd">'+u+'</span>':'')+'</button>'}).join("")+'</div>';
+    var sh="";
+    if(g==="crew"){
+      var cr=chCrewRooms();
+      sh=cr.length?'<div class="chs">'+cr.map(function(r){var u=r===chRoom?0:chUnread(r);return '<button type="button" data-chroom="'+esc(r)+'" aria-pressed="'+(r===chRoom)+'">'+esc(r)+(u?'<span class="num cbd">'+u+'</span>':'')+'</button>'}).join("")+'</div>':'<div class="muted chs-e">業者(班)が登録されていません。設定のマスタで担当班を登録してください。</div>';
+    }else if(g==="site"){
+      var sr=chSiteRooms();
+      sh=sr.length?'<div class="chs"><select id="chSiteSel" aria-label="現場を選ぶ">'+sr.map(function(r){var u=r===chRoom?0:chUnread(r);return '<option value="'+esc(r)+'"'+(r===chRoom?' selected':'')+'>'+esc(chName(r))+(u?'(未読'+u+')':'')+'</option>'}).join("")+'</select></div>':'<div class="muted chs-e">チャットできる現場がありません。</div>';
+    }
+    $("chRooms").innerHTML=gh+sh+'<div class="chcur">'+(g==="site"?'現場: ':g==="crew"?'業者(班): ':'')+'<b>'+esc(chName(chRoom))+'</b><span class="muted">　'+(g==="all"?'全員が見られます':g==="crew"?'この班のメンバーと管理者が見られます':'この現場の担当班と管理者が見られます')+'</span></div>';
     var near=(window.innerHeight+window.scrollY)>=document.documentElement.scrollHeight-220;
     var list=chat.filter(function(m){return (m.room||"all")===chRoom}), h="", last="";
     list.forEach(function(m){
@@ -2909,15 +2948,24 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
       var mine=m.by===myId;
       h+='<div class="chm'+(mine?' me':'')+'"><div class="chb">'+(mine?'':'<div class="chw">'+esc(who(m.by))+'</div>')+'<div class="cht">'+esc(m.text||"")+'</div></div><div class="chi">'+timeStr(m.at||0)+((mine||canAdmin)?' <button type="button" class="link chx" data-act="chdel" data-id="'+esc(m.id)+'">削除</button>':'')+'</div></div>';
     });
-    $("chList").innerHTML=h||'<div class="empty"><b>まだメッセージはありません</b>'+(chRoom==="all"?'全員が見られるチャットです。':esc(chName(chRoom))+'のメンバーと管理者だけが見られます。')+'</div>';
+    $("chList").innerHTML=h||'<div class="empty"><b>まだメッセージはありません</b>'+(chRoom==="all"?'全員が見られるチャットです。':esc(chName(chRoom))+(chGroupOf(chRoom)==="site"?'の担当班と管理者だけが見られます。':'のメンバーと管理者だけが見られます。'))+'</div>';
     $("chSend").disabled=!canWrite();
     var latest=list.length?(list[list.length-1].at||0):0;
     if(latest&&(chSeen[chRoom]||0)<latest){chSeen[chRoom]=latest;chSave();render()}
     if(chStick||near){chStick=false;setTimeout(function(){window.scrollTo(0,document.documentElement.scrollHeight)},30)}
   }
   $("chRooms").addEventListener("click",function(e){
+    var gb=e.target.closest("[data-chgroup]");
+    if(gb){
+      var k=gb.dataset.chgroup;
+      chRoom=k==="all"?"all":(chLast[k]&&chRooms().indexOf(chLast[k])>=0?chLast[k]:((k==="crew"?chCrewRooms():chSiteRooms())[0]||"all"));
+      chStick=true; render(); return;
+    }
     var b=e.target.closest("[data-chroom]"); if(!b)return;
     chRoom=b.dataset.chroom; chStick=true; render();
+  });
+  $("chRooms").addEventListener("change",function(e){
+    if(e.target.id==="chSiteSel"){chRoom=e.target.value; chStick=true; render()}
   });
   $("chText").addEventListener("input",function(e){var t=e.target;t.style.height="auto";t.style.height=Math.min(140,t.scrollHeight)+"px"});
   $("chText").addEventListener("keydown",function(e){if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("chForm").requestSubmit()}});
@@ -2927,7 +2975,8 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     var text=$("chText").value.trim(); if(!text)return;
     $("chSend").disabled=true;
     try{
-      var r=await db.collection("notes").add({kind:"chat",room:chRoom,siteId:"",siteName:"",text:text,by:myId||"",at:Date.now()});
+      var cs=chGroupOf(chRoom)==="site"?siteById(chRoom.slice(5)):null;
+      var r=await db.collection("notes").add({kind:"chat",room:chRoom,siteId:cs?cs.id:"",siteName:cs?cs.name:"",text:text,by:myId||"",at:Date.now()});
       pwaNotify("chat",r&&r.id);
       $("chText").value=""; $("chText").style.height="auto"; chStick=true;
     }catch(err){toast(err&&err.code==="quota_exceeded"?"登録できる件数の上限に達しています。":"送信できませんでした。もう一度お試しください。")}
@@ -3116,6 +3165,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
     else if(act==="anopen"){openAnnView(id)}
     else if(act==="retry"){if(s)loadOne(s,true)}
     else if(act==="menuorder"){openMenuOrder()}
+    else if(act==="sitechat"){chRoom="site:"+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="hourly"){if(s)openHourly(s)}
     else if(act==="edit"){if(canAdmin)openDlg(id)}
     else if(act==="copy"){if(canAdmin)openDlg(id,true)}
@@ -3833,6 +3883,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・チャットを「全体」「業者(班)ごと」「現場ごと」に分けました(現場の詳細の「この現場のチャット」からも開けます。現場のチャットは、その現場の担当班と管理者だけに見えます)",
       "・設定の「現場の一覧」を「一覧」と「カード」の表示にして、見やすくしました(スマホの一覧は1件を短く、カードは項目ごとに色分け)",
       "・現場一覧(一覧表示)を短くしました(スマホは1件の高さをおよそ6割に、パソコンは1/7ほどに。警報などの細かい表示は、現場を開くと見られます)。パソコンの絞り込みは1行にまとめ、ホームの「要対応の現場」も一覧の形にしました",
       "・「日報」と「連絡」を1つのメニュー「日報・連絡」にまとめました(画面の上のボタンで切り替えます)",

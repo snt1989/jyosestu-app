@@ -84,6 +84,7 @@
     else if(act==="anopen"){openAnnView(id)}
     else if(act==="retry"){if(s)loadOne(s,true)}
     else if(act==="menuorder"){openMenuOrder()}
+    else if(act==="sitechat"){chRoom="site:"+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="hourly"){if(s)openHourly(s)}
     else if(act==="edit"){if(canAdmin)openDlg(id)}
     else if(act==="copy"){if(canAdmin)openDlg(id,true)}
@@ -801,6 +802,7 @@
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・チャットを「全体」「業者(班)ごと」「現場ごと」に分けました(現場の詳細の「この現場のチャット」からも開けます。現場のチャットは、その現場の担当班と管理者だけに見えます)",
       "・設定の「現場の一覧」を「一覧」と「カード」の表示にして、見やすくしました(スマホの一覧は1件を短く、カードは項目ごとに色分け)",
       "・現場一覧(一覧表示)を短くしました(スマホは1件の高さをおよそ6割に、パソコンは1/7ほどに。警報などの細かい表示は、現場を開くと見られます)。パソコンの絞り込みは1行にまとめ、ホームの「要対応の現場」も一覧の形にしました",
       "・「日報」と「連絡」を1つのメニュー「日報・連絡」にまとめました(画面の上のボタンで切り替えます)",

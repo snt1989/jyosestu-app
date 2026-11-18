@@ -61,7 +61,11 @@
   function siteCrews(s){return String(s&&s.crew||"").split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
   function myCrewName(){var m=access[myId];return m&&m.crew?String(m.crew).trim():""}
   function myCrews(){return String(myCrewName()).split(/[、,，]/).map(function(x){return x.trim()}).filter(Boolean)}
-  function chatVisible(m){return !m.room||m.room==="all"||canAdmin||myCrews().indexOf(m.room)>=0}
+  function chatVisible(m){
+    if(!m.room||m.room==="all"||canAdmin)return true;
+    if(String(m.room).indexOf("site:")===0){var sid=String(m.room).slice(5);return sites.some(function(s){return s.id===sid})}
+    return myCrews().indexOf(m.room)>=0;
+  }
   function applyScope(){
     var c=myCrewName(), vs={};
     sites=RAW.sites.filter(function(s){var v=canAdmin||(c&&siteCrews(s).indexOf(c)>=0);if(v)vs[s.id]=1;return v});

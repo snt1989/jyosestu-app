@@ -1138,4 +1138,15 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   .ar .kvs{grid-template-columns:repeat(4,minmax(0,1fr))}
   .ar .k.wide{grid-column:span 2}
 }
+#chRooms{display:block;overflow:visible}
+.chg{display:grid;grid-template-columns:repeat(3,1fr);border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.chg button{min-height:44px;border:0;background:var(--surface);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.chg button[aria-selected="true"]{background:var(--ink);color:#fff}
+.chg button+button{border-left:1px solid var(--ink)}
+.chs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.chs button{flex:none}
+.chs select{width:100%;min-height:44px}
+.chs-e{font-size:.85rem;padding:6px 0}
+.chcur{font-size:.92rem;padding:4px 2px 2px}
+.chcur .muted{font-size:.8rem}
 </style>

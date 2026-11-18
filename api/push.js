@@ -98,8 +98,9 @@ module.exports = async (req, res) => {
         const d = await fs.doc("notes/" + id).get(); const n = d.exists ? d.data() : null;
         if (!n || n.kind !== "chat" || n.by !== me.uid || !fresh(n.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
         key = "chat_" + id; const room = String(n.room || "all");
-        if (room !== "all") scopeCrews = [room];
-        payload = { title: "チャット: " + (room === "all" ? "全体" : room), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "chat_" + room, url: "/?go=chat" };
+        const isSite = room.indexOf("site:") === 0;
+        if (isSite) scopeSite = room.slice(5); else if (room !== "all") scopeCrews = [room];
+        payload = { title: "チャット: " + (room === "all" ? "全体" : isSite ? clip(n.siteName || "現場", 30) : room), body: clip((myName ? myName + ": " : "") + n.text, 100), tag: "chat_" + room, url: "/?go=chat" };
       } else if (type === "ann") {
         const d = await fs.doc("announcements/" + id).get(); const a = d.exists ? d.data() : null;
         if (!a || a.by !== me.uid || !isAdm || !fresh(a.at, 600000)) return res.status(200).json({ ok: true, skipped: true });
