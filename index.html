@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181709"</script>
+<script>window.APP_BUILD="202611181711"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -276,7 +276,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
 .track{height:10px;background:var(--track);border-radius:6px;overflow:hidden;margin-top:4px}
 .fill{height:100%;background:var(--info)}
 .fill.hot{background:var(--crit)}
-.seg{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{border:0;background:var(--surface);padding:8px 4px;cursor:pointer;min-height:48px;border-left:1px solid var(--line);font-size:.95rem}
 .seg button:first-child{border-left:0}
 .seg button[aria-pressed="true"]{background:var(--idle-bg);color:var(--ink);font-weight:700}
@@ -1677,7 +1677,7 @@ body.demo #meLine{display:none}
     <h2 class="ah" id="fs3">出動基準・状況</h2>
     <div class="panel"><div class="grp">
       <label for="fTh">出動基準(降雪量 cm)<input id="fTh" type="number" min="1" max="200" step="1" value="10"></label>
-      <label for="fStatus">作業状況<select id="fStatus"><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done">完了</option></select></label>
+      <label for="fStatus">作業状況<select id="fStatus"><option value="standby">待機</option><option value="prep">準備中</option><option value="out">出動中</option><option value="done" hidden>完了</option></select></label>
     </div>
     <div class="fh"><div class="fh-t">引渡時間<span class="help">作業を終えて引き渡す時刻です。朝・夕など複数設定できます。</span></div><div id="fHands"></div><button type="button" class="btn sm" id="fHandAdd">＋ 引渡時間を追加</button></div></div>
     <h2 class="ah" id="fs4">契約・金額</h2>
@@ -2051,7 +2051,7 @@ body.demo #meLine{display:none}
   function segHtml(s){
     var st=stOf(s), id=esc(s.id);
     var h='<div class="seg" role="group" aria-label="'+esc(s.name)+'の作業状況">';
-    ["standby","prep","out","done"].forEach(function(k){
+    ["standby","prep","out"].forEach(function(k){
       h+='<button type="button" class="'+(k==="standby"?"":k)+'" data-act="status" data-id="'+id+'" data-v="'+k+'" aria-pressed="'+(st===k)+'"'+(canWrite()?"":" disabled")+'>'+ST[k]+'</button>';
     });
     return h+'</div>';
@@ -2062,7 +2062,7 @@ body.demo #meLine{display:none}
   }
   function stSelHtml(s){
     var st=stOf(s);
-    return '<select class="stsel s-'+st+'" data-stsel="'+esc(s.id)+'" aria-label="'+esc(s.name)+'の作業状況"'+(canWrite()?'':' disabled')+'>'+["standby","prep","out","done"].map(function(k){return '<option value="'+k+'"'+(k===st?' selected':'')+'>'+ST[k]+'</option>'}).join("")+'</select>';
+    return '<select class="stsel s-'+st+'" data-stsel="'+esc(s.id)+'" aria-label="'+esc(s.name)+'の作業状況"'+(canWrite()?'':' disabled')+'>'+["standby","prep","out"].map(function(k){return '<option value="'+k+'"'+(k===st?' selected':'')+'>'+ST[k]+'</option>'}).join("")+(st==="done"?'<option value="done" selected hidden>'+ST.done+'</option>':'')+'</select>';
   }
   function siteRow(s){
     var a=assess(s), w=wx[s.id], ok=!!(w&&w.state==="ok"), c=ok?(w.cur||{}):{}, id=esc(s.id);
@@ -2917,7 +2917,7 @@ body.demo #meLine{display:none}
     $("rfFile").closest("label").hidden=!(canPhoto&&assets);
     $("rfKind").closest("label").hidden=!(canPhoto&&assets);
     $("rfPhMsg").textContent=(canPhoto&&assets)?"":"写真を追加できるのは、このページの編集権限がある方のみです。";
-    $("rfDoneWrap").hidden=!!r;
+    $("rfDoneWrap").hidden=true;
     $("rfDone").checked=!r;
     $("rfErr").textContent="";
     $("rfSave").disabled=false;
@@ -4162,6 +4162,7 @@ body.demo #meLine{display:none}
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
+      "・「完了」ボタンをなくしました。完了は日報を提出したときに自動で付きます",
       "・日報を削除したとき、その日「完了」にしていた現場は「待機」に戻り、ホームの出動状況に残らないようにしました",
       "・日報に「お客様への連絡」欄を追加しました。書いた内容がお客様の「作業の履歴」に表示されます",
       "・お客様の画面に「出動を要請する」ボタンを追加しました(押すとスタッフに通知が届きます)",

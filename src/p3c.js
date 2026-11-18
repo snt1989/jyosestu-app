@@ -400,7 +400,7 @@
     $("rfFile").closest("label").hidden=!(canPhoto&&assets);
     $("rfKind").closest("label").hidden=!(canPhoto&&assets);
     $("rfPhMsg").textContent=(canPhoto&&assets)?"":"写真を追加できるのは、このページの編集権限がある方のみです。";
-    $("rfDoneWrap").hidden=!!r;
+    $("rfDoneWrap").hidden=true;
     $("rfDone").checked=!r;
     $("rfErr").textContent="";
     $("rfSave").disabled=false;

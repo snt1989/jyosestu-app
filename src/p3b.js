@@ -89,7 +89,7 @@
   function segHtml(s){
     var st=stOf(s), id=esc(s.id);
     var h='<div class="seg" role="group" aria-label="'+esc(s.name)+'の作業状況">';
-    ["standby","prep","out","done"].forEach(function(k){
+    ["standby","prep","out"].forEach(function(k){
       h+='<button type="button" class="'+(k==="standby"?"":k)+'" data-act="status" data-id="'+id+'" data-v="'+k+'" aria-pressed="'+(st===k)+'"'+(canWrite()?"":" disabled")+'>'+ST[k]+'</button>';
     });
     return h+'</div>';
@@ -100,7 +100,7 @@
   }
   function stSelHtml(s){
     var st=stOf(s);
-    return '<select class="stsel s-'+st+'" data-stsel="'+esc(s.id)+'" aria-label="'+esc(s.name)+'の作業状況"'+(canWrite()?'':' disabled')+'>'+["standby","prep","out","done"].map(function(k){return '<option value="'+k+'"'+(k===st?' selected':'')+'>'+ST[k]+'</option>'}).join("")+'</select>';
+    return '<select class="stsel s-'+st+'" data-stsel="'+esc(s.id)+'" aria-label="'+esc(s.name)+'の作業状況"'+(canWrite()?'':' disabled')+'>'+["standby","prep","out"].map(function(k){return '<option value="'+k+'"'+(k===st?' selected':'')+'>'+ST[k]+'</option>'}).join("")+(st==="done"?'<option value="done" selected hidden>'+ST.done+'</option>':'')+'</select>';
   }
   function siteRow(s){
     var a=assess(s), w=wx[s.id], ok=!!(w&&w.state==="ok"), c=ok?(w.cur||{}):{}, id=esc(s.id);
