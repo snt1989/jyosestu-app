@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181601"</script>
+<script>window.APP_BUILD="202611181609"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1049,6 +1049,22 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
 .rn-seg{display:grid;grid-template-columns:1fr 1fr;margin:0 0 12px;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
 .rn-seg button{min-height:46px;border:0;background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:1rem;cursor:pointer}
 .rn-seg button[aria-selected="true"]{background:var(--ink);color:#fff}
+/* 現場一覧(一覧表示)をスマホで短く */
+@media (max-width:899px){
+  .sr{grid-template-areas:"nm pill" "wx st";gap:4px 10px;padding:8px 10px 8px 14px;margin-bottom:6px}
+  .sr .nm b{font-size:.98rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sr .nm span{display:block;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sr .pill{font-size:.78rem;padding:2px 10px;min-height:0}
+  .sr .stg{display:none}
+  .sr .wx{gap:6px}
+  .sr .wx svg{width:30px;height:30px}
+  .sr .wx .t{font-size:1rem}
+  .sr .wx .sw{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.84rem}
+  .sr .wx .sw .wn{display:none}
+  .sr .wx .sw .sx{display:inline;margin-left:-1em}
+  .sr .wx .sw .sx .th{display:none}
+  .sr select.stsel{min-height:38px;padding:0 8px;font-size:.84rem;max-width:104px}
+}
 </style>
 </head><body>
 
@@ -1880,7 +1896,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
       if(a.ice)tg+='<span class="ice">凍結注意</span>';
       if(a.snowing)tg+='<span class="ice">降雪中</span>';
     }
-    var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw">'+esc(jp(c.weather))+'<span class="sx">　降雪 '+snowLabel(a.snow2)+' / 基準'+(a.th||10)+'cm</span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
+    var wxh=ok?icon(c.weather)+'<span class="t">'+fmt(num(c.tempC),1)+'℃</span><span class="sw"><span class="wn">'+esc(jp(c.weather))+'</span><span class="sx">　降雪 '+snowLabel(a.snow2)+'<span class="th"> / 基準'+(a.th||10)+'cm</span></span></span>':wxState(s).replace(/<button[\s\S]*?<\/button>/,"");
     return '<article class="sr l'+a.lv+'" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="nm"><b>'+esc(s.name)+(s.sample?' <span class="tag">サンプル</span>':'')+'</b><span>'+esc([s.area,s.crew?('担当 '+s.crew):'担当 未設定'].filter(Boolean).join('　'))+'</span></div><span class="pill l'+a.lv+'">'+a.label+'</span><div class="stg">'+tg+'</div><div class="wx">'+wxh+'</div>'+(ok?'<div class="sn">'+meterHtml(a)+'</div>':'<div class="sn"></div>')+stSelHtml(s)+'</article>';
   }
   var layout="row";
@@ -3730,6 +3746,7 @@ h1,h2,h3,.sc-name,.sr .nm b,.mbnm,.who-h b{font-weight:700;letter-spacing:.01em}
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・現場一覧(一覧表示)をスマホで短くしました(1件の高さをおよそ6割に。警報などの細かい表示は、現場を開くと見られます)",
       "・「日報」と「連絡」を1つのメニュー「日報・連絡」にまとめました(画面の上のボタンで切り替えます)",
       "・メニューの並び替えができるようになりました(ホームの一番下、またはパソコン表示の左メニューの「メニューの並び替え」から。この端末だけに保存されます)",
       "・メニューの「機械」を「機械管理」に変えました",
