@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
       let text = clip(b.text, 1000);
       if (!sid || mine.indexOf(sid) < 0) return res.status(403).json({ error: "forbidden_site" });
       if (!text && !dispatch) return res.status(400).json({ error: "empty" });
-      if (dispatch) text = "【出動要請】除雪の出動をお願いします。" + (text ? "\n" + text : "");
+      if (dispatch) text = "【出動要請】三桜に出動を要請します。" + (text ? "\n" + text : "");
       const sd = await fs.doc("sites/" + sid).get();
       if (!sd.exists) return res.status(404).json({ error: "no_site" });
       const at = Date.now();

@@ -90,13 +90,13 @@
     else if(act==="demoend"){demoEnd()}
     else if(act==="dispatch"){
       var dsite=siteById(id); if(!dsite)return;
-      if(!confirm("「"+dsite.name+"」に除雪の出動を要請します。よろしいですか?"))return;
-      if(demoOn){demoMsgs.push({id:"demo"+Date.now(),room:"client:"+id,siteId:id,text:"【出動要請】除雪の出動をお願いします。",at:Date.now(),fromClient:true,kind:"chat"});applyScope();toast("デモのため、出動要請は保存・送信されません。");render();return}
+      if(!confirm("「"+dsite.name+"」について、三桜に出動を要請します。よろしいですか?"))return;
+      if(demoOn){demoMsgs.push({id:"demo"+Date.now(),room:"client:"+id,siteId:id,text:"【出動要請】三桜に出動を要請します。",at:Date.now(),fromClient:true,kind:"chat"});applyScope();toast("デモのため、出動要請は保存・送信されません。");render();return}
       if(!isClient)return;
       if(t.disabled)return; t.disabled=true;
       window.__FB.callClient({action:"send",siteId:id,dispatch:true,text:""}).then(function(rc){
-        RAW.chat.push({id:rc.id,room:"client:"+id,siteId:id,text:"【出動要請】除雪の出動をお願いします。",at:rc.at||Date.now(),by:myId||"",kind:"chat"});
-        applyScope();pwaNotify("cmsg",rc.id);toast("出動を要請しました。スタッフに通知しました。");render();
+        RAW.chat.push({id:rc.id,room:"client:"+id,siteId:id,text:"【出動要請】三桜に出動を要請します。",at:rc.at||Date.now(),by:myId||"",kind:"chat"});
+        applyScope();pwaNotify("cmsg",rc.id);toast("三桜に出動を要請しました。スタッフに通知しました。");render();
       }).catch(function(){toast("送信できませんでした。もう一度お試しください。")}).then(function(){t.disabled=false});
     }
     else if(act==="clientchat"){chRoom="client:"+id;chStick=true;closeSheet("detail");goto("chat")}

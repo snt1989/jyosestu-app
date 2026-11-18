@@ -243,7 +243,7 @@
     var h='<div class="hello"><span class="d">'+esc(new Date().toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"}))+'</span><span class="muted">'+(myName?esc(myName)+' 様　':'')+'全'+sites.length+'現場</span></div>';
     h+=items.length?'<div class="stack">'+items.map(function(x){
       var s=x.s, a=x.a, id=esc(s.id), n=chUnread("client:"+s.id);
-      return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+'</div><div class="sc-sub">'+esc([s.area,siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st"><div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>作業状況: <b>'+esc(ST[stOf(s)])+'</b>'+(stAt(s)?' ('+timeStr(stAt(s))+')':'')+'</span><span><button class="btn sm dspbtn" type="button" data-act="dispatch" data-id="'+id+'">出動を要請</button> <button class="link" type="button" data-act="clientchat" data-id="'+id+'">連絡する'+(n?'<span class="num cbd">'+n+'</span>':'')+'</button> <button class="link" type="button" data-act="open" data-id="'+id+'">詳しく見る</button></span></div></div></article>';
+      return '<article class="sc l'+a.lv+'"><div class="sc-main" data-act="open" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(s.name)+'の詳細を開く"><div class="sc-top"><div style="min-width:0"><div class="sc-name">'+esc(s.name)+'</div><div class="sc-sub">'+esc([s.area,siteHands(s).length?('引渡 '+handText(s,1)):''].filter(Boolean).join('　'))+'</div></div><span class="pill l'+a.lv+'">'+a.label+'</span></div>'+wxBrief(s,a)+'</div><div class="sc-st"><div class="mt" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span>作業状況: <b>'+esc(ST[stOf(s)])+'</b>'+(stAt(s)?' ('+timeStr(stAt(s))+')':'')+'</span><span><button class="btn sm dspbtn" type="button" data-act="dispatch" data-id="'+id+'">三桜に出動要請</button> <button class="link" type="button" data-act="clientchat" data-id="'+id+'">連絡する'+(n?'<span class="num cbd">'+n+'</span>':'')+'</button> <button class="link" type="button" data-act="open" data-id="'+id+'">詳しく見る</button></span></div></div></article>';
     }).join("")+'</div>':'<div class="empty"><b>'+(dbState==="loading"?"読み込み中…":"表示できる現場がありません")+'</b>'+(dbState==="loading"?"":"担当者に、現場の登録をご確認ください。")+'</div>';
     $("v-home").innerHTML=h;
   }
@@ -421,7 +421,7 @@
     }
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div><div class="cst">'+esc(ST[stOf(s)]||"")+'</div>'+
-      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">連絡する</button></div><button class="btn dspbtn" type="button" data-act="dispatch" data-id="'+id+'">出動を要請する</button></div>';
+      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">連絡する</button></div><button class="btn dspbtn" type="button" data-act="dispatch" data-id="'+id+'">三桜に出動を要請する</button></div>';
     var rs=reports.filter(function(r){return r.siteId===s.id}).slice(0,15);
     h+='<div class="sec"><h2>作業の履歴</h2></div>';
     h+=rs.length?'<div class="stack">'+rs.map(function(r){
