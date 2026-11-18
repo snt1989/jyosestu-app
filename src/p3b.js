@@ -237,6 +237,7 @@
     h+=nt.length?'<div class="stack">'+nt.map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はまだありません</b>申し送りは「連絡」から書けます。</div>';
     h+='<div class="sec"><h2>本日の日報</h2><button class="link" type="button" data-nav="reports">日報を見る</button></div>';
     h+=todayReps.length?'<div class="stack">'+todayReps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>今日の日報はまだありません</b>作業が終わったら、右下のボタンから書けます。</div>';
+    h+='<div class="mo-home"><button class="link" type="button" data-act="menuorder">メニューの並び替え</button></div>';
     $("v-home").innerHTML=h;
   }
 

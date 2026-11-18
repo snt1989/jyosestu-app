@@ -24,12 +24,11 @@
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
   function doRender(){
     if(!canAdmin&&view==="admin")view="home";
-    var NAV=TABS.filter(function(t){return t[0]!=="admin"});
-    if(canAdmin){NAV.push(["members","メンバー管理"]);NAV.push(["admin","設定"])}
+    var NAV=navOrdered();
     $("tabbar").innerHTML=NAV.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="admin"?(view==="admin"&&sub!=="members"):view===t[0];
       return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
-    }).join("")+'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a>';
+    }).join("")+'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a><button type="button" class="tabmo" data-act="menuorder">メニューの並び替え</button>';
     TABS.forEach(function(t){$("v-"+t[0]).hidden=(view!==t[0])});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
     $("fab").classList.toggle("nof",view==="sites");
@@ -83,6 +82,7 @@
     else if(act==="annhist"){openAnnHist()}
     else if(act==="anopen"){openAnnView(id)}
     else if(act==="retry"){if(s)loadOne(s,true)}
+    else if(act==="menuorder"){openMenuOrder()}
     else if(act==="hourly"){if(s)openHourly(s)}
     else if(act==="edit"){if(canAdmin)openDlg(id)}
     else if(act==="copy"){if(canAdmin)openDlg(id,true)}
@@ -800,6 +800,7 @@
   /* ---- お知らせへの自動投稿(現場の更新・アプリの更新) ---- */
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
+      "・メニューの並び替えができるようになりました(ホームの一番下、またはパソコン表示の左メニューの「メニューの並び替え」から。この端末だけに保存されます)",
       "・メニューの「機械」を「機械管理」に変えました",
       "・降雪の計算で、雨の分を雪に数えないようにしました(予報の降水を気温で雪と雨に分け、雪の分だけを表示します。気温が高い日は出動目安が出にくくなります)",
       "・「降雪」(これから降る量)と「積雪」(いま積もっている量)を分けて表示しました。積雪は3日以内の日報の実測、なければ気象観測の値です",
@@ -851,6 +852,40 @@
   setTimeout(checkAppUpdate,15000);
   setInterval(checkAppUpdate,5*60*1000);
   document.addEventListener("visibilitychange",function(){if(!document.hidden)checkAppUpdate()});
+  /* ---------- メニューの並び替え(この端末に保存) ---------- */
+  function navBase(){
+    var n=TABS.filter(function(t){return t[0]!=="admin"});
+    if(canAdmin){n.push(["members","メンバー管理"]);n.push(["admin","設定"])}
+    return n;
+  }
+  function menuOrder(){try{var v=JSON.parse(localStorage.getItem("josetsu.menuOrder")||"null");return Array.isArray(v)?v:null}catch(e){return null}}
+  function navOrdered(){
+    var base=navBase(), ord=menuOrder(); if(!ord)return base;
+    var idx=function(k){var i=ord.indexOf(k);return i<0?1e3+base.map(function(t){return t[0]}).indexOf(k):i};
+    return base.slice().sort(function(a,b){return idx(a[0])-idx(b[0])});
+  }
+  function saveMenuOrder(keys){try{if(keys)localStorage.setItem("josetsu.menuOrder",JSON.stringify(keys));else localStorage.removeItem("josetsu.menuOrder")}catch(e){}}
+  function moBody(){
+    var n=navOrdered();
+    return '<p class="mo-help">▲▼で順番を入れ替えます。この端末だけに保存され、ほかの人には影響しません。</p>'+n.map(function(t,i){
+      return '<div class="mo-row"><span class="mo-n">'+esc(t[1])+'</span><button type="button" class="btn sm" data-mo="up" data-k="'+t[0]+'" aria-label="'+esc(t[1])+'を上へ"'+(i===0?' disabled':'')+'>▲</button><button type="button" class="btn sm" data-mo="dn" data-k="'+t[0]+'" aria-label="'+esc(t[1])+'を下へ"'+(i===n.length-1?' disabled':'')+'>▼</button></div>';
+    }).join("");
+  }
+  function openMenuOrder(){
+    openModal("メニューの並び替え",moBody(),'<button class="btn" type="button" data-mo="reset">もとの並びに戻す</button><button class="btn primary" type="button" data-mclose>閉じる</button>');
+  }
+  document.addEventListener("click",function(e){
+    var b=e.target.closest&&e.target.closest("[data-mo]"); if(!b||b.disabled)return;
+    var m=b.getAttribute("data-mo"), keys=navOrdered().map(function(t){return t[0]});
+    if(m==="reset")saveMenuOrder(null);
+    else{
+      var i=keys.indexOf(b.getAttribute("data-k")), j=m==="up"?i-1:i+1;
+      if(i<0||j<0||j>=keys.length)return;
+      var x=keys[i]; keys[i]=keys[j]; keys[j]=x; saveMenuOrder(keys);
+    }
+    var body=document.querySelector("#mdBox .modal-body"); if(body){var st=body.scrollTop; body.innerHTML=moBody(); body.scrollTop=st}
+    render();
+  });
   /* ---------- 時間ごとの天気(1時間ごと / 10分ごと) ---------- */
   var hrSeq=0, hrCur=null;
   function hrParse(f){
