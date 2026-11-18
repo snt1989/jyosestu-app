@@ -1569,7 +1569,7 @@ body.demo #meLine{display:none}
 </main>
 
 <nav class="tabbar" id="tabbar" aria-label="メニュー"></nav>
-<button class="fab" id="fab" type="button" data-act="newrep" aria-label="日報を書く" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="fl">日報を書く</span></button>
+<button class="fab" id="fab" type="button" data-act="newrep" aria-label="完了報告" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="fl">完了報告</span></button>
 
 <div class="modal-layer" id="mdl" aria-hidden="true"><div class="modal-box" id="mdBox" role="dialog" aria-modal="true"></div></div>
 
@@ -1602,7 +1602,7 @@ body.demo #meLine{display:none}
 <div class="sheet s2" id="rform" hidden>
   <div class="sheet-bar">
     <button class="ab-btn" type="button" data-act="rfcancel">‹ 閉じる</button>
-    <h2 id="rfTitle">作業日報を書く</h2>
+    <h2 id="rfTitle">完了報告(日報)</h2>
   </div>
   <form class="page f" id="rfForm" autocomplete="off">
     <div class="grp">
@@ -2406,7 +2406,7 @@ body.demo #meLine{display:none}
     if(mcp)h+='<div style="margin-top:6px"><button class="link" type="button" data-act="retry" data-id="'+id+'">この現場の天気を更新</button></div>';
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
-      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">日報を書く</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div><div class="row2" style="margin-top:8px"><button class="btn" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">この現場のチャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'" style="flex:1">報告書を作る</button></div></div>';
+      '<div class="row2" style="margin-top:10px"><button class="btn primary" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">完了報告</button><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+' style="flex:1">連絡を書く</button></div><div class="row2" style="margin-top:8px"><button class="btn" type="button" data-act="sitechat" data-id="'+id+'" style="flex:1">この現場のチャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'" style="flex:1">報告書を作る</button></div></div>';
     h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
     var n=siteSeasonCount(s.id), sl=siteLines(s);
     h+='<div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
@@ -2892,11 +2892,11 @@ body.demo #meLine{display:none}
     $("rfPhotos").innerHTML=h;
   }
   function openReportForm(siteId,repId){
-    if(!canWrite()){toast("日報を書く権限がありません。");return}
+    if(!canWrite()){toast("完了報告を出す権限がありません。");return}
     var r=repId?reports.filter(function(x){return x.id===repId})[0]:null;
     if(repId&&!r)return;
     rf={id:repId||null,photos:r?(r.photos||[]).filter(function(p){return okId(p.id)}).map(function(p){return {id:p.id,kind:p.kind||"other"}}):[],added:[],removed:[],up:0};
-    $("rfTitle").textContent=r?"日報を編集":"作業日報を書く";
+    $("rfTitle").textContent=r?"日報を編集":"完了報告(日報)";
     var opts=sites.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")});
     var sid=r?r.siteId:siteId;
     var o=opts.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'}).join("");
@@ -3196,7 +3196,7 @@ body.demo #meLine{display:none}
     if(canAdmin&&t.noTime)notes2.push('時間単価の現場で、開始・終了時刻のない日報'+t.noTime+'件は、作業時間0として計算しています。');
     if(notes2.length)h+='<div class="banner" style="margin-top:12px">'+esc(notes2.join(" "))+'</div>';
     h+='<div class="sec"><h2>現場ごとの実績<span class="gc num">'+d.rows.length+'件</span>'+(canAdmin?admBadge():'')+'</h2></div>';
-    if(!d.rows.length)h+='<div class="empty"><b>この期間の日報はありません</b>日報を書くと、ここに出動回数などが集計されます。</div>';
+    if(!d.rows.length)h+='<div class="empty"><b>この期間の日報はありません</b>完了報告を出すと、ここに出動回数などが集計されます。</div>';
     else h+='<div class="stack">'+d.rows.map(function(o){
       var left=['出動 '+o.n+'回'+(o.h>0||o.unit==="時間"?'　作業 '+fmt(o.h,1)+'時間':'')+(o.hai?'　排雪 '+o.hai+'回':'')];
       if(stS.mode==="season"&&o.contract)left.push('契約 '+o.contract+'回 中 '+o.n+'回'+(o.n>o.contract?'(契約回数を超過)':''));
@@ -4162,6 +4162,7 @@ body.demo #meLine{display:none}
   var APP_RELEASES=[
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
+      "・「日報を書く」ボタンを「完了報告」に変えました",
       "・「完了」ボタンをなくしました。完了は日報を提出したときに自動で付きます",
       "・日報を削除したとき、その日「完了」にしていた現場は「待機」に戻り、ホームの出動状況に残らないようにしました",
       "・日報に「お客様への連絡」欄を追加しました。書いた内容がお客様の「作業の履歴」に表示されます",

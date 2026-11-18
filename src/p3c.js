@@ -375,11 +375,11 @@
     $("rfPhotos").innerHTML=h;
   }
   function openReportForm(siteId,repId){
-    if(!canWrite()){toast("日報を書く権限がありません。");return}
+    if(!canWrite()){toast("完了報告を出す権限がありません。");return}
     var r=repId?reports.filter(function(x){return x.id===repId})[0]:null;
     if(repId&&!r)return;
     rf={id:repId||null,photos:r?(r.photos||[]).filter(function(p){return okId(p.id)}).map(function(p){return {id:p.id,kind:p.kind||"other"}}):[],added:[],removed:[],up:0};
-    $("rfTitle").textContent=r?"日報を編集":"作業日報を書く";
+    $("rfTitle").textContent=r?"日報を編集":"完了報告(日報)";
     var opts=sites.slice().sort(function(a,b){return String(a.name).localeCompare(String(b.name),"ja")});
     var sid=r?r.siteId:siteId;
     var o=opts.map(function(s){return '<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'}).join("");
@@ -679,7 +679,7 @@
     if(canAdmin&&t.noTime)notes2.push('時間単価の現場で、開始・終了時刻のない日報'+t.noTime+'件は、作業時間0として計算しています。');
     if(notes2.length)h+='<div class="banner" style="margin-top:12px">'+esc(notes2.join(" "))+'</div>';
     h+='<div class="sec"><h2>現場ごとの実績<span class="gc num">'+d.rows.length+'件</span>'+(canAdmin?admBadge():'')+'</h2></div>';
-    if(!d.rows.length)h+='<div class="empty"><b>この期間の日報はありません</b>日報を書くと、ここに出動回数などが集計されます。</div>';
+    if(!d.rows.length)h+='<div class="empty"><b>この期間の日報はありません</b>完了報告を出すと、ここに出動回数などが集計されます。</div>';
     else h+='<div class="stack">'+d.rows.map(function(o){
       var left=['出動 '+o.n+'回'+(o.h>0||o.unit==="時間"?'　作業 '+fmt(o.h,1)+'時間':'')+(o.hai?'　排雪 '+o.hai+'回':'')];
       if(stS.mode==="season"&&o.contract)left.push('契約 '+o.contract+'回 中 '+o.n+'回'+(o.n>o.contract?'(契約回数を超過)':''));
