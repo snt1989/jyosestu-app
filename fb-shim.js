@@ -44,6 +44,30 @@
   }
   firebase.initializeApp(cfg);
   var auth=firebase.auth(), fs=firebase.firestore();
+  // 圏外でも使えるように、読んだデータと書き込み待ちを端末に保存する(電波が戻ると自動で送信される)
+  try{fs.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}
+  var pend=0;
+  function pendEv(){try{window.dispatchEvent(new CustomEvent("fbpend",{detail:pend}))}catch(e){}}
+  window.__fbPend=function(){return pend};
+  // 書き込み: 圏外、または6秒たっても届かないときは「端末に保存済み」として先へ進む(送信は裏で続く)
+  function soft(p){
+    pend++;pendEv();
+    var done=function(){pend=Math.max(0,pend-1);pendEv()};
+    p.then(done,done);
+    if(navigator.onLine===false){p.catch(function(){});return Promise.resolve()}
+    return new Promise(function(res,rej){
+      var t=setTimeout(function(){p.catch(function(){});res()},6000);
+      p.then(function(v){clearTimeout(t);res(v)},function(e){clearTimeout(t);rej(e)});
+    });
+  }
+  function wdoc(r){return {id:r.id,
+    set:function(){return soft(r.set.apply(r,arguments))},update:function(){return soft(r.update.apply(r,arguments))},delete:function(){return soft(r.delete())},
+    get:function(){return r.get.apply(r,arguments)},onSnapshot:function(){return r.onSnapshot.apply(r,arguments)}}}
+  function wcol(c){return {
+    add:function(d){var r=c.doc();return soft(r.set(d)).then(function(){return {id:r.id}})},
+    doc:function(id){return wdoc(id?c.doc(id):c.doc())},
+    get:function(){return c.get.apply(c,arguments)},onSnapshot:function(){return c.onSnapshot.apply(c,arguments)},
+    where:function(){return c.where.apply(c,arguments)},orderBy:function(){return c.orderBy.apply(c,arguments)},limit:function(){return c.limit.apply(c,arguments)}}}
   var cur=null;
   // 写真は Firestore(photos コレクション)に、縮小した画像として保存する(Storage は有料プランが必要なため)
   var pcache={}, pwait={};
@@ -241,7 +265,7 @@
     },
     db:async function(){
       await sessP;
-      return {collection:function(p){return fs.collection(p)},doc:function(p){return fs.doc(p)}};
+      return {collection:function(p){return wcol(fs.collection(p))},doc:function(p){return wdoc(fs.doc(p))}};
     },
     mcp:async function(){
       await sessP;
@@ -261,11 +285,11 @@
             var full=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result)};fr.onerror=rej;fr.readAsDataURL(blob)});
             var CH=700000, parts=[]; for(var p0=0;p0<full.length;p0+=CH)parts.push(full.slice(p0,p0+CH));
             var at0=Date.now();
-            await Promise.all(parts.map(function(c,i){return fs.doc("photos/"+(i?id+"_"+i:id)).set({data:c,type:"application/pdf",at:at0,by:s0.u.uid,n:parts.length,i:i})}));
+            await Promise.all(parts.map(function(c,i){return wdoc(fs.doc("photos/"+(i?id+"_"+i:id))).set({data:c,type:"application/pdf",at:at0,by:s0.u.uid,n:parts.length,i:i})}));
             return {id:id,url:"",sizeBytes:blob.size,contentType:"application/pdf"};
           }
           var url=await shrinkTo(blob,(o&&o.drawing?900000:(window.__PQ?window.__PQ().limit:700000)),(o&&o.drawing?{side:2400,q:0.85}:null));
-          await fs.doc("photos/"+id).set({data:url,type:"image/jpeg",at:Date.now(),by:s0.u.uid});
+          await wdoc(fs.doc("photos/"+id)).set({data:url,type:"image/jpeg",at:Date.now(),by:s0.u.uid});
           pcache[id]=url;
           return {id:id,url:url,sizeBytes:url.length,contentType:"image/jpeg"};
         },

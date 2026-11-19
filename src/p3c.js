@@ -477,7 +477,7 @@
       var gone=rf.removed.slice(); rf.added=[]; rf.removed=[];
       rf=null; $("rform").hidden=true; lockBody();
       dropAssets(gone);
-      toast("日報を保存しました。");
+      toast(navigator.onLine===false&&window.__fbPend?"完了報告を端末に保存しました。電波が戻ると自動で送信します。":"日報を保存しました。");
       if(!$("rview").hidden)renderRepView();
       render();
     }catch(err){

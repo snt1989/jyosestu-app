@@ -1325,4 +1325,10 @@ body.demo #meLine{display:none}
   #adm-master .tw td .row2{display:flex;gap:8px;margin-top:4px}
   #adm-master .tw td .row2 .btn{flex:1;min-height:42px}
 }
+/* ===== 圏外・未送信の表示 ===== */
+.offbar{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:35;background:#7A4B00;color:#fff;font-size:.8rem;font-weight:700;line-height:1.4;padding:7px 14px;text-align:center}
+.offbar.sync{background:#1F4E79}
+.offbar[hidden]{display:none}
+body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
+@media (min-width:900px){.offbar{left:auto;right:16px;bottom:16px;border-radius:999px;padding:8px 16px;box-shadow:0 6px 18px -6px rgba(0,0,0,.4)}body.offl .toast{bottom:64px}}
 </style>

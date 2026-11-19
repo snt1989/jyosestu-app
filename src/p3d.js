@@ -55,6 +55,20 @@
   setInterval(function(){if(view==="machines"&&!document.hidden)render()},60000);
   var rqT=0;
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
+  /* ---------- 圏外・未送信の表示(本番のみ。書き込みは端末に保存され、電波が戻ると自動で送信される) ---------- */
+  function offSync(){
+    var el=$("offBar"); if(!el||!window.__fbPend)return;
+    var off=navigator.onLine===false, n=window.__fbPend()||0, on=off||n>0&&offSync.slow;
+    el.hidden=!on; document.body.classList.toggle("offl",on); el.classList.toggle("sync",!off);
+    if(on)el.textContent=off?("圏外です。入力した内容は端末に保存し、電波が戻ると自動で送信します"+(n?"(未送信 "+n+"件)":"")):("送信中です(残り "+n+"件)。電波が弱いようです");
+  }
+  window.addEventListener("online",offSync); window.addEventListener("offline",offSync);
+  window.addEventListener("fbpend",function(e){
+    clearTimeout(offSync.t);
+    if(e.detail>0){if(!offSync.slow)offSync.t=setTimeout(function(){offSync.slow=true;offSync()},6000)}else offSync.slow=false;
+    offSync();
+  });
+  setTimeout(offSync,0);
   var moreOpen=false;
   function tabCur(k){return k==="members"?(view==="admin"&&sub==="members"):k==="clients"?(view==="admin"&&sub==="clients"):k==="admin"?(view==="admin"&&sub!=="members"&&sub!=="clients"):k==="reports"?(view==="reports"||view==="notes"):view===k}
   function moreBtnHtml(rest){
@@ -1000,6 +1014,7 @@
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・圏外でも使えるようにしました。完了報告・連絡・写真は端末に保存され、電波が戻ると自動で送信されます。一度開いたあとは圏外でもアプリを開けます",
       "・スマホの下のメニューを4つ(ホーム・現場・日報連絡・その他)にまとめ、残りは「その他」から開くようにしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
       "・端末の「戻る」操作(スワイプ・ボタン)で、アプリを閉じずに1つ前の画面へ戻れるようにしました",
       "・現場の詳細画面を見やすくしました。上部に現場名・状況・地区・担当・引渡時間をまとめ、パソコンでは2列で表示します",
