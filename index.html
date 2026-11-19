@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611181742"</script>
+<script>window.APP_BUILD="202611191608"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1302,6 +1302,29 @@ body.demo #meLine{display:none}
 @media (min-width:960px){.dv .dvtop{grid-template-columns:1.25fr 1fr}.dv .dvcols{grid-template-columns:1fr 1fr}.dvhero .hnm{font-size:1.8rem}}
 @media (max-width:420px){.dvact .btn{padding-inline:4px;font-size:.88rem}.dvhero{padding:16px}}
 .dvr a.btn.sm{color:var(--ink);text-decoration:none;font-weight:600}
+/* ===== スマホ: 下のタブは横にスクロールして1つずつ読める大きさに ===== */
+@media (max-width:899px){
+  .tabbar{overflow-x:auto;overflow-y:hidden;gap:0;padding:0 0 env(safe-area-inset-bottom,0px);scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+  .tabbar::-webkit-scrollbar{display:none}
+  .tabbar button,.tabbar a.tabext{flex:0 0 auto;min-width:74px;width:calc(100vw/5.4);max-width:96px;min-height:58px;padding:8px 4px 6px;gap:4px;font-size:.72rem;letter-spacing:0;white-space:nowrap;scroll-snap-align:center}
+  .tabbar button .ico,.tabbar a.tabext .ico{width:22px;height:22px}
+  .tabbar .tbd{left:calc(50% + 6px)}
+  .tabbar button[aria-current="page"]::after{left:18%;right:18%}
+}
+/* ===== スマホ: マスタの表は1件ずつのカード表示 ===== */
+@media (max-width:640px){
+  #adm-master .tw{border:0;background:transparent;overflow:visible}
+  #adm-master .tw table{min-width:0!important;width:100%;display:block}
+  #adm-master .tw thead{display:none}
+  #adm-master .tw tbody{display:block}
+  #adm-master .tw tr{display:block;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  #adm-master .tw td{display:block;width:100%;border:0;padding:3px 0;white-space:normal}
+  #adm-master .tw td input:not([type=checkbox]){min-width:0;width:100%;box-sizing:border-box}
+  #adm-master .tw td.num{font-size:.85rem;color:var(--muted)}
+  #adm-master #atbody td.num::before{content:"この地区の現場数:";margin-right:4px}
+  #adm-master .tw td .row2{display:flex;gap:8px;margin-top:4px}
+  #adm-master .tw td .row2 .btn{flex:1;min-height:42px}
+}
 </style>
 </head><body>
 
@@ -3416,6 +3439,7 @@ body.demo #meLine{display:none}
       return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー",clients:"お客様",reports:"日報・連絡"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
     }).join("")+'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a><button type="button" class="tabmo" data-act="menuorder">メニューの並び替え</button>';
     TABS.map(function(t){return t[0]}).concat(["notes"]).forEach(function(k){$("v-"+k).hidden=(view!==k)});
+    try{var tbE=$("tabbar"),cb=tbE.querySelector('[aria-current="page"]');if(cb&&tbE.scrollWidth>tbE.clientWidth&&tbE.clientHeight<100)tbE.scrollLeft=cb.offsetLeft-(tbE.clientWidth-cb.offsetWidth)/2}catch(e){}
     Array.prototype.forEach.call(document.querySelectorAll(".rn-seg button"),function(b){b.setAttribute("aria-selected",String(b.getAttribute("data-nav")===view))});
     $("fab").hidden=!(canWrite()&&(view==="home"||view==="sites"||view==="reports"));
     $("fab").classList.toggle("nof",view==="sites");
@@ -4330,6 +4354,7 @@ body.demo #meLine{display:none}
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・スマホの下のメニューを、文字が重ならないよう横にスクロールできる形にしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
       "・端末の「戻る」操作(スワイプ・ボタン)で、アプリを閉じずに1つ前の画面へ戻れるようにしました",
       "・現場の詳細画面を見やすくしました。上部に現場名・状況・地区・担当・引渡時間をまとめ、パソコンでは2列で表示します",
       "・機械管理の画面を見やすくしました。状態ごとの絞り込み、種類・保管場所・品番の表示を追加しました",

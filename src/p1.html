@@ -1295,4 +1295,27 @@ body.demo #meLine{display:none}
 @media (min-width:960px){.dv .dvtop{grid-template-columns:1.25fr 1fr}.dv .dvcols{grid-template-columns:1fr 1fr}.dvhero .hnm{font-size:1.8rem}}
 @media (max-width:420px){.dvact .btn{padding-inline:4px;font-size:.88rem}.dvhero{padding:16px}}
 .dvr a.btn.sm{color:var(--ink);text-decoration:none;font-weight:600}
+/* ===== スマホ: 下のタブは横にスクロールして1つずつ読める大きさに ===== */
+@media (max-width:899px){
+  .tabbar{overflow-x:auto;overflow-y:hidden;gap:0;padding:0 0 env(safe-area-inset-bottom,0px);scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+  .tabbar::-webkit-scrollbar{display:none}
+  .tabbar button,.tabbar a.tabext{flex:0 0 auto;min-width:74px;width:calc(100vw/5.4);max-width:96px;min-height:58px;padding:8px 4px 6px;gap:4px;font-size:.72rem;letter-spacing:0;white-space:nowrap;scroll-snap-align:center}
+  .tabbar button .ico,.tabbar a.tabext .ico{width:22px;height:22px}
+  .tabbar .tbd{left:calc(50% + 6px)}
+  .tabbar button[aria-current="page"]::after{left:18%;right:18%}
+}
+/* ===== スマホ: マスタの表は1件ずつのカード表示 ===== */
+@media (max-width:640px){
+  #adm-master .tw{border:0;background:transparent;overflow:visible}
+  #adm-master .tw table{min-width:0!important;width:100%;display:block}
+  #adm-master .tw thead{display:none}
+  #adm-master .tw tbody{display:block}
+  #adm-master .tw tr{display:block;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  #adm-master .tw td{display:block;width:100%;border:0;padding:3px 0;white-space:normal}
+  #adm-master .tw td input:not([type=checkbox]){min-width:0;width:100%;box-sizing:border-box}
+  #adm-master .tw td.num{font-size:.85rem;color:var(--muted)}
+  #adm-master #atbody td.num::before{content:"この地区の現場数:";margin-right:4px}
+  #adm-master .tw td .row2{display:flex;gap:8px;margin-top:4px}
+  #adm-master .tw td .row2 .btn{flex:1;min-height:42px}
+}
 </style>
