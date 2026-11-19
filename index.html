@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611191608"</script>
+<script>window.APP_BUILD="202611191611"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1302,15 +1302,22 @@ body.demo #meLine{display:none}
 @media (min-width:960px){.dv .dvtop{grid-template-columns:1.25fr 1fr}.dv .dvcols{grid-template-columns:1fr 1fr}.dvhero .hnm{font-size:1.8rem}}
 @media (max-width:420px){.dvact .btn{padding-inline:4px;font-size:.88rem}.dvhero{padding:16px}}
 .dvr a.btn.sm{color:var(--ink);text-decoration:none;font-weight:600}
-/* ===== スマホ: 下のタブは横にスクロールして1つずつ読める大きさに ===== */
+/* ===== スマホ: 下のメニューは最大4つ(残りは「その他」) ===== */
 @media (max-width:899px){
-  .tabbar{overflow-x:auto;overflow-y:hidden;gap:0;padding:0 0 env(safe-area-inset-bottom,0px);scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
-  .tabbar::-webkit-scrollbar{display:none}
-  .tabbar button,.tabbar a.tabext{flex:0 0 auto;min-width:74px;width:calc(100vw/5.4);max-width:96px;min-height:58px;padding:8px 4px 6px;gap:4px;font-size:.72rem;letter-spacing:0;white-space:nowrap;scroll-snap-align:center}
-  .tabbar button .ico,.tabbar a.tabext .ico{width:22px;height:22px}
+  .tabbar{overflow:visible;gap:0;padding:0 0 env(safe-area-inset-bottom,0px)}
+  .tabbar button,.tabbar a.tabext{flex:1 1 0;min-width:0;width:auto;max-width:none;min-height:58px;padding:8px 2px 6px;gap:4px;font-size:.74rem;letter-spacing:0;white-space:nowrap}
+  .tabbar button .ico,.tabbar a.tabext .ico{width:23px;height:23px}
   .tabbar .tbd{left:calc(50% + 6px)}
-  .tabbar button[aria-current="page"]::after{left:18%;right:18%}
+  .tabbar button[aria-current="page"]::after{left:22%;right:22%}
 }
+#moreMenu{position:fixed;right:10px;bottom:calc(68px + env(safe-area-inset-bottom,0px));z-index:40;min-width:220px;max-width:calc(100vw - 20px);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px -8px rgba(0,0,0,.35);padding:6px;display:flex;flex-direction:column}
+#moreMenu[hidden]{display:none}
+#moreMenu button,#moreMenu a{display:flex;align-items:center;gap:12px;min-height:50px;padding:0 14px;border:0;background:transparent;border-radius:8px;color:var(--ink);font:inherit;font-size:1rem;font-weight:600;text-decoration:none;cursor:pointer;text-align:left;position:relative}
+#moreMenu button:active,#moreMenu a:active{background:var(--accent-soft)}
+#moreMenu button[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+#moreMenu .ico{width:22px;height:22px;flex:none}
+#moreMenu .tbd{position:static;margin-left:auto;background:var(--crit);color:#fff;border-radius:10px;font-style:normal;font-size:.72rem;padding:1px 7px}
+@media (min-width:900px){#moreMenu{display:none!important}}
 /* ===== スマホ: マスタの表は1件ずつのカード表示 ===== */
 @media (max-width:640px){
   #adm-master .tw{border:0;background:transparent;overflow:visible}
@@ -3391,6 +3398,7 @@ body.demo #meLine{display:none}
   var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械管理"],["reports","日報・連絡"],["chat","チャット"],["stats","集計"],["admin","設定"]];
   function goto(v,f){
     var pv=view, ps=sub;
+    if(moreOpen){moreOpen=false;var mm=$("moreMenu");if(mm)mm.hidden=true}
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
     if(v==="members"||v==="clients"){view="admin";sub=v}
     else{view=v;if(v==="admin"&&(sub==="members"||sub==="clients"))sub="sites"}
@@ -3430,14 +3438,34 @@ body.demo #meLine{display:none}
   setInterval(function(){if(view==="machines"&&!document.hidden)render()},60000);
   var rqT=0;
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
+  var moreOpen=false;
+  function tabCur(k){return k==="members"?(view==="admin"&&sub==="members"):k==="clients"?(view==="admin"&&sub==="clients"):k==="admin"?(view==="admin"&&sub!=="members"&&sub!=="clients"):k==="reports"?(view==="reports"||view==="notes"):view===k}
+  function moreBtnHtml(rest){
+    var on=rest.some(function(t){return tabCur(t[0])}), n=rest.some(function(t){return t[0]==="chat"})?chUnreadAll():0;
+    return '<button type="button" data-act="more" aria-haspopup="true" aria-expanded="'+moreOpen+'"'+(on||moreOpen?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span class="tf">その他</span><span class="ts">その他</span>'+(n?'<i class="tbd">'+Math.min(99,n)+'</i>':'')+'</button>';
+  }
+  function moreRender(rest){
+    var m=$("moreMenu");
+    if(!m){m=document.createElement("div");m.id="moreMenu";m.setAttribute("role","menu");document.body.appendChild(m)}
+    if(!rest.length){m.hidden=true;moreOpen=false;m.innerHTML="";return}
+    m.innerHTML=rest.map(function(t){var n=t[0]==="chat"?chUnreadAll():0;
+      return '<button type="button" role="menuitem" data-nav="'+t[0]+'"'+(tabCur(t[0])?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span>'+t[1]+'</span>'+(n?'<i class="tbd">'+Math.min(99,n)+'</i>':'')+'</button>';
+    }).join("")+'<a role="menuitem" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>現場管理アプリ</span></a>';
+    m.hidden=!moreOpen;
+  }
+  function moreToggle(open){moreOpen=open;var m=$("moreMenu");if(m)m.hidden=!open;var b=document.querySelector('#tabbar [data-act="more"]');if(b){b.setAttribute("aria-expanded",String(open));if(open)b.setAttribute("aria-current","page");else render()}}
+  document.addEventListener("click",function(e){if(moreOpen&&!e.target.closest("#moreMenu,[data-act=more]"))moreToggle(false)});
   function doRender(){
     if(!canAdmin&&view==="admin")view="home";
     if(isClient&&view!=="chat")view="home";
     var NAV=navOrdered();
-    $("tabbar").innerHTML=NAV.map(function(t){
+    var mob=!(mqPC&&mqPC.matches)&&NAV.length>4, MAIN=NAV, REST=[];
+    if(mob){MAIN=NAV.filter(function(t){return t[0]==="home"||t[0]==="sites"||t[0]==="reports"});REST=NAV.filter(function(t){return MAIN.indexOf(t)<0})}
+    $("tabbar").innerHTML=MAIN.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="clients"?(view==="admin"&&sub==="clients"):t[0]==="admin"?(view==="admin"&&sub!=="members"&&sub!=="clients"):t[0]==="reports"?(view==="reports"||view==="notes"):view===t[0];
       return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー",clients:"お客様",reports:"日報・連絡"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
-    }).join("")+'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a><button type="button" class="tabmo" data-act="menuorder">メニューの並び替え</button>';
+    }).join("")+(mob?moreBtnHtml(REST):'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a><button type="button" class="tabmo" data-act="menuorder">メニューの並び替え</button>');
+    moreRender(mob?REST:[]);
     TABS.map(function(t){return t[0]}).concat(["notes"]).forEach(function(k){$("v-"+k).hidden=(view!==k)});
     try{var tbE=$("tabbar"),cb=tbE.querySelector('[aria-current="page"]');if(cb&&tbE.scrollWidth>tbE.clientWidth&&tbE.clientHeight<100)tbE.scrollLeft=cb.offsetLeft-(tbE.clientWidth-cb.offsetWidth)/2}catch(e){}
     Array.prototype.forEach.call(document.querySelectorAll(".rn-seg button"),function(b){b.setAttribute("aria-selected",String(b.getAttribute("data-nav")===view))});
@@ -3494,6 +3522,7 @@ body.demo #meLine{display:none}
     else if(act==="anopen"){openAnnView(id)}
     else if(act==="retry"){if(s)loadOne(s,true)}
     else if(act==="menuorder"){openMenuOrder()}
+    else if(act==="more"){moreToggle(!moreOpen)}
     else if(act==="sitechat"){chRoom=(isClient?"client:":"site:")+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="demoend"){demoEnd()}
     else if(act==="dispatch"){
@@ -4354,7 +4383,7 @@ body.demo #meLine{display:none}
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
-      "・スマホの下のメニューを、文字が重ならないよう横にスクロールできる形にしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
+      "・スマホの下のメニューを4つ(ホーム・現場・日報連絡・その他)にまとめ、残りは「その他」から開くようにしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
       "・端末の「戻る」操作(スワイプ・ボタン)で、アプリを閉じずに1つ前の画面へ戻れるようにしました",
       "・現場の詳細画面を見やすくしました。上部に現場名・状況・地区・担当・引渡時間をまとめ、パソコンでは2列で表示します",
       "・機械管理の画面を見やすくしました。状態ごとの絞り込み、種類・保管場所・品番の表示を追加しました",

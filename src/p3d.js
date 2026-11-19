@@ -15,6 +15,7 @@
   var TABS=[["home","ホーム"],["sites","現場一覧"],["machines","機械管理"],["reports","日報・連絡"],["chat","チャット"],["stats","集計"],["admin","設定"]];
   function goto(v,f){
     var pv=view, ps=sub;
+    if(moreOpen){moreOpen=false;var mm=$("moreMenu");if(mm)mm.hidden=true}
     if(v==="sites"&&f){filter=f;query="";$("query").value="";areaF=""}
     if(v==="members"||v==="clients"){view="admin";sub=v}
     else{view=v;if(v==="admin"&&(sub==="members"||sub==="clients"))sub="sites"}
@@ -54,14 +55,34 @@
   setInterval(function(){if(view==="machines"&&!document.hidden)render()},60000);
   var rqT=0;
   function render(){ if(rqT)return; rqT=setTimeout(function(){rqT=0;doRender()},16); }
+  var moreOpen=false;
+  function tabCur(k){return k==="members"?(view==="admin"&&sub==="members"):k==="clients"?(view==="admin"&&sub==="clients"):k==="admin"?(view==="admin"&&sub!=="members"&&sub!=="clients"):k==="reports"?(view==="reports"||view==="notes"):view===k}
+  function moreBtnHtml(rest){
+    var on=rest.some(function(t){return tabCur(t[0])}), n=rest.some(function(t){return t[0]==="chat"})?chUnreadAll():0;
+    return '<button type="button" data-act="more" aria-haspopup="true" aria-expanded="'+moreOpen+'"'+(on||moreOpen?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span class="tf">その他</span><span class="ts">その他</span>'+(n?'<i class="tbd">'+Math.min(99,n)+'</i>':'')+'</button>';
+  }
+  function moreRender(rest){
+    var m=$("moreMenu");
+    if(!m){m=document.createElement("div");m.id="moreMenu";m.setAttribute("role","menu");document.body.appendChild(m)}
+    if(!rest.length){m.hidden=true;moreOpen=false;m.innerHTML="";return}
+    m.innerHTML=rest.map(function(t){var n=t[0]==="chat"?chUnreadAll():0;
+      return '<button type="button" role="menuitem" data-nav="'+t[0]+'"'+(tabCur(t[0])?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span>'+t[1]+'</span>'+(n?'<i class="tbd">'+Math.min(99,n)+'</i>':'')+'</button>';
+    }).join("")+'<a role="menuitem" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>現場管理アプリ</span></a>';
+    m.hidden=!moreOpen;
+  }
+  function moreToggle(open){moreOpen=open;var m=$("moreMenu");if(m)m.hidden=!open;var b=document.querySelector('#tabbar [data-act="more"]');if(b){b.setAttribute("aria-expanded",String(open));if(open)b.setAttribute("aria-current","page");else render()}}
+  document.addEventListener("click",function(e){if(moreOpen&&!e.target.closest("#moreMenu,[data-act=more]"))moreToggle(false)});
   function doRender(){
     if(!canAdmin&&view==="admin")view="home";
     if(isClient&&view!=="chat")view="home";
     var NAV=navOrdered();
-    $("tabbar").innerHTML=NAV.map(function(t){
+    var mob=!(mqPC&&mqPC.matches)&&NAV.length>4, MAIN=NAV, REST=[];
+    if(mob){MAIN=NAV.filter(function(t){return t[0]==="home"||t[0]==="sites"||t[0]==="reports"});REST=NAV.filter(function(t){return MAIN.indexOf(t)<0})}
+    $("tabbar").innerHTML=MAIN.map(function(t){
       var cur=t[0]==="members"?(view==="admin"&&sub==="members"):t[0]==="clients"?(view==="admin"&&sub==="clients"):t[0]==="admin"?(view==="admin"&&sub!=="members"&&sub!=="clients"):t[0]==="reports"?(view==="reports"||view==="notes"):view===t[0];
       return '<button type="button" data-nav="'+t[0]+'"'+(cur?' aria-current="page"':'')+'><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+TABI[t[0]]+'</svg><span class="tf">'+t[1]+'</span><span class="ts">'+({sites:"現場",members:"メンバー",clients:"お客様",reports:"日報・連絡"}[t[0]]||t[1])+'</span>'+(t[0]==="chat"&&chUnreadAll()?'<i class="tbd">'+Math.min(99,chUnreadAll())+'</i>':'')+'</button>';
-    }).join("")+'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a><button type="button" class="tabmo" data-act="menuorder">メニューの並び替え</button>';
+    }).join("")+(mob?moreBtnHtml(REST):'<a class="tabext" href="https://genbakanri-app.vercel.app/" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span class="tf">現場管理アプリ</span><span class="ts">現場管理</span></a><button type="button" class="tabmo" data-act="menuorder">メニューの並び替え</button>');
+    moreRender(mob?REST:[]);
     TABS.map(function(t){return t[0]}).concat(["notes"]).forEach(function(k){$("v-"+k).hidden=(view!==k)});
     try{var tbE=$("tabbar"),cb=tbE.querySelector('[aria-current="page"]');if(cb&&tbE.scrollWidth>tbE.clientWidth&&tbE.clientHeight<100)tbE.scrollLeft=cb.offsetLeft-(tbE.clientWidth-cb.offsetWidth)/2}catch(e){}
     Array.prototype.forEach.call(document.querySelectorAll(".rn-seg button"),function(b){b.setAttribute("aria-selected",String(b.getAttribute("data-nav")===view))});
@@ -118,6 +139,7 @@
     else if(act==="anopen"){openAnnView(id)}
     else if(act==="retry"){if(s)loadOne(s,true)}
     else if(act==="menuorder"){openMenuOrder()}
+    else if(act==="more"){moreToggle(!moreOpen)}
     else if(act==="sitechat"){chRoom=(isClient?"client:":"site:")+id;chStick=true;closeSheet("detail");goto("chat")}
     else if(act==="demoend"){demoEnd()}
     else if(act==="dispatch"){
@@ -978,7 +1000,7 @@
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
-      "・スマホの下のメニューを、文字が重ならないよう横にスクロールできる形にしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
+      "・スマホの下のメニューを4つ(ホーム・現場・日報連絡・その他)にまとめ、残りは「その他」から開くようにしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
       "・端末の「戻る」操作(スワイプ・ボタン)で、アプリを閉じずに1つ前の画面へ戻れるようにしました",
       "・現場の詳細画面を見やすくしました。上部に現場名・状況・地区・担当・引渡時間をまとめ、パソコンでは2列で表示します",
       "・機械管理の画面を見やすくしました。状態ごとの絞り込み、種類・保管場所・品番の表示を追加しました",
