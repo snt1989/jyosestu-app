@@ -69,6 +69,14 @@
     offSync();
   });
   setTimeout(offSync,0);
+  /* 名簿の役割が「管理者」で有効な人に、管理者の権限(全ての画面)を付ける。この端末で1人につき1回だけ送る */
+  var admSynced={};
+  function admSync(){
+    if(!canAdmin||!window.__FB||!window.__FB.setRole)return;
+    members.forEach(function(m){
+      if(m.uid&&m.role==="管理者"&&m.active!==false&&!admSynced[m.uid]){admSynced[m.uid]=1;window.__FB.setRole(m.uid,"admin").catch(function(){delete admSynced[m.uid]})}
+    });
+  }
   var moreOpen=false;
   function tabCur(k){return k==="members"?(view==="admin"&&sub==="members"):k==="clients"?(view==="admin"&&sub==="clients"):k==="admin"?(view==="admin"&&sub!=="members"&&sub!=="clients"):k==="reports"?(view==="reports"||view==="notes"):view===k}
   function moreBtnHtml(rest){
@@ -676,6 +684,7 @@
       if(!mbUid&&pw.length<4){$("mbMsg").textContent="ログインパスワードを4文字以上で入力してください。";return}
       if(mbUid&&pw&&pw.length<4){$("mbMsg").textContent="パスワードは4文字以上にしてください。";return}
     }else if(mbUid&&members.some(function(x){return x.uid===mbUid&&x.id!==mbEdit})){$("mbMsg").textContent="このアカウントは、ほかのメンバーに連携されています。";return}
+    if(mbUid&&mbUid===myId&&canAdmin&&(data.role!=="管理者"||!data.active)){$("mbMsg").textContent="自分自身の管理者権限は外せません。役割を「管理者」、状態を「有効」のままにしてください。";return}
     $("mbSave").disabled=true;
     try{
       if(simple){
@@ -691,7 +700,7 @@
       if(mbEdit){await db.doc("members/"+mbEdit).update(data)}
       else{data.createdAt=Date.now();var ref=await db.collection("members").add(data);mid=ref&&ref.id||""}
       if(old&&old.uid&&old.uid!==mbUid){try{await db.doc("access/"+old.uid).delete()}catch(e1){}if(window.__FB)try{await window.__FB.setRole(old.uid,"pending")}catch(e1){}}
-      if(mbUid&&window.__FB)await window.__FB.setRole(mbUid,data.active?"member":"pending");
+      if(mbUid&&window.__FB)await window.__FB.setRole(mbUid,data.active?(data.role==="管理者"?"admin":"member"):"pending");
       if(mbUid)await db.doc("access/"+mbUid).set({memberId:mid,name:data.name,crew:data.crew,role:data.role,active:data.active});
       $("mbForm").hidden=true; mbEdit=null; toast("メンバーを保存しました。");
     }catch(err){$("mbMsg").textContent=(CERR[err&&err.message]||"")||"保存できませんでした。編集権限を確認してください。"}
@@ -1014,6 +1023,7 @@
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・メンバー管理で役割を「管理者」にした人は、設定・メンバー管理・お客様管理・単価など全ての画面を見られるようになりました(保存し直すと反映されます)",
       "・圏外でも使えるようにしました。完了報告・連絡・写真は端末に保存され、電波が戻ると自動で送信されます。一度開いたあとは圏外でもアプリを開けます",
       "・スマホの下のメニューを4つ(ホーム・現場・日報連絡・その他)にまとめ、残りは「その他」から開くようにしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
       "・端末の「戻る」操作(スワイプ・ボタン)で、アプリを閉じずに1つ前の画面へ戻れるようにしました",
@@ -2186,6 +2196,7 @@
       },function(){});
       if(canAdmin)db.collection("members").onSnapshot(function(snap){
         members=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o});
+        admSync();
         if(sub==="members")renderMembers();
         if(sub==="clients")renderClients();
       },function(){});
