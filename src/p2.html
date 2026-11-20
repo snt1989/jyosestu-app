@@ -51,8 +51,9 @@
   </section>
 
   <section id="v-machines" class="page" hidden>
-    <div id="machBody"></div>
-    <section class="card2 csbox" id="machEdit" hidden aria-labelledby="mmT" style="max-width:none"><div class="mmhead"><h3 id="mmT">機械の一覧表(台帳)</h3><span class="mmcnt num" id="mmCnt"></span></div>
+    <div class="subtabs sm ptabs" id="machTabs" role="group" aria-label="機械管理の表示" data-ptk="mach" hidden><button type="button" data-act="ptab" data-k="mach" data-t="use" aria-pressed="true">稼働状況</button><button type="button" data-act="ptab" data-k="mach" data-t="list" aria-pressed="false">機械の一覧表</button></div>
+    <div id="machBody" class="tp" data-tpk="mach" data-tp="use"></div>
+    <section class="card2 csbox tp tpoff" data-tpk="mach" data-tp="list" id="machEdit" hidden aria-labelledby="mmT" style="max-width:none"><div class="mmhead"><h3 id="mmT">機械の一覧表(台帳)</h3><span class="mmcnt num" id="mmCnt"></span></div>
       <p class="muted" style="margin:0 0 8px;font-size:13px">保管場所・種類・機械名・品番などを登録します。ここに登録した機械が、日報の「使用機械」の選択肢になります。</p>
       <details id="mmAddBox" class="mmadd"><summary class="btn primary">＋ 機械を追加する</summary>
       <form id="mmForm" class="mmform" autocomplete="off">

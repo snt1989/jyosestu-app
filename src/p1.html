@@ -1331,4 +1331,13 @@ body.demo #meLine{display:none}
 .offbar[hidden]{display:none}
 body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
 @media (min-width:900px){.offbar{left:auto;right:16px;bottom:16px;border-radius:999px;padding:8px 16px;box-shadow:0 6px 18px -6px rgba(0,0,0,.4)}body.offl .toast{bottom:64px}}
+/* ===== ページ内のタブ ===== */
+.tp.tpoff{display:none!important}
+.ptabs{margin:12px 0 14px}
+.ptabs button{display:inline-flex;align-items:center;gap:6px}
+.ptabs .ptn{background:var(--line);color:var(--ink);border-radius:999px;font-size:.72rem;font-weight:700;padding:1px 7px;min-width:20px;text-align:center}
+.ptabs button[aria-pressed="true"] .ptn{background:var(--accent);color:#fff}
+.tp>.sec:first-child{margin-top:4px}
+#detail .ptabs{position:sticky;top:0;z-index:5;background:var(--bg)}
+@media (max-width:640px){.ptabs button{padding:0 11px;font-size:.9rem}.ptabs .ptn{padding:1px 6px}}
 </style>

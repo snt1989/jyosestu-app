@@ -343,7 +343,7 @@
     var h='<div class="mbh"><h1 class="mbt">機械管理</h1><span class="muted">'+esc(today.replace(/-/g,"/"))+' '+p2(now.getHours())+':'+p2(now.getMinutes())+' 現在</span></div>';
     var shown=mchFilter==="all"?rows:rows.filter(function(r){return r.st===mchFilter});
     h+='<div class="mfl"><div class="mfbar" aria-hidden="true">'+["run","plan","done","idle"].map(function(k){return cnt[k]?'<i class="k-'+k+'" style="flex:'+cnt[k]+'"></i>':''}).join("")+'</div><div class="mfs" role="group" aria-label="状態で絞り込み">'+[["all","すべて",rows.length]].concat(["run","plan","done","idle"].map(function(k){return [k,L[k],cnt[k]]})).map(function(x){return '<button type="button" class="mf k-'+x[0]+'" data-mf="'+x[0]+'" aria-pressed="'+(mchFilter===x[0])+'"><b class="num">'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div></div>';
-    if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>下の「機械の一覧表」で機械・備品を登録すると、ここに表示されます。</div>';
+    if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>「機械の一覧表」タブで機械・備品を登録すると、ここに表示されます。</div>';
     else if(!shown.length)h+='<div class="empty"><b>この状態の機械はありません</b></div>';
     else h+='<div class="mbg">'+shown.map(function(x){
       var wd=["日","月","火","水","木","金","土"];

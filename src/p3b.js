@@ -187,6 +187,20 @@
       var s=siteById(m.siteId);
       return '<div class="dspr"><div class="dspn"><b>'+esc(s.name)+'</b><span>'+esc(timeStr(m.at))+' に要請</span></div><span class="dspa"><button type="button" class="btn sm" data-act="clientchat" data-id="'+esc(s.id)+'">返信</button><button type="button" class="btn sm primary" data-act="open" data-id="'+esc(s.id)+'">状況を変える</button></span></div>'}).join("")+'<div class="muted dspm">出動中・完了にするか、チャットで返信すると、この表示は消えます。</div></div>';
   }
+  /* ---------- ページ内のタブ(長いページを項目ごとに切り替える) ---------- */
+  var ptab={};
+  function ptCur(k,items){var c=ptab[k];return items.some(function(t){return t[0]===c})?c:items[0][0]}
+  function ptabsHtml(k,items,label){
+    var c=ptCur(k,items);
+    return '<div class="subtabs sm ptabs" role="group" aria-label="'+esc(label||"表示の切り替え")+'" data-ptk="'+k+'">'+items.map(function(t){
+      return '<button type="button" data-act="ptab" data-k="'+k+'" data-t="'+t[0]+'" aria-pressed="'+(t[0]===c)+'">'+esc(t[1])+(t[2]?'<span class="ptn num">'+t[2]+'</span>':'')+'</button>'}).join("")+'</div>';
+  }
+  function tpOpen(k,id,items){return '<div class="tp'+(ptCur(k,items)===id?'':' tpoff')+'" data-tpk="'+k+'" data-tp="'+id+'">'}
+  function ptSet(k,t){
+    ptab[k]=t;
+    Array.prototype.forEach.call(document.querySelectorAll('.tp[data-tpk="'+k+'"]'),function(el){el.classList.toggle("tpoff",el.getAttribute("data-tp")!==t)});
+    Array.prototype.forEach.call(document.querySelectorAll('.ptabs[data-ptk="'+k+'"] button'),function(b){b.setAttribute("aria-pressed",String(b.getAttribute("data-t")===t))});
+  }
   function whoHtml(){
     var td=todayStr(), now=Date.now(), crews={}, order=[];
     function C(n){n=n||"";if(!crews[n]){crews[n]={n:n,act:[],done:[]};order.push(n)}return crews[n]}
@@ -262,18 +276,24 @@
     h+='<button class="btn mp-home" type="button" data-act="openmap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>全体マップで現場を見る</button>';
     h+=dispatchBanner();
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
+    var outs=items.filter(function(x){return stOf(x.s)==="out"}), nt=notes.slice(0,3);
+    var HT=[["site","要対応",urgent.length||""],["who","出動状況",outs.length||""],["note","連絡",""],["rep","日報",todayReps.length||""]];
+    h+=ptabsHtml("home",HT,"ホームの表示");
+    h+=tpOpen("home","site",HT);
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
     h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return homeCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
+    h+='</div>'+tpOpen("home","who",HT);
     h+=whoHtml();
-    var outs=items.filter(function(x){return stOf(x.s)==="out"});
     if(outs.length){
       h+='<div class="sec"><h2>出動中<span class="gc num">'+outs.length+'件</span></h2></div><div class="stack">'+outs.map(function(x){return homeCard(x.s)}).join("")+'</div>';
     }
-    var nt=notes.slice(0,3);
+    h+='</div>'+tpOpen("home","note",HT);
     h+='<div class="sec"><h2>最新の連絡</h2><button class="link" type="button" data-nav="notes">連絡板を開く</button></div>';
     h+=nt.length?'<div class="stack">'+nt.map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はまだありません</b>申し送りは「連絡」から書けます。</div>';
+    h+='</div>'+tpOpen("home","rep",HT);
     h+='<div class="sec"><h2>本日の日報</h2><button class="link" type="button" data-nav="reports">日報を見る</button></div>';
     h+=todayReps.length?'<div class="stack">'+todayReps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>今日の日報はまだありません</b>作業が終わったら、右下のボタンから書けます。</div>';
+    h+='</div>';
     h+='<div class="mo-home"><button class="link" type="button" data-act="menuorder">メニューの並び替え</button></div>';
     $("v-home").innerHTML=h;
   }
@@ -438,6 +458,10 @@
     h+='<div class="dvhero lv'+a.lv+'"><div class="hrow"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="hst k-'+st0+'"><i></i>'+esc(ST[st0]||"")+(stAt(s)?' <small>'+timeStr(stAt(s))+'</small>':'')+'</span></div><h1 class="hnm">'+esc(s.name)+'</h1><div class="hch">'+
       (s.area?'<span class="hc">'+esc(s.area)+'</span>':'')+(siteCrews(s)[0]?'<span class="hc">担当 '+esc(siteCrews(s).join("・"))+'</span>':'')+(hs0.length?'<span class="hc">引渡 '+esc(handText(s,1))+'</span>':'')+
       (s.address?'<a class="hc map" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">'+esc(s.address)+'</a>':'')+'</div></div>';
+    var phN=sphotos.filter(function(x){return x.siteId===s.id}).length, rpN=reports.filter(function(r){return r.siteId===s.id}).length, ntN=notes.filter(function(x){return x.siteId===s.id}).length;
+    var DT=[["st","状況",""],["info","情報・契約",""],["ph","図面・写真",phN||""],["rep","日報",rpN||""],["nt","連絡",ntN||""]];
+    h+=ptabsHtml("detail",DT,"現場詳細の表示");
+    h+=tpOpen("detail","st",DT);
     h+='<div class="dvtop"><div class="card2 dvh">';
     if(bad)h+=bad;
     else{
@@ -449,7 +473,7 @@
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
       '<button class="btn primary dvdone" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+'>完了報告を出す</button><div class="dvact"><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+'>連絡を書く</button><button class="btn" type="button" data-act="sitechat" data-id="'+id+'">チャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'">報告書</button></div></div></div>';
-    h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
+    h+='</div>'+tpOpen("detail","info",DT);
     var n=siteSeasonCount(s.id), sl=siteLines(s);
     h+='<div class="dvcols"><div><div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
     h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>平米数</span>'+(+s.sqm>0?'<b class="num">'+esc(sqmText(s).replace(" ㎡",""))+'<small> ㎡</small></b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>引渡時間</span>'+(siteHands(s).length?'<b class="num hd">'+siteHands(s).map(function(h){return '<span>'+(h.label?'<small>'+esc(h.label)+' </small>':'')+esc(h.time)+'</span>'}).join("")+'</b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
@@ -461,7 +485,9 @@
         (canAdmin?'<div class="dcp">'+(l.unitPrice>0?'<b class="num">'+yen(l.unitPrice)+'</b><small> / '+(l.unit==="時間"?"時間":"回")+'</small>':'<span class="muted">単価 未登録</span>')+'</div>':'')+
         '<div class="dcb">'+(l.count?'<div class="bar'+(over?' over':'')+'"><i style="width:'+pc+'%"></i></div><div class="bt">'+(m==null?'':'出動 <b class="num">'+m+'</b>回 / ')+'契約 <b class="num">'+l.count+'</b>回</div>':'<div class="bt muted">'+(m==null?'契約回数なし':'出動 <b class="num">'+m+'</b>回(契約回数の設定なし)')+'</div>')+'</div></div>';
     }).join("")+'</div></div></div>';
+    h+='</div>'+tpOpen("detail","ph",DT);
     h+=siteDrawSec(s)+sitePhotoSec(s);
+    h+='</div>'+tpOpen("detail","rep",DT);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
     h+='<div class="sec" id="dvRp"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
     h+=reps.length?'<div class="stack">'+reps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>この現場の日報はまだありません</b></div>';
@@ -469,9 +495,10 @@
     detailPhotos=phs.slice(0,18);
     if(detailPhotos.length)h+='<div class="sec"><h2>日報の写真<span class="gc num">'+phs.length+'枚</span></h2></div>'+photoGrid(detailPhotos,"detail");
     var nts=notes.filter(function(x){return x.siteId===s.id});
+    h+='</div>'+tpOpen("detail","nt",DT);
     h+='<div class="sec" id="dvNt"><h2>この現場への連絡</h2></div>';
     h+=nts.length?'<div class="stack">'+nts.slice(0,5).map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はありません</b></div>';
-    return h+'</div>';
+    return h+'</div></div>';
   }
   var detailPhotos=[], sitePh=[];
   var PQD={light:{n:"軽量",side:1000,q:60,kb:110},std:{n:"標準",side:1600,q:78,kb:260},high:{n:"高画質",side:2000,q:85,kb:520}};
@@ -556,4 +583,4 @@
   }
   function openSheet(id){$(id).hidden=false;$(id).scrollTop=0;lockBody()}
   function closeSheet(id){$(id).hidden=true;if(id==="detail")detailId=null;lockBody();render()}
-  function openDetail(id){detailId=id;openSheet("detail");renderDetail()}
+  function openDetail(id){if(id!==detailId)ptab.detail="st";detailId=id;openSheet("detail");renderDetail()}

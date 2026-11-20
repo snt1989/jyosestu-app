@@ -229,6 +229,7 @@
     else if(act==="rptcsv"){rptCsv()}
     else if(act==="appset"){pwa.msg="";openAppSet()}
     else if(act==="appsetlater"){try{localStorage.setItem("josetsu.promo2","1")}catch(e){}render()}
+    else if(act==="ptab"){ptSet(d.k,d.t)}
     else if(act==="jump"){var el=$(d.t); if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}
     else if(act==="dwopen"){
       var w=window.open("","_blank"), dm=$("dwMsg");
@@ -1023,6 +1024,7 @@
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・ホーム・現場詳細・機械管理を、ページ内のタブで切り替えられるようにしました(長いスクロールが不要になります)",
       "・メンバー管理で役割を「管理者」にした人は、設定・メンバー管理・お客様管理・単価など全ての画面を見られるようになりました(保存し直すと反映されます)",
       "・圏外でも使えるようにしました。完了報告・連絡・写真は端末に保存され、電波が戻ると自動で送信されます。一度開いたあとは圏外でもアプリを開けます",
       "・スマホの下のメニューを4つ(ホーム・現場・日報連絡・その他)にまとめ、残りは「その他」から開くようにしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
@@ -1729,7 +1731,7 @@
   }
   function machEditFill(){
     var box=$("machEdit"); if(!box)return;
-    box.hidden=!canAdmin; if(!canAdmin)return;
+    box.hidden=!canAdmin; if($("machTabs"))$("machTabs").hidden=!canAdmin; if(!canAdmin){ptSet("mach","use");return}
     var rows=mmRows(), q=($("mmQ").value||"").trim().toLowerCase();
     $("mmCnt").textContent=rows.length+"台";
     rows.sort(function(a,b){return String(a.place||"￿").localeCompare(String(b.place||"￿"),"ja")||String(a.kind||"").localeCompare(String(b.kind||""),"ja")||a.name.localeCompare(b.name,"ja")});

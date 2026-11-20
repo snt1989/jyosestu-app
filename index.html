@@ -4,7 +4,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="/firebase-config.js"></script><script src="/fb-shim.js"></script>
-<script>window.APP_BUILD="202611201312"</script>
+<script>window.APP_BUILD="202611201349"</script>
 <title>除雪管理アプリ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Dela+Gothic+One&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <style>
@@ -1338,6 +1338,15 @@ body.demo #meLine{display:none}
 .offbar[hidden]{display:none}
 body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
 @media (min-width:900px){.offbar{left:auto;right:16px;bottom:16px;border-radius:999px;padding:8px 16px;box-shadow:0 6px 18px -6px rgba(0,0,0,.4)}body.offl .toast{bottom:64px}}
+/* ===== ページ内のタブ ===== */
+.tp.tpoff{display:none!important}
+.ptabs{margin:12px 0 14px}
+.ptabs button{display:inline-flex;align-items:center;gap:6px}
+.ptabs .ptn{background:var(--line);color:var(--ink);border-radius:999px;font-size:.72rem;font-weight:700;padding:1px 7px;min-width:20px;text-align:center}
+.ptabs button[aria-pressed="true"] .ptn{background:var(--accent);color:#fff}
+.tp>.sec:first-child{margin-top:4px}
+#detail .ptabs{position:sticky;top:0;z-index:5;background:var(--bg)}
+@media (max-width:640px){.ptabs button{padding:0 11px;font-size:.9rem}.ptabs .ptn{padding:1px 6px}}
 </style>
 </head><body>
 
@@ -1393,8 +1402,9 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
   </section>
 
   <section id="v-machines" class="page" hidden>
-    <div id="machBody"></div>
-    <section class="card2 csbox" id="machEdit" hidden aria-labelledby="mmT" style="max-width:none"><div class="mmhead"><h3 id="mmT">機械の一覧表(台帳)</h3><span class="mmcnt num" id="mmCnt"></span></div>
+    <div class="subtabs sm ptabs" id="machTabs" role="group" aria-label="機械管理の表示" data-ptk="mach" hidden><button type="button" data-act="ptab" data-k="mach" data-t="use" aria-pressed="true">稼働状況</button><button type="button" data-act="ptab" data-k="mach" data-t="list" aria-pressed="false">機械の一覧表</button></div>
+    <div id="machBody" class="tp" data-tpk="mach" data-tp="use"></div>
+    <section class="card2 csbox tp tpoff" data-tpk="mach" data-tp="list" id="machEdit" hidden aria-labelledby="mmT" style="max-width:none"><div class="mmhead"><h3 id="mmT">機械の一覧表(台帳)</h3><span class="mmcnt num" id="mmCnt"></span></div>
       <p class="muted" style="margin:0 0 8px;font-size:13px">保管場所・種類・機械名・品番などを登録します。ここに登録した機械が、日報の「使用機械」の選択肢になります。</p>
       <details id="mmAddBox" class="mmadd"><summary class="btn primary">＋ 機械を追加する</summary>
       <form id="mmForm" class="mmform" autocomplete="off">
@@ -2305,6 +2315,20 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
       var s=siteById(m.siteId);
       return '<div class="dspr"><div class="dspn"><b>'+esc(s.name)+'</b><span>'+esc(timeStr(m.at))+' に要請</span></div><span class="dspa"><button type="button" class="btn sm" data-act="clientchat" data-id="'+esc(s.id)+'">返信</button><button type="button" class="btn sm primary" data-act="open" data-id="'+esc(s.id)+'">状況を変える</button></span></div>'}).join("")+'<div class="muted dspm">出動中・完了にするか、チャットで返信すると、この表示は消えます。</div></div>';
   }
+  /* ---------- ページ内のタブ(長いページを項目ごとに切り替える) ---------- */
+  var ptab={};
+  function ptCur(k,items){var c=ptab[k];return items.some(function(t){return t[0]===c})?c:items[0][0]}
+  function ptabsHtml(k,items,label){
+    var c=ptCur(k,items);
+    return '<div class="subtabs sm ptabs" role="group" aria-label="'+esc(label||"表示の切り替え")+'" data-ptk="'+k+'">'+items.map(function(t){
+      return '<button type="button" data-act="ptab" data-k="'+k+'" data-t="'+t[0]+'" aria-pressed="'+(t[0]===c)+'">'+esc(t[1])+(t[2]?'<span class="ptn num">'+t[2]+'</span>':'')+'</button>'}).join("")+'</div>';
+  }
+  function tpOpen(k,id,items){return '<div class="tp'+(ptCur(k,items)===id?'':' tpoff')+'" data-tpk="'+k+'" data-tp="'+id+'">'}
+  function ptSet(k,t){
+    ptab[k]=t;
+    Array.prototype.forEach.call(document.querySelectorAll('.tp[data-tpk="'+k+'"]'),function(el){el.classList.toggle("tpoff",el.getAttribute("data-tp")!==t)});
+    Array.prototype.forEach.call(document.querySelectorAll('.ptabs[data-ptk="'+k+'"] button'),function(b){b.setAttribute("aria-pressed",String(b.getAttribute("data-t")===t))});
+  }
   function whoHtml(){
     var td=todayStr(), now=Date.now(), crews={}, order=[];
     function C(n){n=n||"";if(!crews[n]){crews[n]={n:n,act:[],done:[]};order.push(n)}return crews[n]}
@@ -2380,18 +2404,24 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
     h+='<button class="btn mp-home" type="button" data-act="openmap"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>全体マップで現場を見る</button>';
     h+=dispatchBanner();
     var urgent=prioritySort(items.filter(function(x){return x.a.lv>=2&&stOf(x.s)!=="out"}));
+    var outs=items.filter(function(x){return stOf(x.s)==="out"}), nt=notes.slice(0,3);
+    var HT=[["site","要対応",urgent.length||""],["who","出動状況",outs.length||""],["note","連絡",""],["rep","日報",todayReps.length||""]];
+    h+=ptabsHtml("home",HT,"ホームの表示");
+    h+=tpOpen("home","site",HT);
     h+='<div class="sec"><h2>要対応の現場<span class="gc num">'+urgent.length+'件</span></h2>'+(urgent.length>5?'<button class="link" type="button" data-nav="sites" data-f="l3">すべて見る</button>':'')+'</div>';
     h+=urgent.length?'<div class="stack">'+urgent.slice(0,5).map(function(x){return homeCard(x.s)}).join("")+'</div>':'<div class="empty"><b>いま対応が必要な現場はありません</b>出動目安・警戒の現場がないか、すでに出動中です。</div>';
+    h+='</div>'+tpOpen("home","who",HT);
     h+=whoHtml();
-    var outs=items.filter(function(x){return stOf(x.s)==="out"});
     if(outs.length){
       h+='<div class="sec"><h2>出動中<span class="gc num">'+outs.length+'件</span></h2></div><div class="stack">'+outs.map(function(x){return homeCard(x.s)}).join("")+'</div>';
     }
-    var nt=notes.slice(0,3);
+    h+='</div>'+tpOpen("home","note",HT);
     h+='<div class="sec"><h2>最新の連絡</h2><button class="link" type="button" data-nav="notes">連絡板を開く</button></div>';
     h+=nt.length?'<div class="stack">'+nt.map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はまだありません</b>申し送りは「連絡」から書けます。</div>';
+    h+='</div>'+tpOpen("home","rep",HT);
     h+='<div class="sec"><h2>本日の日報</h2><button class="link" type="button" data-nav="reports">日報を見る</button></div>';
     h+=todayReps.length?'<div class="stack">'+todayReps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>今日の日報はまだありません</b>作業が終わったら、右下のボタンから書けます。</div>';
+    h+='</div>';
     h+='<div class="mo-home"><button class="link" type="button" data-act="menuorder">メニューの並び替え</button></div>';
     $("v-home").innerHTML=h;
   }
@@ -2556,6 +2586,10 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
     h+='<div class="dvhero lv'+a.lv+'"><div class="hrow"><span class="pill big l'+a.lv+'">'+a.label+'</span><span class="hst k-'+st0+'"><i></i>'+esc(ST[st0]||"")+(stAt(s)?' <small>'+timeStr(stAt(s))+'</small>':'')+'</span></div><h1 class="hnm">'+esc(s.name)+'</h1><div class="hch">'+
       (s.area?'<span class="hc">'+esc(s.area)+'</span>':'')+(siteCrews(s)[0]?'<span class="hc">担当 '+esc(siteCrews(s).join("・"))+'</span>':'')+(hs0.length?'<span class="hc">引渡 '+esc(handText(s,1))+'</span>':'')+
       (s.address?'<a class="hc map" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address)+'" target="_blank" rel="noopener">'+esc(s.address)+'</a>':'')+'</div></div>';
+    var phN=sphotos.filter(function(x){return x.siteId===s.id}).length, rpN=reports.filter(function(r){return r.siteId===s.id}).length, ntN=notes.filter(function(x){return x.siteId===s.id}).length;
+    var DT=[["st","状況",""],["info","情報・契約",""],["ph","図面・写真",phN||""],["rep","日報",rpN||""],["nt","連絡",ntN||""]];
+    h+=ptabsHtml("detail",DT,"現場詳細の表示");
+    h+=tpOpen("detail","st",DT);
     h+='<div class="dvtop"><div class="card2 dvh">';
     if(bad)h+=bad;
     else{
@@ -2567,7 +2601,7 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
     h+='</div>';
     h+='<div class="card2 dva"><div class="dvah"><b>作業状況</b><span class="muted">'+(stAt(s)?esc(ST[stOf(s)])+' '+timeStr(stAt(s)):'')+'</span></div>'+segHtml(s)+
       '<button class="btn primary dvdone" type="button" data-act="newrep" data-id="'+id+'"'+(canWrite()?'':' disabled')+'>完了報告を出す</button><div class="dvact"><button class="btn" type="button" data-act="newnote" data-id="'+id+'"'+(canWrite()?'':' disabled')+'>連絡を書く</button><button class="btn" type="button" data-act="sitechat" data-id="'+id+'">チャット</button><button class="btn" type="button" data-act="rptnew" data-id="'+id+'">報告書</button></div></div></div>';
-    h+='<div class="dvn" role="navigation" aria-label="この画面の項目"><button type="button" data-act="jump" data-t="dvInfo">現場の情報</button><button type="button" data-act="jump" data-t="dvCt">契約・単価</button><button type="button" data-act="jump" data-t="dvDw">図面</button><button type="button" data-act="jump" data-t="dvPh">写真</button><button type="button" data-act="jump" data-t="dvRp">日報</button><button type="button" data-act="jump" data-t="dvNt">連絡</button></div>';
+    h+='</div>'+tpOpen("detail","info",DT);
     var n=siteSeasonCount(s.id), sl=siteLines(s);
     h+='<div class="dvcols"><div><div class="sec" id="dvInfo"><h2>現場の情報</h2></div><div class="card2 dvi">';
     h+='<div class="dvt"><div class="tl"><span>出動基準</span><b class="num">降雪 '+esc(s.threshold||10)+'<small> cm</small></b></div><div class="tl"><span>平米数</span>'+(+s.sqm>0?'<b class="num">'+esc(sqmText(s).replace(" ㎡",""))+'<small> ㎡</small></b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>引渡時間</span>'+(siteHands(s).length?'<b class="num hd">'+siteHands(s).map(function(h){return '<span>'+(h.label?'<small>'+esc(h.label)+' </small>':'')+esc(h.time)+'</span>'}).join("")+'</b>':'<b class="num"><small>未設定</small></b>')+'</div><div class="tl"><span>今シーズンの出動</span><b class="num">'+n+'<small> 回</small></b></div></div>';
@@ -2579,7 +2613,9 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
         (canAdmin?'<div class="dcp">'+(l.unitPrice>0?'<b class="num">'+yen(l.unitPrice)+'</b><small> / '+(l.unit==="時間"?"時間":"回")+'</small>':'<span class="muted">単価 未登録</span>')+'</div>':'')+
         '<div class="dcb">'+(l.count?'<div class="bar'+(over?' over':'')+'"><i style="width:'+pc+'%"></i></div><div class="bt">'+(m==null?'':'出動 <b class="num">'+m+'</b>回 / ')+'契約 <b class="num">'+l.count+'</b>回</div>':'<div class="bt muted">'+(m==null?'契約回数なし':'出動 <b class="num">'+m+'</b>回(契約回数の設定なし)')+'</div>')+'</div></div>';
     }).join("")+'</div></div></div>';
+    h+='</div>'+tpOpen("detail","ph",DT);
     h+=siteDrawSec(s)+sitePhotoSec(s);
+    h+='</div>'+tpOpen("detail","rep",DT);
     var reps=sortReps(reports.filter(function(r){return r.siteId===s.id}));
     h+='<div class="sec" id="dvRp"><h2>日報<span class="gc num">'+reps.length+'件</span></h2>'+(reps.length>5?'<button class="link" type="button" data-act="allreps" data-id="'+id+'">すべて見る</button>':'')+'</div>';
     h+=reps.length?'<div class="stack">'+reps.slice(0,5).map(repCard).join("")+'</div>':'<div class="empty"><b>この現場の日報はまだありません</b></div>';
@@ -2587,9 +2623,10 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
     detailPhotos=phs.slice(0,18);
     if(detailPhotos.length)h+='<div class="sec"><h2>日報の写真<span class="gc num">'+phs.length+'枚</span></h2></div>'+photoGrid(detailPhotos,"detail");
     var nts=notes.filter(function(x){return x.siteId===s.id});
+    h+='</div>'+tpOpen("detail","nt",DT);
     h+='<div class="sec" id="dvNt"><h2>この現場への連絡</h2></div>';
     h+=nts.length?'<div class="stack">'+nts.slice(0,5).map(noteCard).join("")+'</div>':'<div class="empty"><b>連絡はありません</b></div>';
-    return h+'</div>';
+    return h+'</div></div>';
   }
   var detailPhotos=[], sitePh=[];
   var PQD={light:{n:"軽量",side:1000,q:60,kb:110},std:{n:"標準",side:1600,q:78,kb:260},high:{n:"高画質",side:2000,q:85,kb:520}};
@@ -2674,7 +2711,7 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
   }
   function openSheet(id){$(id).hidden=false;$(id).scrollTop=0;lockBody()}
   function closeSheet(id){$(id).hidden=true;if(id==="detail")detailId=null;lockBody();render()}
-  function openDetail(id){detailId=id;openSheet("detail");renderDetail()}
+  function openDetail(id){if(id!==detailId)ptab.detail="st";detailId=id;openSheet("detail");renderDetail()}
 
   /* ---------- 日報一覧 ---------- */
   function periodOk(d){
@@ -3020,7 +3057,7 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
     var h='<div class="mbh"><h1 class="mbt">機械管理</h1><span class="muted">'+esc(today.replace(/-/g,"/"))+' '+p2(now.getHours())+':'+p2(now.getMinutes())+' 現在</span></div>';
     var shown=mchFilter==="all"?rows:rows.filter(function(r){return r.st===mchFilter});
     h+='<div class="mfl"><div class="mfbar" aria-hidden="true">'+["run","plan","done","idle"].map(function(k){return cnt[k]?'<i class="k-'+k+'" style="flex:'+cnt[k]+'"></i>':''}).join("")+'</div><div class="mfs" role="group" aria-label="状態で絞り込み">'+[["all","すべて",rows.length]].concat(["run","plan","done","idle"].map(function(k){return [k,L[k],cnt[k]]})).map(function(x){return '<button type="button" class="mf k-'+x[0]+'" data-mf="'+x[0]+'" aria-pressed="'+(mchFilter===x[0])+'"><b class="num">'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div></div>';
-    if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>下の「機械の一覧表」で機械・備品を登録すると、ここに表示されます。</div>';
+    if(!rows.length)h+='<div class="empty"><b>機械が登録されていません</b><br>「機械の一覧表」タブで機械・備品を登録すると、ここに表示されます。</div>';
     else if(!shown.length)h+='<div class="empty"><b>この状態の機械はありません</b></div>';
     else h+='<div class="mbg">'+shown.map(function(x){
       var wd=["日","月","火","水","木","金","土"];
@@ -3619,6 +3656,7 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
     else if(act==="rptcsv"){rptCsv()}
     else if(act==="appset"){pwa.msg="";openAppSet()}
     else if(act==="appsetlater"){try{localStorage.setItem("josetsu.promo2","1")}catch(e){}render()}
+    else if(act==="ptab"){ptSet(d.k,d.t)}
     else if(act==="jump"){var el=$(d.t); if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}
     else if(act==="dwopen"){
       var w=window.open("","_blank"), dm=$("dwMsg");
@@ -4413,6 +4451,7 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
     {v:"2026.11.18",title:"アプリを更新しました(2026.11.18)",body:[
       "・出動要請を目立たせました。お客様側は赤い大きなボタン、スタッフ側はホームの上に赤い帯で表示し、出動中・完了にするか返信すると消えます",
       "・使用機械の登録・編集を、設定のマスタから「機械管理」の画面に移しました",
+      "・ホーム・現場詳細・機械管理を、ページ内のタブで切り替えられるようにしました(長いスクロールが不要になります)",
       "・メンバー管理で役割を「管理者」にした人は、設定・メンバー管理・お客様管理・単価など全ての画面を見られるようになりました(保存し直すと反映されます)",
       "・圏外でも使えるようにしました。完了報告・連絡・写真は端末に保存され、電波が戻ると自動で送信されます。一度開いたあとは圏外でもアプリを開けます",
       "・スマホの下のメニューを4つ(ホーム・現場・日報連絡・その他)にまとめ、残りは「その他」から開くようにしました。設定のマスタ(地区など)の表もスマホで見やすくしました",
@@ -5119,7 +5158,7 @@ body.offl .toast{bottom:calc(128px + env(safe-area-inset-bottom,0px))}
   }
   function machEditFill(){
     var box=$("machEdit"); if(!box)return;
-    box.hidden=!canAdmin; if(!canAdmin)return;
+    box.hidden=!canAdmin; if($("machTabs"))$("machTabs").hidden=!canAdmin; if(!canAdmin){ptSet("mach","use");return}
     var rows=mmRows(), q=($("mmQ").value||"").trim().toLowerCase();
     $("mmCnt").textContent=rows.length+"台";
     rows.sort(function(a,b){return String(a.place||"￿").localeCompare(String(b.place||"￿"),"ja")||String(a.kind||"").localeCompare(String(b.kind||""),"ja")||a.name.localeCompare(b.name,"ja")});
